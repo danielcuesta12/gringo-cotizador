@@ -9,11 +9,28 @@
 </head>
 <body class="admin-layout">
 
+<?php
+// Logo desde company_settings
+$_al  = getSetting('active_logo', 'a') === 'b' ? 'company_logo_b' : 'company_logo';
+$_lp  = getSetting($_al, '');
+
+// Contar solicitudes pendientes para el badge
+$_pendingCount = 0;
+try {
+    $_prow = Database::fetch("SELECT COUNT(*) as n FROM quote_requests WHERE status='pendiente'");
+    $_pendingCount = $_prow ? (int)$_prow['n'] : 0;
+} catch (Exception $e) { $_pendingCount = 0; }
+?>
+
 <aside class="sidebar" id="sidebar">
+
   <div class="sidebar-brand">
-    <div class="sidebar-logo">&#127828;</div>
-    <div>
-      <div class="sidebar-brand-name">El Gringo</div>
+    <div class="sidebar-brand-logo-wrap">
+      <?php if ($_lp): ?>
+        <img src="<?php echo UPLOAD_URL . $_lp; ?>" alt="Logo" class="sidebar-logo-img">
+      <?php else: ?>
+        <span class="sidebar-logo-fallback">&#127828;</span>
+      <?php endif; ?>
       <div class="sidebar-brand-sub">Cotizador</div>
     </div>
     <button class="sidebar-close" id="sidebarClose" aria-label="Cerrar menu">&#10005;</button>
@@ -28,14 +45,15 @@
       <span class="nav-icon">&#128202;</span> Dashboard
     </a>
 
+    <div class="nav-section-label">Gestion</div>
+
     <a href="<?php echo APP_URL; ?>/quotes/create.php"
        class="nav-link nav-link-highlight <?php echo ($activePage??'')==='quote-new'?'active':''; ?>">
       <span class="nav-icon">&#9998;</span> Nueva cotizacion
     </a>
 
     <a href="<?php echo APP_URL; ?>/admin/events/create"
-       class="nav-link <?php echo ($activePage??'')==='event-new'?'active':''; ?>"
-       style="color:#7c3aed;border-left:3px solid #7c3aed;<?php echo ($activePage??'')==='event-new'?'background:rgba(124,58,237,.08)':''; ?>">
+       class="nav-link nav-link-pink <?php echo ($activePage??'')==='event-new'?'active':''; ?>">
       <span class="nav-icon">&#128197;</span> Nuevo evento
     </a>
 
@@ -54,19 +72,11 @@
       <span class="nav-icon">&#128101;</span> Clientes
     </a>
 
-    <?php
-    // Contar solicitudes pendientes para el badge
-    $pendingCount = 0;
-    try {
-        $prow = Database::fetch("SELECT COUNT(*) as n FROM quote_requests WHERE status='pendiente'");
-        $pendingCount = $prow ? (int)$prow['n'] : 0;
-    } catch (Exception $e) { $pendingCount = 0; }
-    ?>
     <a href="<?php echo APP_URL; ?>/admin/requests/index.php"
        class="nav-link <?php echo ($activePage??'')==='requests'?'active':''; ?>">
       <span class="nav-icon">&#128228;</span> Solicitudes
-      <?php if ($pendingCount > 0): ?>
-        <span style="margin-left:auto;background:#ca8a04;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center"><?php echo $pendingCount; ?></span>
+      <?php if ($_pendingCount > 0): ?>
+        <span class="nav-badge nav-badge-pink"><?php echo $_pendingCount; ?></span>
       <?php endif; ?>
     </a>
 
@@ -113,6 +123,7 @@
     </div>
     <a href="<?php echo APP_URL; ?>/auth/logout.php" class="sidebar-logout" title="Cerrar sesion">&#9211;</a>
   </div>
+
 </aside>
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
