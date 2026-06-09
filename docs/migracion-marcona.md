@@ -56,3 +56,26 @@ solo se porta el código y se decide el esquema propio de El Gringo:
   la carta de venta (Fase C).
 - Usuarios/login: reusar `users` del cotizador (un solo login para todo).
 - `pedidos`: tabla nueva en la BD del cotizador (se crea en Fase C).
+
+## Mapa de URLs (oficial)
+Admin base en `/cotizador` (alias `/admin` opcional vía .htaccess, sin mover nada).
+
+### Público (sin login) — raíz elgringo.pe
+- `/`                              → Landing link-in-bio
+- `/{slug}`                        → Carta de venta por ubicación (ej. /burgerjoint)
+- `/{slug}/menu`                   → Menú solo lectura por ubicación
+- `/cotizador/solicitud`           → Formulario público de cotización
+- `/cotizador/quotes/view?token=`  → Cotización pública (cliente)
+- `/cotizador/quotes/pdf?id=`      → PDF
+
+### Admin (login en /cotizador/auth/login)
+- Principal:   /cotizador/admin/dashboard
+- Ventas:      /cotizador/admin/cartas | /pedidos | /pos | /kds
+- Cotizaciones:/cotizador/quotes/create | /quotes/list | /admin/events/create | /admin/calendar | /admin/requests
+- CRM:         /cotizador/admin/clients | /reservas | /lealtad
+- Catálogo:    /cotizador/admin/products | /categories | /packages
+- Sitio:       /cotizador/admin/landing | /ubicaciones | /analytics
+- Admin:       /cotizador/admin/users | /settings
+
+### APIs internas
+- /cotizador/api/quotes | /api/carta?slug= | /api/pedido | /api/pedidos | /api/izipay/{create,ipn,verify} | /api/track
