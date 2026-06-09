@@ -55,9 +55,9 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-chev svg{transition:transform .28s ease}
   .lnk-expand.open .lnk-chev svg{transform:rotate(180deg)}
   .lnk-wrap{display:flex;flex-direction:column}
-  .quote-panel{height:0;overflow:hidden;transition:height .34s ease;border-radius:16px}
-  .quote-panel.open{margin-top:12px}
-  .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
+  .quote-panel{max-height:0;overflow:hidden;transition:max-height .4s ease;border-radius:16px}
+  .quote-panel.open{max-height:1600px;margin-top:12px}
+  .quote-panel iframe{width:100%;height:700px;border:0;display:block;background:#f4f4f0;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(255,255,255,.3);text-align:center}
 </style>
 </head>
@@ -86,7 +86,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
           </span>
           <span class="lnk-arrow lnk-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
         </button>
-        <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy" scrolling="no"></iframe></div>
+        <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy"></iframe></div>
       </div>
       <?php else: ?>
       <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>">
@@ -104,32 +104,23 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <div class="foot">© 2013 El Gringo Burger Joint · Lima, Perú</div>
 </div>
 <script>
-  var quoteOpen = false;
   function toggleQuote(btn){
     var panel = document.getElementById('quotePanel'), frame = document.getElementById('quoteFrame');
-    quoteOpen = !quoteOpen;
-    btn.classList.toggle('open', quoteOpen);
-    panel.classList.toggle('open', quoteOpen);
-    btn.setAttribute('aria-expanded', quoteOpen);
-    if (quoteOpen){
-      if (!frame.src) {
-        frame.src = frame.dataset.src;                        // carga diferida (1ª vez)
-      } else {
-        try { frame.contentWindow.postMessage({eg_request_height: 1}, '*'); } catch(e){}  // re-pide altura al reabrir
-      }
-      panel.style.height = (frame._h || 560) + 'px';
-      setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
-    } else {
-      panel.style.height = '0px';
+    var open = !panel.classList.contains('open');           // estado real del DOM (no variable)
+    panel.classList.toggle('open', open);
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open);
+    if (open){
+      if (!frame.src) frame.src = frame.dataset.src;        // carga diferida la 1ª vez
+      else { try { frame.contentWindow.postMessage({eg_request_height: 1}, '*'); } catch(e){} }
+      setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
     }
   }
+  // Ajuste fino: cuando el formulario reporta su altura, la aplicamos al iframe
   window.addEventListener('message', function(e){
     if (!e.data || !e.data.eg_quote_height) return;
-    var frame = document.getElementById('quoteFrame'), panel = document.getElementById('quotePanel');
-    if (!frame) return;
-    frame._h = e.data.eg_quote_height;
-    frame.style.height = e.data.eg_quote_height + 'px';
-    if (quoteOpen) panel.style.height = e.data.eg_quote_height + 'px';
+    var frame = document.getElementById('quoteFrame');
+    if (frame) frame.style.height = e.data.eg_quote_height + 'px';
   });
 </script>
 </body>
