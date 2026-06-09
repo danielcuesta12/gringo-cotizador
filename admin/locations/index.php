@@ -102,6 +102,9 @@ include __DIR__ . '/../layout-top.php';
               <a href="<?= APP_URL ?>/admin/locations/items.php?id=<?= $u['id'] ?>" class="btn btn-ghost btn-sm" title="Gestionar ítems de la carta">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Ítems
               </a>
+              <a href="<?= APP_URL ?>/admin/locations/qr.php?id=<?= $u['id'] ?>" class="btn btn-ghost btn-sm" title="QR del menú">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17h.01"/></svg>QR
+              </a>
               <a href="<?= APP_URL ?>/admin/locations/form.php?id=<?= $u['id'] ?>" class="btn btn-ghost btn-sm">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar
               </a>
