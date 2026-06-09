@@ -93,10 +93,10 @@ include __DIR__ . '/../layout-top.php';
       <div class="search-bar">
         <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <input type="text" name="q" value="<?= clean($search) ?>"
-               placeholder="Buscar producto…" oninput="this.form.submit()">
+               placeholder="Buscar producto…" autocomplete="off">
       </div>
 
-      <select name="cat" onchange="this.form.submit()" style="width:auto;padding:9px 14px">
+      <select name="cat" style="width:auto;padding:9px 14px">
         <option value="">Todas las categorías</option>
         <?php foreach ($categories as $c): ?>
         <option value="<?= $c['id'] ?>" <?= $catFilter == $c['id'] ? 'selected' : '' ?>>
@@ -105,7 +105,7 @@ include __DIR__ . '/../layout-top.php';
         <?php endforeach; ?>
       </select>
 
-      <select name="status" onchange="this.form.submit()" style="width:auto;padding:9px 14px">
+      <select name="status" style="width:auto;padding:9px 14px">
         <option value="">Todos los estados</option>
         <option value="active"   <?= $statusF==='active'   ? 'selected':'' ?>>Solo activos</option>
         <option value="inactive" <?= $statusF==='inactive' ? 'selected':'' ?>>Solo inactivos</option>
@@ -117,6 +117,7 @@ include __DIR__ . '/../layout-top.php';
     </form>
   </div>
 
+  <div id="liveResults">
   <?php if (empty($products)): ?>
     <div class="empty-state">
       <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
@@ -208,6 +209,7 @@ include __DIR__ . '/../layout-top.php';
   </div>
   <?php endif; ?>
   <?php endif; ?>
+  </div><!-- /liveResults -->
 </div>
 
 <script>

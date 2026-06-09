@@ -23,6 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         redirect('/admin/requests/index.php');
     }
 
+    if ($action === 'delete') {
+        Database::execute("DELETE FROM quote_requests WHERE id=?", array($id));
+        flashMessage('success', 'Solicitud eliminada.');
+        redirect('/admin/requests/index.php');
+    }
+
     if ($action === 'accept') {
         // 1. Crear cliente en la BD
         $clientId = Database::insert(
@@ -107,6 +113,15 @@ include __DIR__ . '/../layout-top.php';
     <?php echo isset($bl[$req['status']])?$bl[$req['status']]:$req['status']; ?>
   </span>
   <span style="font-size:12px;color:var(--text-muted)">Recibida <?php echo formatDatetime($req['created_at']); ?></span>
+  <form method="post" style="margin-left:auto">
+    <?php echo csrfField(); ?>
+    <input type="hidden" name="action" value="delete">
+    <button type="submit" class="btn btn-ghost btn-sm" style="color:#dc2626" title="Eliminar solicitud"
+            data-confirm="¿Eliminar la solicitud de «<?php echo clean($req['name']); ?>»? Esta acción no se puede deshacer.">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Eliminar
+    </button>
+  </form>
 </div>
 
 <div class="det-wrap">

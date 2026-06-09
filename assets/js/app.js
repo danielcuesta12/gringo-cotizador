@@ -255,3 +255,55 @@ function removeQuoteItem(btn) {
 function escHtml(str) {
   return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+/* ============================================================
+   BÚSQUEDA EN VIVO (AJAX)
+   Lista paginada con <div id="liveResults"> + formulario GET con
+   un input[name="q"]. Reescribe solo #liveResults sin recargar.
+   ============================================================ */
+(function () {
+  function liveFetch(form) {
+    var params = new URLSearchParams(new FormData(form));
+    params.delete('page'); // toda búsqueda vuelve a la página 1
+    var base = form.getAttribute('action') || window.location.pathname;
+    var qs   = params.toString();
+    var url  = base + (qs ? '?' + qs : '');
+    var cur  = document.getElementById('liveResults');
+    if (cur) cur.style.opacity = '.5';
+    fetch(url, { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var doc   = new DOMParser().parseFromString(html, 'text/html');
+        var fresh = doc.getElementById('liveResults');
+        var c     = document.getElementById('liveResults');
+        if (fresh && c) { c.replaceWith(fresh); }
+        else if (c) { c.style.opacity = ''; }
+        window.history.replaceState(null, '', url);
+      })
+      .catch(function () { if (cur) cur.style.opacity = ''; });
+  }
+
+  function initLiveSearch() {
+    document.querySelectorAll('input[name="q"]').forEach(function (input) {
+      var form = input.closest('form');
+      if (!form || form.dataset.liveBound) return;
+      form.dataset.liveBound = '1';
+      var t;
+      input.addEventListener('input', function () {
+        clearTimeout(t);
+        t = setTimeout(function () { liveFetch(form); }, 250);
+      });
+      form.querySelectorAll('select, input[type="date"]').forEach(function (el) {
+        el.addEventListener('change', function () { liveFetch(form); });
+      });
+      // Enter no recarga toda la página
+      form.addEventListener('submit', function (e) { e.preventDefault(); liveFetch(form); });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLiveSearch);
+  } else {
+    initLiveSearch();
+  }
+})();

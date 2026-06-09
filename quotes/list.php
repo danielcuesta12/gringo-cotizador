@@ -127,18 +127,19 @@ include __DIR__ . '/../admin/layout-top.php';
       <div class="search-bar">
         <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <input type="text" name="q" value="<?php echo clean($search); ?>"
-               placeholder="N° cotizacion, cliente, evento…" oninput="this.form.submit()">
+               placeholder="N° cotizacion, cliente, evento…" autocomplete="off">
       </div>
       <input type="date" name="from" value="<?php echo clean($from); ?>"
-             onchange="this.form.submit()" style="width:auto;padding:9px 14px" title="Desde">
+             style="width:auto;padding:9px 14px" title="Desde">
       <input type="date" name="to" value="<?php echo clean($to); ?>"
-             onchange="this.form.submit()" style="width:auto;padding:9px 14px" title="Hasta">
+             style="width:auto;padding:9px 14px" title="Hasta">
       <?php if ($search||$from||$to): ?>
         <a href="?status=<?php echo $status; ?>" class="btn btn-ghost btn-sm">&#10005;</a>
       <?php endif; ?>
     </form>
   </div>
 
+  <div id="liveResults">
   <?php if (empty($quotes)): ?>
   <div class="empty-state">
     <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
@@ -312,6 +313,7 @@ include __DIR__ . '/../admin/layout-top.php';
   <?php endif; ?>
 
   <?php endif; ?>
+  </div><!-- /liveResults -->
 </div><!-- /card -->
 
 <!-- Form oculto para eliminar -->

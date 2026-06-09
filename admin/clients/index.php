@@ -71,9 +71,9 @@ include __DIR__ . '/../layout-top.php';
       <div class="search-bar">
         <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <input type="text" name="q" value="<?= clean($search) ?>"
-               placeholder="Nombre, RUC, email…" oninput="this.form.submit()">
+               placeholder="Nombre, RUC, email…" autocomplete="off">
       </div>
-      <select name="type" onchange="this.form.submit()" style="width:auto;padding:9px 14px">
+      <select name="type" style="width:auto;padding:9px 14px">
         <option value="">Todos los tipos</option>
         <option value="empresa" <?= $typeF==='empresa' ? 'selected':'' ?>>Empresas</option>
         <option value="persona" <?= $typeF==='persona' ? 'selected':'' ?>>Personas</option>
@@ -84,6 +84,7 @@ include __DIR__ . '/../layout-top.php';
     </form>
   </div>
 
+  <div id="liveResults">
   <?php if (empty($clients)): ?>
     <div class="empty-state">
       <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
@@ -185,6 +186,7 @@ include __DIR__ . '/../layout-top.php';
   </div>
   <?php endif; ?>
   <?php endif; ?>
+  </div><!-- /liveResults -->
 </div>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>

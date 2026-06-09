@@ -70,12 +70,13 @@ include __DIR__ . '/../layout-top.php';
     <div class="search-bar">
       <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
       <form method="get">
-        <input type="text" name="q" value="<?= clean($search) ?>" placeholder="Buscar categoría…" oninput="this.form.submit()">
+        <input type="text" name="q" value="<?= clean($search) ?>" placeholder="Buscar categoría…" autocomplete="off">
       </form>
     </div>
     <span style="color:var(--text-muted);font-size:13px"><?= count($categories) ?> categorías</span>
   </div>
 
+  <div id="liveResults">
   <?php if (empty($categories)): ?>
     <div class="empty-state">
       <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg></div>
@@ -131,6 +132,7 @@ include __DIR__ . '/../layout-top.php';
     </table>
   </div>
   <?php endif; ?>
+  </div><!-- /liveResults -->
 </div>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>

@@ -5,6 +5,15 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requireLogin();
 
+// Borrar solicitud
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    verifyCsrf();
+    $delId = cleanInt($_POST['delete_id']);
+    Database::execute("DELETE FROM quote_requests WHERE id = ?", array($delId));
+    flashMessage('success', 'Solicitud eliminada.');
+    redirect('/admin/requests/index.php');
+}
+
 $filter  = clean(isset($_GET['status']) ? $_GET['status'] : 'pendiente');
 $page    = max(1, cleanInt(isset($_GET['page']) ? $_GET['page'] : 1));
 $perPage = 20;
@@ -105,8 +114,18 @@ include __DIR__ . '/../layout-top.php';
             </span>
           </td>
           <td>
-            <a href="<?php echo APP_URL; ?>/admin/requests/detail.php?id=<?php echo $r['id']; ?>"
-               class="btn btn-ghost btn-sm">Ver detalle</a>
+            <div class="td-actions">
+              <a href="<?php echo APP_URL; ?>/admin/requests/detail.php?id=<?php echo $r['id']; ?>"
+                 class="btn btn-ghost btn-sm">Ver detalle</a>
+              <form method="post" style="display:inline">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="delete_id" value="<?php echo $r['id']; ?>">
+                <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"
+                        data-confirm="¿Eliminar la solicitud de «<?php echo clean($r['name']); ?>»? Esta acción no se puede deshacer.">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
