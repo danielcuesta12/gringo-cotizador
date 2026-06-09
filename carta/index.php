@@ -255,6 +255,8 @@ $waNum   = preg_replace('/\D/', '', $ubi['whatsapp_number'] ?: getSetting('whats
       .address { display: flex; align-items: center; gap: 5px; }
     }
     .bottom-bar { display: none; }
+    /* En desktop manda el panel lateral; la barra inferior es solo móvil (gana al display:flex que pone el JS) */
+    @media (min-width: 900px) { .bottom-bar { display: none !important; } }
 
     @media (prefers-reduced-motion: reduce) {
       .item { animation: none; opacity: 1; transform: none; }
