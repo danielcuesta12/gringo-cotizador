@@ -25,11 +25,11 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
   Trabajo en rama, preview, merge, `git pull`. Ver [[redesign-workflow]].
 
 ## Roadmap
-- [ ] **A — Base catálogo multi-ubicación**
+- [x] **A — Base catálogo multi-ubicación**
   - tabla `ubicaciones` (nombre, slug, color, sales_mode, whatsapp, activa, principal, orden)
   - tabla `location_products` (location_id, product_id, price, available, sort_order)
   - admin de ubicaciones en el panel del cotizador
-- [ ] **B — Menú de solo lectura** por ubicación (`/menu`) + conectar a la landing link-in-bio
+- [x] **B — Menú de solo lectura** por ubicación (`/menu`) + conectar a la landing link-in-bio
 - [ ] **C1 — Carta con venta + WhatsApp** (carrito, enviar pedido, guardar en `pedidos`) + selector sales_mode
 - [ ] **C2 — Modalidad Izipay** (portar izipay_create/ipn/verify; credenciales en .env; IPN HTTPS; probar en TEST)
 - [ ] **D — KDS** por ubicación (pantalla cocina, beep, estados; polling)
