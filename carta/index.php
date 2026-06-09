@@ -1195,7 +1195,9 @@ function cambiar(id, nombre, precio, delta) {
     }).catch(e => console.error('save_pedido fetch error:', e));
 
     cerrarModal();
-    window.open('https://wa.me/<?= $waNum ?>?text=' + msg, '_blank');
+    var _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
+    var _w = window.open(_waUrl, '_blank');
+    if (!_w) window.location.href = _waUrl;   // si el navegador bloquea la pestaña nueva, navega en la misma
 
     // Handle loyalty + generate code
     const loyaltyEmailVal = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
