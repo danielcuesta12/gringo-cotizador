@@ -54,7 +54,9 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-expand{width:100%;border:none;text-align:left;font:inherit;cursor:pointer}
   .lnk-chev svg{transition:transform .28s ease}
   .lnk-expand.open .lnk-chev svg{transform:rotate(180deg)}
+  .lnk-wrap{display:flex;flex-direction:column}
   .quote-panel{height:0;overflow:hidden;transition:height .34s ease;border-radius:16px}
+  .quote-panel.open{margin-top:12px}
   .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(255,255,255,.3);text-align:center}
 </style>
@@ -75,15 +77,17 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
       <?php if ($isQuote):
         $embedUrl = $l['url'] . (strpos($l['url'], '?') !== false ? '&' : '?') . 'embed=1';
       ?>
-      <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false">
-        <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
-        <span class="lnk-tx">
-          <span class="lnk-title"><?= clean($l['label']) ?></span>
-          <?php if ($l['sublabel']): ?><span class="lnk-sub"><?= clean($l['sublabel']) ?></span><?php endif; ?>
-        </span>
-        <span class="lnk-arrow lnk-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
-      </button>
-      <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy" scrolling="no"></iframe></div>
+      <div class="lnk-wrap">
+        <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false">
+          <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
+          <span class="lnk-tx">
+            <span class="lnk-title"><?= clean($l['label']) ?></span>
+            <?php if ($l['sublabel']): ?><span class="lnk-sub"><?= clean($l['sublabel']) ?></span><?php endif; ?>
+          </span>
+          <span class="lnk-arrow lnk-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy" scrolling="no"></iframe></div>
+      </div>
       <?php else: ?>
       <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>">
         <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
@@ -105,10 +109,15 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
     var panel = document.getElementById('quotePanel'), frame = document.getElementById('quoteFrame');
     quoteOpen = !quoteOpen;
     btn.classList.toggle('open', quoteOpen);
+    panel.classList.toggle('open', quoteOpen);
     btn.setAttribute('aria-expanded', quoteOpen);
     if (quoteOpen){
-      if (!frame.src) frame.src = frame.dataset.src;          // carga diferida
-      panel.style.height = (frame._h || 540) + 'px';
+      if (!frame.src) {
+        frame.src = frame.dataset.src;                        // carga diferida (1ª vez)
+      } else {
+        try { frame.contentWindow.postMessage({eg_request_height: 1}, '*'); } catch(e){}  // re-pide altura al reabrir
+      }
+      panel.style.height = (frame._h || 560) + 'px';
       setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
     } else {
       panel.style.height = '0px';

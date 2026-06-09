@@ -123,9 +123,10 @@ $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
   .wa svg{width:18px;height:18px}
   @media(min-width:520px){ body{padding:24px 16px}.wrap{min-height:auto;background:var(--card);border-radius:18px;box-shadow:0 6px 30px rgba(0,0,0,.08);overflow:hidden;min-height:600px} }
   /* modo embebido (dentro de la landing) */
-  body.embed{background:transparent}
+  body.embed{background:transparent;min-height:0}
   body.embed .wrap{min-height:0!important;box-shadow:none;border-radius:16px}
   body.embed .body{padding-top:14px}
+  body.embed .nav{position:static;background:none;padding:8px 22px 16px}
   @media(min-width:520px){ body.embed{padding:0}body.embed .wrap{box-shadow:none} }
 </style>
 </head>
@@ -239,7 +240,8 @@ $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
 
 <script>
 var cur = 1, total = 3;
-function postH(){ if(window.parent!==window){ try{ parent.postMessage({eg_quote_height: Math.ceil(document.documentElement.getBoundingClientRect().height)+10}, '*'); }catch(e){} } }
+function postH(){ if(window.parent!==window){ try{ var h=Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)+4; parent.postMessage({eg_quote_height: h}, '*'); }catch(e){} } }
+window.addEventListener('message', function(e){ if(e.data && e.data.eg_request_height) postH(); });
 function render(){
   document.querySelectorAll('.step').forEach(function(s){ s.classList.toggle('active', +s.dataset.step===cur); });
   document.querySelectorAll('.prog .seg').forEach(function(s,i){ s.classList.toggle('done', i<cur); });
