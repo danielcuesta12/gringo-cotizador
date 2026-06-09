@@ -1,8 +1,15 @@
 # Migración marcona → El Gringo (programa multi-sesión)
 
-Objetivo: consolidar la plataforma de restaurante de `elgringo-marcona`
-dentro de El Gringo, sobre **una sola base de datos (la del cotizador)**, con
-un sistema unificado. Origen local: `~/Documents/Proyectos/elgringo-marcona`.
+Objetivo: **DUPLICAR** la plataforma de restaurante de marcona como una
+**instancia independiente de El Gringo** (otra ciudad), corriendo sobre la
+**BD del cotizador** y compartiendo su catálogo.
+
+> ⚠️ **`/marcona` NO se toca.** Sigue operando solo, con su propia BD, en su
+> ciudad. Son dos inquilinos del mismo software con **datos separados**.
+> Marcona es la **fuente del CÓDIGO** que copiamos, NO de los datos —
+> no se fusiona ninguna base de datos en vivo.
+
+Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
 
 ## Principios
 - **Una BD, una fuente de verdad.** El catálogo (`products`/`categories`) del
@@ -40,9 +47,12 @@ las cartas/menús de cada ubicación.
   IZIPAY_HMAC_TEST/PROD, IZIPAY_PUBLIC_KEY_TEST/PROD, IZIPAY_REST_SERVER, IZIPAY_JS_URL
 - SMTP (PHPMailer) para correos de pedidos/reservas
 
-## Reconciliaciones pendientes (decidir al llegar)
-- `clientes` (marcona) ↔ `clients` (cotizador): unificar en una tabla.
-- `productos`+`variantes`+`modificadores` (marcona) ↔ `products` (cotizador):
-  el cotizador no tiene variantes/modificadores; decidir si se agregan.
-- `usuarios` (marcona) ↔ `users` (cotizador): un solo login/roles.
-- `pedidos`: tabla nueva en la BD del cotizador (no existe hoy).
+## Diseño del esquema propio de El Gringo (NO es merge con marcona)
+El Gringo usa SU propia BD (la del cotizador). No se importan datos de marcona;
+solo se porta el código y se decide el esquema propio de El Gringo:
+- Clientes: reusar `clients` del cotizador (no traer `clientes` de marcona).
+- Productos: reusar `products`/`categories` del cotizador como catálogo. El
+  cotizador no tiene variantes/modificadores; decidir si se agregan al portar
+  la carta de venta (Fase C).
+- Usuarios/login: reusar `users` del cotizador (un solo login para todo).
+- `pedidos`: tabla nueva en la BD del cotizador (se crea en Fase C).
