@@ -113,7 +113,7 @@ include __DIR__ . '/../admin/layout-top.php';
   ?>
   <a href="?status=<?php echo $val; ?>&q=<?php echo urlencode($search); ?>"
      style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid;white-space:nowrap;
-            <?php echo $active ? 'background:var(--red);color:#fff;border-color:var(--red)' : 'background:#fff;color:var(--text-secondary);border-color:var(--border)'; ?>">
+            <?php echo $active ? 'background:var(--brand);color:#1a1a1a;border-color:var(--brand)' : 'background:#fff;color:var(--text-secondary);border-color:var(--border)'; ?>">
     <?php echo $label; ?> <span style="font-size:11px;opacity:.8">(<?php echo $cnt; ?>)</span>
   </a>
   <?php endforeach; ?>
@@ -170,7 +170,7 @@ include __DIR__ . '/../admin/layout-top.php';
         <tr>
           <td>
             <a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>"
-               style="font-weight:700;color:var(--red);text-decoration:none">
+               style="font-weight:700;color:var(--ink);text-decoration:none">
               <?php echo clean($q['quote_number']); ?>
             </a>
             <div style="font-size:11px;color:var(--text-muted)"><?php echo formatDate($q['created_at']); ?></div>
@@ -369,7 +369,7 @@ include __DIR__ . '/../admin/layout-top.php';
 .qcard-num {
   font-size: 15px;
   font-weight: 800;
-  color: var(--red);
+  color: var(--ink);
   text-decoration: none;
 }
 .qcard-total {

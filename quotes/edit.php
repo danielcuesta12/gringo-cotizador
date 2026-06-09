@@ -140,8 +140,8 @@ $extraHead  = '
 
 /* Total destacado en mobile */
 .total-hero {
-  background: var(--red);
-  color: #fff;
+  background: var(--brand);
+  color: var(--ink);
   border-radius: 12px;
   padding: 16px 18px;
   display: flex;

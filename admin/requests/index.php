@@ -49,7 +49,7 @@ include __DIR__ . '/../layout-top.php';
   ?>
   <a href="?status=<?php echo $val; ?>"
      style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid;white-space:nowrap;
-            <?php echo $active ? 'background:var(--red);color:#fff;border-color:var(--red)' : 'background:#fff;color:var(--text-secondary);border-color:var(--border)'; ?>">
+            <?php echo $active ? 'background:var(--brand);color:#1a1a1a;border-color:var(--brand)' : 'background:#fff;color:var(--text-secondary);border-color:var(--border)'; ?>">
     <?php echo $label; ?> <span style="font-size:11px;opacity:.8">(<?php echo $cnt; ?>)</span>
   </a>
   <?php endforeach; ?>
@@ -75,7 +75,7 @@ include __DIR__ . '/../layout-top.php';
         <tr>
           <td>
             <a href="<?php echo APP_URL; ?>/admin/requests/detail.php?id=<?php echo $r['id']; ?>"
-               style="font-weight:600;color:var(--red);text-decoration:none"><?php echo clean($r['name']); ?></a>
+               style="font-weight:600;color:var(--ink);text-decoration:none"><?php echo clean($r['name']); ?></a>
             <?php if ($r['email']): ?><div style="font-size:11px;color:var(--text-muted)"><?php echo clean($r['email']); ?></div><?php endif; ?>
           </td>
           <td><?php echo $r['type']==='empresa'?'&#127970; Empresa':'&#128100; Persona'; ?></td>
