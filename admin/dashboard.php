@@ -79,14 +79,6 @@ $upcoming = array_slice(array_values(array_filter($calQuotes, function ($q) use 
     return $q['event_date'] >= $todayStr;
 })), 0, 6);
 
-// Datos del mini-calendario (mes actual)
-$mcMonths = array('', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre');
-$mcYear   = (int)date('Y');
-$mcMonth  = (int)date('n');
-$mcToday  = (int)date('j');
-$mcLead   = (int)date('N', mktime(0, 0, 0, $mcMonth, 1, $mcYear)) - 1; // 0 = Lunes
-$mcDays   = (int)date('t', mktime(0, 0, 0, $mcMonth, 1, $mcYear));
-
 // Clase de color por estado (amarillo=enviada, verde=aceptada, morado=evento)
 function dashState($q) {
     if (($q['origin'] ?? '') === 'event') return 'evento';
@@ -124,49 +116,6 @@ function dashStateLabel($q) {
 
 <div class="dash-grid">
   <div class="dash-main">
-
-<!-- CALENDARIO -->
-<div class="card" style="margin-bottom:20px">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px">
-    <span style="font-size:16px;font-weight:700" id="calTitle">Cargando...</span>
-    <div style="display:flex;gap:6px;align-items:center">
-      <button onclick="calNav(-1)" class="btn btn-ghost btn-sm">&#8249;</button>
-      <button onclick="calToday()" class="btn btn-ghost btn-sm">Hoy</button>
-      <button onclick="calNav(1)"  class="btn btn-ghost btn-sm">&#8250;</button>
-      <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
-      <button onclick="setView('month')" id="btnMonth" class="btn btn-ghost btn-sm">Mes</button>
-      <button onclick="setView('list')"  id="btnList"  class="btn btn-ghost btn-sm">Lista</button>
-    </div>
-  </div>
-
-  <!-- Vista Mes -->
-  <div id="viewMonth">
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)">
-      <?php foreach (array('L','M','X','J','V','S','D') as $d): ?>
-      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--text-muted);padding:8px 4px;background:#fafafa"><?php echo $d; ?></div>
-      <?php endforeach; ?>
-    </div>
-    <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr)"></div>
-  </div>
-
-  <!-- Vista Lista -->
-  <div id="viewList" style="display:none">
-    <div id="listContent"></div>
-  </div>
-
-  <!-- Leyenda -->
-  <div style="display:flex;gap:14px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
-      <span style="width:10px;height:10px;border-radius:2px;background:#FCDA13;display:inline-block"></span>Enviada
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
-      <span style="width:10px;height:10px;border-radius:2px;background:#16a34a;display:inline-block"></span>Aceptada
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
-      <span style="width:10px;height:10px;border-radius:2px;background:#7c3aed;display:inline-block"></span>Evento directo
-    </div>
-  </div>
-</div>
 
 <!-- PRÓXIMOS EVENTOS -->
 <div class="card">
@@ -220,21 +169,20 @@ function dashStateLabel($q) {
       </div>
     </div>
 
-    <!-- Mini calendario -->
+    <!-- Mini calendario (interactivo) -->
     <div class="card">
       <div class="mc-head">
-        <span class="mc-title"><?php echo $mcMonths[$mcMonth] . ' ' . $mcYear; ?></span>
+        <span class="mc-title" id="mcTitle">—</span>
+        <div class="mc-nav">
+          <button type="button" onclick="mcNav(-1)" aria-label="Mes anterior">&#8249;</button>
+          <button type="button" onclick="mcNav(1)" aria-label="Mes siguiente">&#8250;</button>
+        </div>
       </div>
-      <div class="mc-grid">
-        <?php foreach (array('L','M','X','J','V','S','D') as $d): ?><div class="mc-dow"><?php echo $d; ?></div><?php endforeach; ?>
-        <?php for ($i = 0; $i < $mcLead; $i++): ?><div class="mc-day muted"></div><?php endfor; ?>
-        <?php for ($d = 1; $d <= $mcDays; $d++):
-          $ds        = sprintf('%04d-%02d-%02d', $mcYear, $mcMonth, $d);
-          $dayEvents = isset($calMap[$ds]) ? $calMap[$ds] : array();
-          $isToday   = ($d === $mcToday);
-        ?>
-        <div class="mc-day<?php echo $isToday ? ' today' : ''; ?>"><?php echo $d; ?><?php if (!empty($dayEvents)): $st = dashState($dayEvents[0]); $dotcol = $st === 'aceptada' ? '#16a34a' : ($st === 'evento' ? '#7c3aed' : '#FCDA13'); ?><span class="mk" style="background:<?php echo $dotcol; ?>"></span><?php endif; ?></div>
-        <?php endfor; ?>
+      <div class="mc-grid" id="mcGrid"></div>
+      <div class="mc-legend">
+        <span><i style="background:#FCDA13"></i>Enviada</span>
+        <span><i style="background:#16a34a"></i>Aceptada</span>
+        <span><i style="background:#7c3aed"></i>Evento</span>
       </div>
     </div>
 
@@ -242,227 +190,91 @@ function dashStateLabel($q) {
 </div><!-- /dash-grid -->
 
 <style>
-.dash-desktop{display:block}.dash-mobile{display:none}
-@media(max-width:768px){.dash-desktop{display:none}.dash-mobile{display:block}}
-.cal-day-cell{min-height:60px;padding:4px 3px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top}
-.cal-day-cell:nth-child(7n){border-right:none}
-.cal-ev{border-radius:3px;padding:1px 4px;font-size:9px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;display:block;text-decoration:none}
-.cal-ev-e{background:rgba(252,218,19,.28);color:#7a6800}
-.cal-ev-a{background:#dcfce7;color:#166534}
-.cal-ev-v{background:#ede9fe;color:#5b21b6}
-.list-item{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent}
-.list-item:last-child{border-bottom:none}
-.list-item:hover{background:#fafafa}
-.list-month-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);padding:10px 18px 6px;background:#fafafa;border-bottom:1px solid var(--border)}
+.mc-day.has-ev{cursor:pointer}
+.mc-day.has-ev:hover{background:var(--brand-soft)}
+.mc-legend{display:flex;gap:12px;padding:8px 14px 14px;flex-wrap:wrap}
+.mc-legend span{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text-muted)}
+.mc-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+#mcPop{position:fixed;z-index:9999;width:248px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);overflow:hidden}
+#mcPop .pop-head{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-primary);display:flex;justify-content:space-between;align-items:center}
+#mcPop .pop-close{background:none;border:none;cursor:pointer;color:#999;font-size:16px;line-height:1}
+#mcPop .pop-row{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit}
+#mcPop .pop-row:last-child{border-bottom:none}
+#mcPop .pop-row:hover{background:#fafafa}
+#mcPop .pop-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#mcPop .pop-info{display:flex;flex-direction:column;min-width:0;flex:1}
+#mcPop .pop-name{font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mcPop .pop-meta{font-size:11px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mcPop .pop-amt{margin-left:auto;font-size:12px;font-weight:700;color:var(--text-primary);flex-shrink:0}
 </style>
 
 <script>
-var QUOTES = <?php echo json_encode($calQuotes); ?>;
-var APP    = '<?php echo APP_URL; ?>';
-var today  = new Date();
-var cur    = new Date(today.getFullYear(), today.getMonth(), 1);
-var view   = 'month';
+var MC_EVENTS = <?php echo json_encode($calQuotes); ?>;
+var MC_APP    = '<?php echo APP_URL; ?>';
+var MC_TODAY  = new Date();
+var mcCur     = new Date(MC_TODAY.getFullYear(), MC_TODAY.getMonth(), 1);
+var MC_MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-var MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function mcState(e){ if(e.origin==='event') return 'evento'; return e.status==='aceptada' ? 'aceptada' : 'enviada'; }
+function mcColor(st){ return st==='aceptada' ? '#16a34a' : (st==='evento' ? '#7c3aed' : '#FCDA13'); }
+function mcByDate(ds){ return MC_EVENTS.filter(function(e){ return e.event_date === ds; }); }
+function mcPad(n){ return (n<10?'0':'')+n; }
 
-function setView(v) {
-  view = v;
-  document.getElementById('viewMonth').style.display = v==='month' ? '' : 'none';
-  document.getElementById('viewList').style.display  = v==='list'  ? '' : 'none';
-  document.getElementById('btnMonth').style.cssText  = v==='month' ? 'color:var(--ink);border-color:var(--brand);background:var(--brand-soft)' : '';
-  document.getElementById('btnList').style.cssText   = v==='list'  ? 'color:var(--ink);border-color:var(--brand);background:var(--brand-soft)' : '';
-  if (v==='month') renderMonth();
-  else renderList();
-}
-
-function calNav(dir) {
-  cur.setMonth(cur.getMonth() + dir);
-  if (view==='month') renderMonth(); else renderList();
-}
-function calToday() {
-  cur = new Date(today.getFullYear(), today.getMonth(), 1);
-  if (view==='month') renderMonth(); else renderList();
-}
-
-function quotesByDate(dateStr) {
-  return QUOTES.filter(function(q){ return q.event_date === dateStr; });
-}
-
-function evClass(q) {
-  if (q.origin==='event') return 'cal-ev-v';
-  return q.status==='aceptada' ? 'cal-ev-a' : 'cal-ev-e';
-}
-function barColor(q) {
-  if (q.origin==='event') return '#7c3aed';
-  return q.status==='aceptada' ? '#16a34a' : '#2563eb';
-}
-function badgeLabel(q) {
-  if (q.origin==='event') return 'Evento';
-  return q.status==='aceptada' ? 'Aceptada' : 'Enviada';
-}
-function badgeStyle(q) {
-  if (q.origin==='event') return 'background:#ede9fe;color:#5b21b6';
-  return q.status==='aceptada' ? 'background:#dcfce7;color:#166534' : 'background:#dbeafe;color:#1e40af';
-}
-
-function showDashTooltip(e, qid) {
-  e.stopPropagation();
-  var q = QUOTES.find(function(x){ return x.id==qid; });
-  if (!q) return;
-  var tip = document.getElementById('dashTip');
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'dashTip';
-    tip.style.cssText = 'position:fixed;z-index:9999;width:240px;background:var(--bg-card,#fff);border:1.5px solid #e5e5e5;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);overflow:hidden;font-family:inherit';
-    document.body.appendChild(tip);
-    document.addEventListener('click', function(ev){ if(!tip.contains(ev.target)) tip.style.display='none'; });
-  }
-  var body = '';
-  if (q.event_time) body += '<div style="font-size:12px;color:#555;display:flex;gap:6px;margin-bottom:4px"><span>&#128336;</span><span>'+q.event_time+(q.event_duration?' · '+q.event_duration:'')+'</span></div>';
-  if (q.event_location) body += '<div style="font-size:12px;color:#555;display:flex;gap:6px;margin-bottom:4px"><span>&#128205;</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.event_location+'</span></div>';
-  if (q.num_people>0) body += '<div style="font-size:12px;color:#555;display:flex;gap:6px"><span>&#128101;</span><span>'+q.num_people+' personas</span></div>';
-  tip.innerHTML = '<div style="padding:9px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:#1a1a1a">'+q.client_name+'</span><span style="font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'+badgeStyle(q)+'">'+badgeLabel(q)+'</span></div>'
-    +'<div style="padding:9px 12px">'+body+'</div>'
-    +(q.items_summary?'<div style="font-size:11px;color:#888;padding:6px 12px;border-top:1px solid #eee;background:#fafafa">'+q.items_summary+'</div>':'')
-    +'<div style="padding:8px 12px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700;color:#1a1a1a">S/ '+parseFloat(q.total).toLocaleString("es-PE",{minimumFractionDigits:2})+'</span><a href="'+APP+'/quotes/edit.php?id='+q.id+'" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none">'+(q.origin==='event'?'Ver evento':'Ver cot.')+'→</a></div>';
-  var rect = e.target.getBoundingClientRect();
-  var left = Math.min(rect.left, window.innerWidth-256);
-  tip.style.display='block';
-  tip.style.top=(rect.bottom+6)+'px';
-  tip.style.left=Math.max(8,left)+'px';
-}
-
-function renderMonth() {
-  document.getElementById('calTitle').textContent = MONTHS[cur.getMonth()] + ' ' + cur.getFullYear();
-  var grid    = document.getElementById('calGrid');
-  var year    = cur.getFullYear();
-  var month   = cur.getMonth();
-  var firstDow= (new Date(year, month, 1).getDay() + 6) % 7; // Lunes=0
-  var daysInM = new Date(year, month+1, 0).getDate();
-  var daysInP = new Date(year, month, 0).getDate();
-  var html    = '';
-  var todayStr= today.toISOString().split('T')[0];
-
-  // Días del mes anterior
-  for (var i=firstDow-1; i>=0; i--) {
-    html += '<div class="cal-day-cell" style="opacity:.3"><div style="font-size:11px;color:#999;padding-left:2px">'+(daysInP-i)+'</div></div>';
-  }
-  // Días del mes
-  for (var d=1; d<=daysInM; d++) {
-    var mm    = String(month+1).padStart(2,'0');
-    var dd    = String(d).padStart(2,'0');
-    var dateS = year+'-'+mm+'-'+dd;
-    var isToday = dateS === todayStr;
-    var qs    = quotesByDate(dateS);
-    var bg    = isToday ? 'background:var(--blue-bg)' : '';
-    var numStyle = isToday ? 'color:var(--blue);font-weight:700' : 'color:#999';
-    html += '<div class="cal-day-cell" style="'+bg+'">';
-    html += '<div style="font-size:11px;'+numStyle+';padding-left:2px;margin-bottom:2px">'+d+'</div>';
-    qs.forEach(function(q) {
-      var cls = q.status==='aceptada' ? 'cal-ev-a' : 'cal-ev-e';
-      var cls2=evClass(q); html += '<button onclick="showDashTooltip(event,'+q.id+')" class="cal-ev '+cls2+'" style="border:none;cursor:pointer">'+q.quote_number+'</button>';
-    });
-    html += '</div>';
-  }
-  // Completar última fila
-  var total = firstDow + daysInM;
-  var rem   = total % 7;
-  if (rem > 0) {
-    for (var x=1; x<=(7-rem); x++) {
-      html += '<div class="cal-day-cell" style="opacity:.3"><div style="font-size:11px;color:#999;padding-left:2px">'+x+'</div></div>';
-    }
-  }
-  grid.innerHTML = html;
-}
-
-function renderList() {
-  var year  = cur.getFullYear();
-  var month = cur.getMonth();
-  document.getElementById('calTitle').textContent = MONTHS[month] + ' ' + year + ' — Lista';
-
-  var start  = new Date(year, month, 1);
-  var end    = new Date(year, month+3, 0);
-  var startS = start.toISOString().split('T')[0];
-  var endS   = end.toISOString().split('T')[0];
-  var filtered = QUOTES.filter(function(q){ return q.event_date >= startS && q.event_date <= endS; });
-
-  if (!filtered.length) {
-    document.getElementById('listContent').innerHTML = '<div style="padding:32px;text-align:center;color:#999;font-size:14px">Sin eventos en este periodo</div>';
-    return;
-  }
-
+function mcRender(){
+  var y = mcCur.getFullYear(), m = mcCur.getMonth();
+  document.getElementById('mcTitle').textContent = MC_MONTHS[m] + ' ' + y;
+  var lead   = (new Date(y, m, 1).getDay() + 6) % 7;   // Lunes = 0
+  var days   = new Date(y, m+1, 0).getDate();
+  var todayS = MC_TODAY.getFullYear()+'-'+mcPad(MC_TODAY.getMonth()+1)+'-'+mcPad(MC_TODAY.getDate());
   var html = '';
-  var lastM = '';
-  filtered.forEach(function(q) {
-    var parts = q.event_date.split('-');
-    var mKey  = parts[0]+'-'+parts[1];
-    var mIdx  = parseInt(parts[1])-1;
-    if (mKey !== lastM) {
-      html += '<div class="list-month-hdr">'+MONTHS[mIdx]+' '+parts[0]+'</div>';
-      lastM = mKey;
-    }
-    var d   = parseInt(parts[2]);
-    var dow = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][new Date(q.event_date).getDay()];
-    var bc  = barColor(q);
-    var bl  = badgeLabel(q);
-    var bs  = badgeStyle(q);
-    var nc  = (q.origin==='event') ? '#7c3aed' : (q.status==='aceptada' ? '#16a34a' : '#2563eb');
-
-    // Detalle expandible
-    var detail = '';
-    if (q.event_time || q.event_location || q.num_people || q.items_summary) {
-      detail += '<div id="ld'+q.id+'" style="display:none;background:#fafafa;padding:10px 18px 12px 72px;border-top:1px solid var(--border)">';
-      detail += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-      if (q.event_time) detail += '<div><div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Hora</div><div style="font-size:12px;font-weight:600;color:#1a1a1a">'+q.event_time+(q.event_duration?' · '+q.event_duration:'')+'</div></div>';
-      if (q.num_people>0) detail += '<div><div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Personas</div><div style="font-size:12px;font-weight:600;color:#1a1a1a">'+q.num_people+' pers.</div></div>';
-      if (q.event_location) detail += '<div style="grid-column:1/-1"><div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Lugar</div><div style="font-size:12px;font-weight:600;color:#1a1a1a">'+q.event_location+'</div></div>';
-      detail += '</div>';
-      if (q.items_summary) detail += '<div style="font-size:11px;color:#999;margin-bottom:8px">'+q.items_summary+'</div>';
-      detail += '<a href="'+APP+'/quotes/edit.php?id='+q.id+'" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none">'+(q.origin==='event'?'Ver evento':'Ver cotización')+' →</a>';
-      detail += '</div>';
-    }
-
-    html += '<div style="border-bottom:1px solid var(--border)">';
-    html += '<div onclick="toggleDashDetail('+q.id+')" style="display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;-webkit-tap-highlight-color:transparent" id="li'+q.id+'">';
-    html += '<div style="text-align:center;min-width:38px;flex-shrink:0"><div style="font-size:20px;font-weight:700;line-height:1;color:#1a1a1a">'+d+'</div><div style="font-size:10px;color:#999;text-transform:uppercase">'+dow+'</div></div>';
-    html += '<div style="width:3px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0;background:'+bc+'"></div>';
-    html += '<div style="flex:1;min-width:0">';
-    html += '<div style="font-size:11px;font-weight:600;color:'+nc+'">'+q.quote_number+'</div>';
-    html += '<div style="font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.client_name+'</div>';
-    if (q.event_type || q.event_time) html += '<div style="font-size:11px;color:#999">'+(q.event_type||'')+(q.event_time?' · '+q.event_time:'')+'</div>';
-    html += '</div>';
-    html += '<span style="'+bs+';padding:3px 8px;border-radius:8px;font-size:11px;font-weight:600;flex-shrink:0">'+bl+'</span>';
-    html += '<span id="ch'+q.id+'" style="font-size:16px;color:#999;margin-left:6px;transition:transform .2s;display:inline-block">›</span>';
-    html += '</div>';
-    html += detail;
-    html += '</div>';
-  });
-  document.getElementById('listContent').innerHTML = html;
+  ['L','M','X','J','V','S','D'].forEach(function(d){ html += '<div class="mc-dow">'+d+'</div>'; });
+  for (var i=0;i<lead;i++) html += '<div class="mc-day muted"></div>';
+  for (var d=1; d<=days; d++){
+    var ds  = y+'-'+mcPad(m+1)+'-'+mcPad(d);
+    var evs = mcByDate(ds);
+    var cls = 'mc-day' + (ds===todayS?' today':'') + (evs.length?' has-ev':'');
+    var dot = evs.length ? '<span class="mk" style="background:'+mcColor(mcState(evs[0]))+'"></span>' : '';
+    var clk = evs.length ? ' onclick="mcShowDay(event,\''+ds+'\')"' : '';
+    html += '<div class="'+cls+'"'+clk+'>'+d+dot+'</div>';
+  }
+  document.getElementById('mcGrid').innerHTML = html;
 }
 
-function toggleDashDetail(id) {
-  var detail = document.getElementById('ld'+id);
-  var ch     = document.getElementById('ch'+id);
-  if (!detail) {
-    window.location.href = APP+'/quotes/edit.php?id='+id;
-    return;
+function mcNav(dir){ mcCur.setMonth(mcCur.getMonth()+dir); mcClosePop(); mcRender(); }
+function mcClosePop(){ var p=document.getElementById('mcPop'); if(p) p.style.display='none'; }
+
+function mcShowDay(ev, ds){
+  ev.stopPropagation();
+  var evs = mcByDate(ds);
+  if (!evs.length) return;
+  var p = document.getElementById('mcPop');
+  if (!p){
+    p = document.createElement('div'); p.id = 'mcPop'; document.body.appendChild(p);
+    document.addEventListener('click', function(e){ if(p && !p.contains(e.target)) p.style.display='none'; });
   }
-  var isOpen = detail.style.display !== 'none';
-  // Cerrar todos
-  document.querySelectorAll('[id^="ld"]').forEach(function(d){ d.style.display='none'; });
-  document.querySelectorAll('[id^="ch"]').forEach(function(c){ c.style.transform=''; });
-  if (!isOpen) {
-    detail.style.display = 'block';
-    if (ch) ch.style.transform = 'rotate(90deg)';
-  }
+  var parts = ds.split('-');
+  var head  = parts[2].replace(/^0/,'') + ' ' + MC_MONTHS[parseInt(parts[1],10)-1].toLowerCase();
+  var rows = evs.map(function(e){
+    var st   = mcState(e);
+    var meta = (e.event_type||'Evento') + (e.event_time?' · '+e.event_time:'') + (e.num_people>0?' · '+e.num_people+' pers.':'');
+    var amt  = 'S/ ' + parseFloat(e.total).toLocaleString('es-PE',{minimumFractionDigits:2});
+    return '<a class="pop-row" href="'+MC_APP+'/quotes/edit.php?id='+e.id+'">'
+      + '<span class="pop-dot" style="background:'+mcColor(st)+'"></span>'
+      + '<span class="pop-info"><span class="pop-name">'+e.client_name+'</span><span class="pop-meta">'+meta+'</span></span>'
+      + '<span class="pop-amt">'+amt+'</span></a>';
+  }).join('');
+  p.innerHTML = '<div class="pop-head"><span>'+head+' · '+evs.length+' evento'+(evs.length>1?'s':'')+'</span>'
+    + '<button class="pop-close" type="button" onclick="mcClosePop()">&times;</button></div>' + rows;
+  p.style.display = 'block';
+  var rect = ev.currentTarget.getBoundingClientRect();
+  var left = Math.min(rect.left, window.innerWidth - 256);
+  var top  = rect.bottom + 6;
+  if (top + p.offsetHeight > window.innerHeight - 8) top = Math.max(8, rect.top - p.offsetHeight - 6);
+  p.style.left = Math.max(8, left) + 'px';
+  p.style.top  = top + 'px';
 }
 
-// Agregar "Solicitudes" al nav si hay pendientes
-<?php if ($pendingReq > 0): ?>
-var navLinks = document.querySelectorAll('.nav-link');
-<?php endif; ?>
-
-setView('month');
+mcRender();
 </script>
 
 <?php include __DIR__ . '/layout-bottom.php'; ?>
