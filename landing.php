@@ -36,9 +36,9 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk:active{transform:translateY(0) scale(.99)}
   .lnk-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(255,255,255,.07);color:var(--brand)}
   .lnk-ico svg{width:21px;height:21px}
-  .lnk-tx{flex:1;min-width:0}
-  .lnk-title{font-size:15px;font-weight:700;line-height:1.2}
-  .lnk-sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .lnk-tx{flex:1;min-width:0;display:flex;flex-direction:column}
+  .lnk-title{display:block;font-size:15px;font-weight:700;line-height:1.2}
+  .lnk-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
   .lnk-arrow{color:var(--muted);flex-shrink:0;display:flex}
   .lnk-arrow svg{width:18px;height:18px}
   /* estilos */
