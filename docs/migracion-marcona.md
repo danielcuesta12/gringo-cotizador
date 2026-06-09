@@ -24,6 +24,17 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
 - Cada fase: reconciliar esquema → admin → frontend → probar (TEST) → desplegar.
   Trabajo en rama, preview, merge, `git pull`. Ver [[redesign-workflow]].
 
+## ⚠️ Constraints de diseño de la carta (NO olvidar)
+- La **carta (menú solo-lectura y carta de venta) se trae TAL CUAL de marcona**
+  (`carta_template.html` / `burgerjoint/menu`), con su diseño propio. NO aplicar
+  el tema amarillo del panel del cotizador. El rediseño de la carta se hace
+  DESPUÉS, aparte.
+- Traer las **fuentes de marcona** a El Gringo y arreglar las rutas de @font-face:
+  Gilroy-Bold/Medium (.ttf), Arial_Narrow_Bold.ttf, DINMed, Kimmy.woff2.
+  OJO: algunas vienen con ruta absoluta `/elgringo/marcona/fonts/...` → cambiarlas
+  para que apunten a los fonts copiados en El Gringo.
+- El **admin** (ubicaciones, ítems, etc.) sí va en el estilo del panel del cotizador.
+
 ## Roadmap
 - [ ] **A — Base catálogo multi-ubicación**
   - tabla `ubicaciones` (nombre, slug, color, sales_mode, whatsapp, activa, principal, orden)
