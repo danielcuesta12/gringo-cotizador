@@ -57,7 +57,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-wrap{display:flex;flex-direction:column}
   .quote-panel{max-height:0;overflow:hidden;transition:max-height .4s ease;border-radius:16px}
   .quote-panel.open{max-height:1600px;margin-top:12px}
-  .quote-panel iframe{width:100%;height:700px;border:0;display:block;background:#f4f4f0;border-radius:16px}
+  .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(255,255,255,.3);text-align:center}
 </style>
 </head>
@@ -104,24 +104,30 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <div class="foot">© 2013 El Gringo Burger Joint · Lima, Perú</div>
 </div>
 <script>
+  var quotePoll = null;
+  function fitFrame(){
+    var frame = document.getElementById('quoteFrame');
+    if (!frame || !frame.contentWindow) return;
+    try {
+      var d = frame.contentWindow.document;
+      var h = Math.max(d.body ? d.body.scrollHeight : 0, d.documentElement.scrollHeight);
+      if (h > 0) frame.style.height = h + 'px';
+    } catch(e){}
+  }
   function toggleQuote(btn){
     var panel = document.getElementById('quotePanel'), frame = document.getElementById('quoteFrame');
     var open = !panel.classList.contains('open');           // estado real del DOM (no variable)
     panel.classList.toggle('open', open);
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', open);
+    clearInterval(quotePoll);
     if (open){
-      if (!frame.src) frame.src = frame.dataset.src;        // carga diferida la 1ª vez
-      else { try { frame.contentWindow.postMessage({eg_request_height: 1}, '*'); } catch(e){} }
+      if (!frame.src){ frame.addEventListener('load', fitFrame); frame.src = frame.dataset.src; }
+      else fitFrame();
+      quotePoll = setInterval(fitFrame, 250);  // reajusta al cambiar de paso (mismo dominio = medición directa)
       setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
     }
   }
-  // Ajuste fino: cuando el formulario reporta su altura, la aplicamos al iframe
-  window.addEventListener('message', function(e){
-    if (!e.data || !e.data.eg_quote_height) return;
-    var frame = document.getElementById('quoteFrame');
-    if (frame) frame.style.height = e.data.eg_quote_height + 'px';
-  });
 </script>
 </body>
 </html>
