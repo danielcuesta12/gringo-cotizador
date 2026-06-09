@@ -166,7 +166,7 @@ if ($fromReq && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 $pageTitle  = 'Nueva cotización';
 $activePage = 'quote-new';
 
-$extraHead = '<link rel="stylesheet" href="' . APP_URL . '/assets/css/quoter.css">
+$extraHead = '<link rel="stylesheet" href="' . APP_URL . '/assets/css/quoter.css?v=' . (@filemtime(__DIR__ . '/../assets/css/quoter.css') ?: time()) . '">
 <style>
 .card-title{display:inline-flex;align-items:center;gap:8px}
 .card-title .sec-ico{display:inline-flex;color:var(--text-secondary)}
