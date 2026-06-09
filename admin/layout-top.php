@@ -10,12 +10,11 @@
 <body class="admin-layout">
 
 <?php
-// ---- Logo activo (igual que pdf.php: active_logo elige A/B desde company_settings) ----
-$_activeLogo = getSetting('active_logo', 'a');
-$_logoRel    = $_activeLogo === 'b' ? getSetting('company_logo_b', '') : getSetting('company_logo', '');
+// ---- Logo del sidebar (fondo oscuro): usar el logo claro (Logo B); fallback al principal (A) ----
+$_logoRel  = getSetting('company_logo_b', '');
 if (empty($_logoRel)) $_logoRel = getSetting('company_logo', '');
-$_logoUrl    = $_logoRel ? UPLOAD_URL  . $_logoRel : '';
-$_logoFile   = $_logoRel ? UPLOAD_PATH . $_logoRel : '';
+$_logoUrl  = $_logoRel ? UPLOAD_URL  . $_logoRel : '';
+$_logoFile = $_logoRel ? UPLOAD_PATH . $_logoRel : '';
 
 // ---- Solicitudes pendientes (badge) ----
 $pendingCount = 0;

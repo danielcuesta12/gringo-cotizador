@@ -97,12 +97,11 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-// Logo activo (igual que el panel: active_logo elige A/B)
-$activeLogo = getSetting('active_logo', 'a');
-$logoRel    = $activeLogo === 'b' ? getSetting('company_logo_b', '') : getSetting('company_logo', '');
+// Fondo oscuro: usar el logo claro (Logo B) si existe; si no, el principal (Logo A)
+$logoRel  = getSetting('company_logo_b', '');
 if (empty($logoRel)) $logoRel = getSetting('company_logo', '');
-$logoUrl    = $logoRel ? UPLOAD_URL  . $logoRel : '';
-$logoFile   = $logoRel ? UPLOAD_PATH . $logoRel : '';
+$logoUrl  = $logoRel ? UPLOAD_URL  . $logoRel : '';
+$logoFile = $logoRel ? UPLOAD_PATH . $logoRel : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -223,7 +222,6 @@ input::placeholder { color: #333; }
         <div class="brand-logo-fallback">EG</div>
       <?php endif; ?>
     </div>
-    <div class="brand-name">El Gringo Burger Joint</div>
     <div class="brand-sub">Sistema de Cotización</div>
   </div>
 
