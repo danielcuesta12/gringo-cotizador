@@ -38,7 +38,7 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
 - [ ] **G — Lealtad** + validador
 - [ ] **Transversal — Analítica** (visitas/clics landing + pedidos) y captura de leads
 
-## Landing link-in-bio (proyecto puerta de entrada)
+## Landing link-in-bio ✅ EN VIVO (elgringo.pe)
 Ver [[landing-linkbio-project]]. La landing en la raíz `elgringo.pe` lleva a
 las cartas/menús de cada ubicación.
 
