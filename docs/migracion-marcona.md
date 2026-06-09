@@ -41,8 +41,8 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
   - tabla `location_products` (location_id, product_id, price, available, sort_order)
   - admin de ubicaciones en el panel del cotizador
 - [x] **B — Menú de solo lectura** por ubicación (`/menu`) + conectar a la landing link-in-bio
-- [ ] **C1 — Carta con venta + WhatsApp** (carrito, enviar pedido, guardar en `pedidos`) + selector sales_mode
-- [ ] **C2 — Modalidad Izipay** (portar izipay_create/ipn/verify; credenciales en .env; IPN HTTPS; probar en TEST)
+- [x] **C1 — Carta con venta + WhatsApp** (carrito, enviar pedido, guardar en `pedidos`) + selector sales_mode ✅ (falta aplicar SQL + .htaccess, ver docs/checklist-c1-c2.md)
+- [~] **C2 — Modalidad Izipay** (portar izipay_create/ipn/verify; credenciales en .env; IPN HTTPS; probar en TEST) — backend portado (inerte); falta credenciales .env + wirear UI + probar TEST
 - [ ] **D — KDS** por ubicación (pantalla cocina, beep, estados; polling)
 - [ ] **E — POS** (caja, favoritos, pedidos presenciales)
 - [ ] **F — Reservas**
