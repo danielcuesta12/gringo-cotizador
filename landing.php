@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/landing_icons.php';
 
 $links = Database::fetchAll("SELECT * FROM landing_links WHERE active = 1 ORDER BY sort_order, id");
 
-$logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');
+$logoRel = getSetting('company_logo', '') ?: getSetting('company_logo_b', '');  // logo oscuro para fondo amarillo
 $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $tagline = getSetting('landing_tagline', 'Smash burgers · Pollo crispy · Salchipapas');
 $ig      = getSetting('instagram_handle', 'elgringoburger');
@@ -18,16 +18,16 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#141210">
+<meta name="theme-color" content="#FCDA13">
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <title>El Gringo Burger Joint</title>
 <style>
-  :root{ --bg:#141210; --card:#1f1c19; --line:rgba(255,255,255,.08); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:#fff; --muted:rgba(255,255,255,.5); }
+  :root{ --bg:#FCDA13; --card:#181613; --line:rgba(0,0,0,.14); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:#fff; --muted:rgba(255,255,255,.55); }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);background-image:radial-gradient(circle at 50% 0%, rgba(252,218,19,.10), transparent 55%),radial-gradient(circle at 50% 100%, rgba(250,184,192,.06), transparent 50%);color:var(--txt);min-height:100vh;display:flex;justify-content:center;padding:36px 20px 28px;-webkit-font-smoothing:antialiased}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:36px 20px 28px;-webkit-font-smoothing:antialiased}
   .wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
   .logo{width:178px;margin-bottom:18px;animation:pop .5s cubic-bezier(.2,.8,.25,1) both}
-  .logo-fallback{font-size:30px;font-weight:900;color:var(--brand);margin-bottom:14px;letter-spacing:-1px}
+  .logo-fallback{font-size:30px;font-weight:900;color:#1a1a1a;margin-bottom:14px;letter-spacing:-1px}
   @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
   .tagline{font-size:13.5px;color:var(--muted);text-align:center;letter-spacing:.3px;margin-bottom:26px}
   .links{width:100%;display:flex;flex-direction:column;gap:12px}
@@ -42,11 +42,8 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-arrow{color:var(--muted);flex-shrink:0;display:flex}
   .lnk-arrow svg{width:18px;height:18px}
   /* estilos */
-  .lnk.primary{background:var(--brand);border-color:var(--brand)}
-  .lnk.primary .lnk-title,.lnk.primary .lnk-sub,.lnk.primary .lnk-arrow{color:var(--ink)}
-  .lnk.primary .lnk-sub{opacity:.7}
-  .lnk.primary .lnk-ico{background:rgba(0,0,0,.12);color:var(--ink)}
-  .lnk.primary:hover{background:var(--brand-dark)}
+  .lnk.primary{background:#000;border-color:#000}
+  .lnk.primary .lnk-ico{background:var(--brand);color:#1a1a1a}
   .lnk.wa   .lnk-ico{background:rgba(37,211,102,.15);color:var(--green)}
   .lnk.pink .lnk-ico{background:rgba(250,184,192,.16);color:var(--pink)}
   .lnk.dark .lnk-ico{background:rgba(255,255,255,.10);color:#fff}
@@ -58,7 +55,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .quote-panel{max-height:0;overflow:hidden;transition:max-height .4s ease;border-radius:16px}
   .quote-panel.open{max-height:1600px;margin-top:12px}
   .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
-  .foot{margin-top:26px;font-size:11px;color:rgba(255,255,255,.3);text-align:center}
+  .foot{margin-top:26px;font-size:11px;color:rgba(0,0,0,.45);text-align:center}
 </style>
 </head>
 <body>
