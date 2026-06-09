@@ -35,12 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             "UPDATE quote_requests SET status='aceptada', reviewed_by=?, reviewed_at=NOW(), client_id=? WHERE id=?",
             array($_SESSION['user_id'], $clientId, $id)
         );
-        // 3. Redirigir al cotizador con datos precargados
-        flashMessage('success', 'Cliente creado. Completa la cotizacion.');
-        redirect('/quotes/create.php?client_id=' . $clientId .
-            '&event_date=' . urlencode($req['event_date'] ?: '') .
-            '&event_location=' . urlencode($req['event_location'] ?: '') .
-            '&num_people=' . (int)$req['num_people']);
+        // 3. Redirigir al cotizador precargado con TODOS los datos de la solicitud
+        flashMessage('success', 'Cliente creado. Cotización precargada con los datos de la solicitud.');
+        redirect('/quotes/create.php?from_request=' . $id);
     }
 }
 

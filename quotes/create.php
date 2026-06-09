@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $clientId     = cleanInt($_POST['client_id']    ?? 0);
     $eventType    = clean($_POST['event_type']       ?? '');
     $eventDate    = clean($_POST['event_date']       ?? '');
+    $eventTime    = clean($_POST['event_time']       ?? '');
+    $eventDur     = clean($_POST['event_duration']   ?? '');
     $eventLoc     = clean($_POST['event_location']   ?? '');
     $numPeople    = cleanInt($_POST['num_people']    ?? 0);
     $igvType      = in_array($_POST['igv_type']??'', ['none','10.5','18']) ? $_POST['igv_type'] : 'none';
@@ -68,15 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // --- Insertar cotización ---
         $quoteId = Database::insert(
             "INSERT INTO quotes
-             (quote_number, client_id, user_id, event_type, event_date, event_location,
+             (quote_number, client_id, user_id, event_type, event_date, event_time, event_duration, event_location,
               num_people, subtotal, discount_pct, discount_amount, extras_amount, extras_detail,
               igv_type, igv_amount, total, price_per_person,
               observations, terms, status, public_token, valid_until)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 $quoteNumber, $clientId, $_SESSION['user_id'],
                 $eventType,
                 $eventDate ?: null,
+                $eventTime ?: null,
+                $eventDur ?: null,
                 $eventLoc,
                 $numPeople,
                 $subtotal, $discPct, $discAmount,
@@ -119,10 +123,61 @@ $defaultTerms = getSetting('default_terms');
 $rawTypes   = getSetting('event_types', 'Corporativo,Boda,Cumpleaños,Social / Familiar,Feria gastronómica,Food truck,Otro');
 $eventTypes = array_filter(array_map('trim', explode(',', $rawTypes)));
 
+// --- Precarga: desde una solicitud aceptada (?from_request) o desde $_POST (re-render por error) ---
+$pf = array(
+    'client_id'      => cleanInt($_POST['client_id']      ?? 0),
+    'event_type'     => clean($_POST['event_type']        ?? ''),
+    'event_date'     => clean($_POST['event_date']        ?? ''),
+    'event_time'     => clean($_POST['event_time']        ?? ''),
+    'event_duration' => clean($_POST['event_duration']    ?? ''),
+    'event_location' => clean($_POST['event_location']    ?? ''),
+    'num_people'     => cleanInt($_POST['num_people']     ?? 0),
+    'observations'   => $_POST['observations'] ?? getSetting('default_observations'),
+);
+$prefillClient = null;   // datos del cliente para el chip ya seleccionado
+$requestNote   = '';     // comentarios del cliente (banner)
+$requestDate   = '';
+
+$fromReq = cleanInt($_GET['from_request'] ?? 0);
+if ($fromReq && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $r = Database::fetch("SELECT * FROM quote_requests WHERE id=?", array($fromReq));
+    if ($r) {
+        $pf['client_id']      = (int)$r['client_id'];
+        $pf['event_date']     = $r['event_date'] ?: '';
+        $pf['event_time']     = $r['event_time'] ?: '';
+        $pf['event_duration'] = $r['event_duration'] ?: '';
+        $pf['event_location'] = $r['event_location'] ?: '';
+        $pf['num_people']     = (int)$r['num_people'];
+        $requestDate          = $r['created_at'];
+        if (!empty($r['comments'])) {
+            $requestNote = $r['comments'];
+            $defObs = getSetting('default_observations');
+            $pf['observations'] = $r['comments'] . ($defObs ? "\n\n" . $defObs : '');
+        }
+        if (!empty($r['client_id'])) {
+            $prefillClient = Database::fetch(
+                "SELECT id, name, type, ruc_dni, phone, email FROM clients WHERE id=?",
+                array($r['client_id'])
+            );
+        }
+    }
+}
+
 $pageTitle  = 'Nueva cotización';
 $activePage = 'quote-new';
 
-$extraHead = '<link rel="stylesheet" href="' . APP_URL . '/assets/css/quoter.css">';
+$extraHead = '<link rel="stylesheet" href="' . APP_URL . '/assets/css/quoter.css">
+<style>
+.card-title{display:inline-flex;align-items:center;gap:8px}
+.card-title .sec-ico{display:inline-flex;color:var(--text-secondary)}
+.card-title .sec-ico svg{width:17px;height:17px}
+.req-note{background:var(--brand-soft);border:1px solid var(--brand-border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;gap:12px}
+.req-note .rn-ico{flex-shrink:0;color:#8a7600;display:flex}
+.req-note .rn-ico svg{width:20px;height:20px}
+.req-note .rn-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8a7600;margin-bottom:4px}
+.req-note .rn-body{font-size:13px;color:var(--text-primary);line-height:1.5;white-space:pre-line}
+.req-note .rn-meta{font-size:12px;color:var(--text-secondary);margin-top:6px}
+</style>';
 include __DIR__ . '/../admin/layout-top.php';
 ?>
 
@@ -130,6 +185,17 @@ include __DIR__ . '/../admin/layout-top.php';
 <?php foreach ($errors as $e): ?>
   <div class="alert alert-error">✗ <?= $e ?></div>
 <?php endforeach; ?>
+
+<?php if ($requestNote !== ''): ?>
+<div class="req-note">
+  <span class="rn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+  <div>
+    <div class="rn-title">Lo que pidió el cliente</div>
+    <div class="rn-body"><?= clean($requestNote) ?></div>
+    <div class="rn-meta"><?= $requestDate ? 'Solicitud recibida el ' . formatDate($requestDate) . ' · ' : '' ?>datos ya precargados abajo ✓</div>
+  </div>
+</div>
+<?php endif; ?>
 
 <form method="post" id="quoteForm">
 <?= csrfField() ?>
@@ -144,7 +210,7 @@ include __DIR__ . '/../admin/layout-top.php';
     <!-- SECCIÓN 1: Datos del evento -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">📅 Datos del evento</span>
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Datos del evento</span>
       </div>
       <div class="card-body">
 
@@ -153,7 +219,7 @@ include __DIR__ . '/../admin/layout-top.php';
           <label class="form-required">Cliente</label>
           <div style="display:flex;gap:8px">
             <div style="position:relative;flex:1">
-              <span class="search-icon" style="top:50%;transform:translateY(-50%)">🔍</span>
+              <span class="search-icon" style="top:50%;transform:translateY(-50%);display:flex"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
               <input type="text" id="clientSearch" placeholder="Buscar cliente por nombre o RUC…"
                      autocomplete="off" style="padding-left:36px">
               <div id="clientDropdown" class="search-dropdown" style="display:none"></div>
@@ -162,8 +228,17 @@ include __DIR__ . '/../admin/layout-top.php';
                class="btn btn-ghost btn-sm" title="Nuevo cliente" style="white-space:nowrap">+ Cliente</a>
           </div>
           <input type="hidden" name="client_id" id="clientId"
-                 value="<?= cleanInt($_POST['client_id'] ?? 0) ?>">
-          <div id="clientSelected" class="client-chip" style="display:none"></div>
+                 value="<?= cleanInt($pf['client_id']) ?>">
+          <div id="clientSelected" class="client-chip" style="display:<?= $prefillClient ? 'flex' : 'none' ?>">
+            <?php if ($prefillClient): ?>
+            <div class="client-chip-avatar"><?= strtoupper(substr($prefillClient['name'], 0, 1)) ?></div>
+            <div class="client-chip-info">
+              <div class="client-chip-name"><?= clean($prefillClient['name']) ?></div>
+              <div class="client-chip-sub"><?= $prefillClient['type'] === 'empresa' ? 'Empresa' : 'Persona' ?><?= $prefillClient['ruc_dni'] ? ' · ' . clean($prefillClient['ruc_dni']) : '' ?><?= $prefillClient['phone'] ? ' · +' . clean($prefillClient['phone']) : '' ?></div>
+            </div>
+            <button type="button" class="client-chip-remove" onclick="clearClient()" title="Cambiar cliente">✕</button>
+            <?php endif; ?>
+          </div>
         </div>
 
         <div class="form-row form-row-2">
@@ -173,7 +248,7 @@ include __DIR__ . '/../admin/layout-top.php';
             <select name="event_type" id="eventType" required>
               <option value="">Seleccionar…</option>
               <?php foreach ($eventTypes as $et): ?>
-              <option value="<?= $et ?>" <?= ($_POST['event_type']??'')===$et?'selected':'' ?>>
+              <option value="<?= $et ?>" <?= $pf['event_type']===$et?'selected':'' ?>>
                 <?= $et ?>
               </option>
               <?php endforeach; ?>
@@ -183,8 +258,23 @@ include __DIR__ . '/../admin/layout-top.php';
           <div class="form-group">
             <label>Fecha del evento</label>
             <input type="date" name="event_date"
-                   value="<?= clean($_POST['event_date'] ?? '') ?>"
-                   min="<?= date('Y-m-d') ?>">
+                   value="<?= clean($pf['event_date']) ?>">
+          </div>
+        </div>
+
+        <div class="form-row form-row-2">
+          <!-- Hora de inicio -->
+          <div class="form-group">
+            <label>Hora de inicio</label>
+            <input type="time" name="event_time"
+                   value="<?= clean($pf['event_time']) ?>">
+          </div>
+          <!-- Duración -->
+          <div class="form-group">
+            <label>Duración estimada</label>
+            <input type="text" name="event_duration"
+                   value="<?= clean($pf['event_duration']) ?>"
+                   placeholder="Ej: 3 horas">
           </div>
         </div>
 
@@ -193,14 +283,14 @@ include __DIR__ . '/../admin/layout-top.php';
           <div class="form-group">
             <label>Lugar del evento</label>
             <input type="text" name="event_location"
-                   value="<?= clean($_POST['event_location'] ?? '') ?>"
+                   value="<?= clean($pf['event_location']) ?>"
                    placeholder="Local, dirección…">
           </div>
           <!-- N° personas -->
           <div class="form-group">
             <label>N° de personas</label>
             <input type="number" name="num_people" id="num_people"
-                   value="<?= cleanInt($_POST['num_people'] ?? 0) ?>"
+                   value="<?= cleanInt($pf['num_people']) ?>"
                    min="0" step="1" placeholder="0">
             <div class="form-hint">Para calcular precio por persona</div>
           </div>
@@ -212,7 +302,7 @@ include __DIR__ . '/../admin/layout-top.php';
     <!-- SECCIÓN 2: Productos -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">🍔 Productos</span>
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>Productos</span>
         <span style="font-size:13px;color:var(--text-muted)" id="itemCount">0 ítems</span>
       </div>
       <div class="card-body" style="padding-bottom:0">
@@ -220,7 +310,7 @@ include __DIR__ . '/../admin/layout-top.php';
         <!-- Buscador de productos -->
         <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
           <div style="position:relative;flex:1;min-width:200px">
-            <span class="search-icon" style="top:50%;transform:translateY(-50%)">🔍</span>
+            <span class="search-icon" style="top:50%;transform:translateY(-50%);display:flex"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
             <input type="text" id="productSearch" placeholder="Buscar producto…"
                    autocomplete="off" style="padding-left:36px">
             <div id="productDropdown" class="search-dropdown" style="display:none"></div>
@@ -254,7 +344,7 @@ include __DIR__ . '/../admin/layout-top.php';
 
         <!-- Estado vacío -->
         <div id="emptyItems" style="text-align:center;padding:40px 20px;color:var(--text-muted)">
-          <div style="font-size:36px;margin-bottom:8px">🍔</div>
+          <div style="margin-bottom:8px;display:flex;justify-content:center;color:var(--border)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
           <div style="font-size:14px">Busca y agrega productos arriba</div>
         </div>
 
@@ -263,12 +353,12 @@ include __DIR__ . '/../admin/layout-top.php';
 
     <!-- SECCIÓN 3: Observaciones y términos -->
     <div class="card">
-      <div class="card-header"><span class="card-title">📝 Notas y condiciones</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>Notas y condiciones</span></div>
       <div class="card-body">
         <div class="form-group">
           <label>Observaciones</label>
           <textarea name="observations" rows="3"
-                    placeholder="Detalles especiales, acuerdos, notas para el cliente…"><?= clean($_POST['observations'] ?? getSetting('default_observations')) ?></textarea>
+                    placeholder="Detalles especiales, acuerdos, notas para el cliente…"><?= clean($pf['observations']) ?></textarea>
         </div>
         <div class="form-group">
           <label>Términos y condiciones</label>
@@ -295,7 +385,7 @@ include __DIR__ . '/../admin/layout-top.php';
 
     <!-- Card de totales (sticky) -->
     <div class="card totals-card">
-      <div class="card-header"><span class="card-title">💰 Resumen</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2H8a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Z"/><path d="M9 7h6M9 11h6"/></svg></span>Resumen</span></div>
       <div class="card-body">
 
         <!-- IGV -->
@@ -367,8 +457,9 @@ include __DIR__ . '/../admin/layout-top.php';
         <input type="hidden" id="calc_total"        name="calc_total"        value="0">
         <input type="hidden" id="calc_per_person"   name="calc_per_person"   value="0">
 
-        <button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top:20px">
-          💾 Guardar cotización
+        <button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top:20px;gap:8px">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Guardar cotización
         </button>
         <a href="<?= APP_URL ?>/admin/dashboard.php" class="btn btn-ghost btn-block" style="margin-top:8px">
           Cancelar

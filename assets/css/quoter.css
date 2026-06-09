@@ -147,13 +147,13 @@
 .dropdown-item-info { flex: 1; min-width: 0; }
 .dropdown-item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dropdown-item-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-.dropdown-item-price { font-size: 12px; font-weight: 700; color: var(--red); flex-shrink: 0; }
+.dropdown-item-price { font-size: 12px; font-weight: 700; color: var(--ink); flex-shrink: 0; }
 .dropdown-empty   { padding: 18px; text-align: center; color: var(--text-muted); font-size: 13px; }
 .dropdown-loading { padding: 14px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
 /* Client chip */
 .client-chip { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 14px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 10px; }
-.client-chip-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.client-chip-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: var(--ink); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
 .client-chip-info { flex: 1; min-width: 0; }
 .client-chip-name { font-size: 13px; font-weight: 600; }
 .client-chip-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }

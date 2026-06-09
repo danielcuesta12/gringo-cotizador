@@ -117,6 +117,10 @@ $extraHead  = '
 <link rel="stylesheet" href="' . APP_URL . '/assets/css/quoter.css">
 <style>
 .event-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.1);color:#7c3aed;border:1px solid rgba(124,58,237,.25);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;margin-bottom:16px}
+.event-badge svg{width:15px;height:15px}
+.card-title{display:inline-flex;align-items:center;gap:8px}
+.card-title .sec-ico{display:inline-flex;color:var(--text-secondary)}
+.card-title .sec-ico svg{width:17px;height:17px}
 </style>';
 
 include __DIR__ . '/../layout-top.php';
@@ -128,7 +132,7 @@ include __DIR__ . '/../layout-top.php';
   <span class="breadcrumb-current">Nuevo evento</span>
 </div>
 
-<div class="event-badge">&#128197; Evento directo — se registra como aceptado inmediatamente</div>
+<div class="event-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Evento directo — se registra como aceptado inmediatamente</div>
 
 <?php foreach ($errors as $e): ?>
   <div class="alert alert-error">&#10007; <?php echo htmlspecialchars($e); ?></div>
@@ -143,14 +147,14 @@ include __DIR__ . '/../layout-top.php';
   <div class="quoter-left">
 
     <div class="card">
-      <div class="card-header"><span class="card-title">&#128197; Datos del evento</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Datos del evento</span></div>
       <div class="card-body">
 
         <div class="form-group">
           <label class="form-required">Cliente</label>
           <div style="display:flex;gap:8px">
             <div style="position:relative;flex:1">
-              <span class="search-icon" style="top:50%;transform:translateY(-50%)">&#128269;</span>
+              <span class="search-icon" style="top:50%;transform:translateY(-50%);display:flex"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
               <input type="text" id="clientSearch" placeholder="Buscar cliente por nombre o RUC..."
                      autocomplete="off" style="padding-left:36px">
               <div id="clientDropdown" class="search-dropdown" style="display:none"></div>
@@ -203,13 +207,13 @@ include __DIR__ . '/../layout-top.php';
 
     <div class="card">
       <div class="card-header">
-        <span class="card-title">&#127828; Productos</span>
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>Productos</span>
         <span id="itemCount" style="font-size:13px;color:var(--text-muted)">0 items</span>
       </div>
       <div class="card-body">
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
           <div style="position:relative;flex:1;min-width:200px">
-            <span class="search-icon" style="top:50%;transform:translateY(-50%)">&#128269;</span>
+            <span class="search-icon" style="top:50%;transform:translateY(-50%);display:flex"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
             <input type="text" id="productSearch" placeholder="Buscar producto..."
                    autocomplete="off" style="padding-left:36px">
             <div id="productDropdown" class="search-dropdown" style="display:none"></div>
@@ -240,7 +244,7 @@ include __DIR__ . '/../layout-top.php';
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="card-title">&#128203; Notas</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>Notas</span></div>
       <div class="card-body">
         <div class="form-group">
           <label>Observaciones</label>
@@ -257,7 +261,7 @@ include __DIR__ . '/../layout-top.php';
 
   <div class="quoter-right">
     <div class="card totals-card">
-      <div class="card-header"><span class="card-title">&#128176; Resumen</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2H8a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Z"/><path d="M9 7h6M9 11h6"/></svg></span>Resumen</span></div>
       <div class="card-body">
 
         <div class="form-group">
@@ -302,8 +306,9 @@ include __DIR__ . '/../layout-top.php';
         <input type="hidden" id="calc_per_person"   name="calc_per_person">
 
         <button type="submit" class="btn btn-primary btn-lg btn-block"
-                style="margin-top:16px;background:#7c3aed;border-color:#7c3aed">
-          &#128197; Guardar evento
+                style="margin-top:16px;background:#7c3aed;border-color:#7c3aed;color:#fff;gap:8px">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
+          Guardar evento
         </button>
         <a href="<?= APP_URL ?>/admin/dashboard" class="btn btn-ghost btn-block" style="margin-top:8px">Cancelar</a>
 

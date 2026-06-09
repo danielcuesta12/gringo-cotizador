@@ -250,6 +250,11 @@ $extraHead  = '
   .edit-spacer { display: none; }
   .edit-desktop-actions { display: flex !important; }
 }
+.card-title{display:inline-flex;align-items:center;gap:8px}
+.card-title .sec-ico{display:inline-flex;color:var(--text-secondary)}
+.card-title .sec-ico svg{width:16px;height:16px}
+.seg-btn-icon svg,.seg-cbtn-icon svg{width:18px;height:18px}
+.btn svg{vertical-align:-3px}
 </style>';
 
 include __DIR__ . '/../admin/layout-top.php';
@@ -303,7 +308,7 @@ include __DIR__ . '/../admin/layout-top.php';
     <!-- PRODUCTOS -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">Productos cotizados</span>
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>Productos cotizados</span>
         <span style="font-size:13px;color:var(--text-muted)"><?php echo count($items); ?> items</span>
       </div>
       <?php foreach ($items as $it):
@@ -332,7 +337,7 @@ include __DIR__ . '/../admin/layout-top.php';
 
     <!-- LINK PUBLICO -->
     <div class="card">
-      <div class="card-header"><span class="card-title">Link publico</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>Link público</span></div>
       <div class="card-body">
         <div style="font-size:12px;background:#f8f8f8;border-radius:8px;padding:10px;word-break:break-all;color:#555;margin-bottom:10px;line-height:1.5">
           <?php echo APP_URL; ?>/quotes/view.php?token=<?php echo clean($quote['public_token']); ?>
@@ -355,11 +360,16 @@ include __DIR__ . '/../admin/layout-top.php';
     <!-- HISTORIAL -->
     <?php if (!empty($log)): ?>
     <div class="card">
-      <div class="card-header"><span class="card-title">Historial</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg></span>Historial</span></div>
       <div class="card-body" style="padding:0">
         <?php foreach ($log as $l):
-          $icons = array('enviada'=>'📤','aceptada'=>'✅','rechazada'=>'❌');
-          $icon  = isset($icons[$l['to_status']]) ? $icons[$l['to_status']] : '✏️';
+          $_svg = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8a7600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+          $icons = array(
+            'enviada'   => $_svg . '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>',
+            'aceptada'  => $_svg . '<path d="M20 6 9 17l-5-5"/></svg>',
+            'rechazada' => $_svg . '<path d="M18 6 6 18M6 6l12 12"/></svg>',
+          );
+          $icon  = isset($icons[$l['to_status']]) ? $icons[$l['to_status']] : ($_svg . '<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>');
         ?>
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
           <div style="width:34px;height:34px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">
@@ -400,17 +410,17 @@ include __DIR__ . '/../admin/layout-top.php';
     $segClass = 'seg-' . $quote['status'];
     switch ($quote['status']) {
         case 'borrador':
-            $segIcon  = '&#128228;';
+            $segIcon  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>';
             $segTitle = 'Enviar cotizaci&oacute;n al cliente';
             $segSub   = 'A&uacute;n no se ha enviado &middot; Lista para enviar';
             break;
         case 'enviada':
-            $segIcon  = '&#128276;';
+            $segIcon  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
             $segTitle = 'Hacer seguimiento';
             $segSub   = ($daysSinceSent !== null ? 'Enviada hace ' . $daysSinceSent . ' d&iacute;a' . ($daysSinceSent !== 1 ? 's' : '') . ' &middot; ' : '') . 'Recuerda al cliente por WhatsApp o llamada';
             break;
         case 'aceptada':
-            $segIcon  = '&#9989;';
+            $segIcon  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
             $segTitle = 'Coordinar el evento';
             $segSub   = ($daysToEvent !== null && $daysToEvent >= 0
                 ? 'Evento en ' . $daysToEvent . ' d&iacute;a' . ($daysToEvent !== 1 ? 's' : '')
@@ -418,7 +428,7 @@ include __DIR__ . '/../admin/layout-top.php';
             break;
         case 'rechazada':
         default:
-            $segIcon  = '&#128260;';
+            $segIcon  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>';
             $segTitle = 'Recuperar cliente';
             $segSub   = 'Contacta para entender el motivo y ofrecer alternativas';
             break;
@@ -429,7 +439,7 @@ include __DIR__ . '/../admin/layout-top.php';
         : '';
     ?>
     <div class="card">
-      <div class="card-header"><span class="card-title">&#128222; Seguimiento</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg></span>Seguimiento</span></div>
       <div class="card-body">
         <button type="button" class="seg-btn <?php echo $segClass; ?>" onclick="toggleSegPanel()">
           <div class="seg-btn-icon"><?php echo $segIcon; ?></div>
@@ -452,26 +462,26 @@ include __DIR__ . '/../admin/layout-top.php';
           <div class="seg-contact-btns">
             <?php if ($waLink): ?>
             <a href="<?php echo $waLink; ?>" target="_blank" class="seg-cbtn seg-cbtn-wa">
-              <span class="seg-cbtn-icon">&#128172;</span>WhatsApp
+              <span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></span>WhatsApp
             </a>
             <?php else: ?>
-            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon">&#128172;</span>WhatsApp</div>
+            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></span>WhatsApp</div>
             <?php endif; ?>
 
             <?php if ($callLink): ?>
             <a href="<?php echo $callLink; ?>" class="seg-cbtn seg-cbtn-call">
-              <span class="seg-cbtn-icon">&#128222;</span>Llamar
+              <span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg></span>Llamar
             </a>
             <?php else: ?>
-            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon">&#128222;</span>Llamar</div>
+            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg></span>Llamar</div>
             <?php endif; ?>
 
             <?php if ($quote['client_email']): ?>
             <a href="<?php echo APP_URL; ?>/quotes/send-email.php?id=<?php echo $id; ?>" class="seg-cbtn">
-              <span class="seg-cbtn-icon">&#9993;</span>Email
+              <span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></span>Email
             </a>
             <?php else: ?>
-            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon">&#9993;</span>Email</div>
+            <div class="seg-cbtn disabled"><span class="seg-cbtn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></span>Email</div>
             <?php endif; ?>
           </div>
         </div>
@@ -480,7 +490,7 @@ include __DIR__ . '/../admin/layout-top.php';
 
     <!-- CAMBIAR ESTADO -->
     <div class="card">
-      <div class="card-header"><span class="card-title">Cambiar estado</span></div>
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg></span>Cambiar estado</span></div>
       <div class="card-body">
         <form method="post" id="statusForm">
           <?php echo csrfField(); ?>
@@ -521,16 +531,19 @@ include __DIR__ . '/../admin/layout-top.php';
 
     <!-- ACCIONES DESKTOP -->
     <div class="edit-desktop-actions" style="display:none;flex-direction:column;gap:8px">
-      <a href="<?php echo $waLink; ?>" target="_blank" class="btn btn-success btn-block">
-        💬 WhatsApp al cliente
+      <a href="<?php echo $waLink; ?>" target="_blank" class="btn btn-success btn-block" style="gap:8px">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+        WhatsApp al cliente
       </a>
       <?php if ($quote['client_email']): ?>
-      <a href="<?php echo APP_URL; ?>/quotes/send-email.php?id=<?php echo $id; ?>" class="btn btn-secondary btn-block">
-        ✉ Enviar por email
+      <a href="<?php echo APP_URL; ?>/quotes/send-email.php?id=<?php echo $id; ?>" class="btn btn-secondary btn-block" style="gap:8px">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+        Enviar por email
       </a>
       <?php endif; ?>
-      <a href="<?php echo $pdfLink; ?>" target="_blank" class="btn btn-secondary btn-block">
-        👁 Ver cotizacion
+      <a href="<?php echo $pdfLink; ?>" target="_blank" class="btn btn-secondary btn-block" style="gap:8px">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        Ver cotización
       </a>
     </div>
 
@@ -546,19 +559,19 @@ include __DIR__ . '/../admin/layout-top.php';
   <a href="<?php echo APP_URL; ?>/quotes/list.php" class="btn btn-back">
     ← Lista
   </a>
-  <a href="<?php echo $pdfLink; ?>" target="_blank" class="btn btn-pdf" style="background:#1a1a1a;color:#fff">
-    👁 Ver
+  <a href="<?php echo $pdfLink; ?>" target="_blank" class="btn btn-pdf" style="background:#1a1a1a;color:#fff;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver
   </a>
-  <a href="<?php echo $waLink; ?>" target="_blank" class="btn btn-wa" style="background:#25D366;color:#fff">
-    💬 WA
+  <a href="<?php echo $waLink; ?>" target="_blank" class="btn btn-wa" style="background:#25D366;color:#fff;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg> WA
   </a>
   <?php if ($quote['client_email']): ?>
-  <a href="<?php echo APP_URL; ?>/quotes/send-email.php?id=<?php echo $id; ?>" class="btn btn-email" style="background:#2563eb;color:#fff">
-    ✉ Email
+  <a href="<?php echo APP_URL; ?>/quotes/send-email.php?id=<?php echo $id; ?>" class="btn btn-email" style="background:#2563eb;color:#fff;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> Email
   </a>
   <?php endif; ?>
-  <button onclick="copyPublicLink()" class="btn btn-link" id="copyMobileBtn" style="background:#f0f0f0;color:#333">
-    🔗 Link
+  <button onclick="copyPublicLink()" class="btn btn-link" id="copyMobileBtn" style="background:#f0f0f0;color:#333;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Link
   </button>
 </div>
 
