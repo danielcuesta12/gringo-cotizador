@@ -12,11 +12,13 @@ $statsCot = Database::fetch(
     "SELECT COUNT(*) as n FROM quotes
      WHERE MONTH(created_at)=MONTH(NOW()) AND YEAR(created_at)=YEAR(NOW())"
 );
-// Facturado = solo cotizaciones y eventos ACEPTADOS este mes
+// Facturado del mes = suma de TODOS los eventos aceptados cuya FECHA DE EVENTO cae en el mes actual.
+// (Antes filtraba por accepted_at; un evento aceptado en mayo para una boda de junio no contaba en junio.)
 $statsFacturado = Database::fetch(
     "SELECT COALESCE(SUM(total),0) as sum FROM quotes
      WHERE status='aceptada'
-     AND MONTH(accepted_at)=MONTH(NOW()) AND YEAR(accepted_at)=YEAR(NOW())"
+     AND event_date IS NOT NULL AND event_date != ''
+     AND MONTH(event_date)=MONTH(NOW()) AND YEAR(event_date)=YEAR(NOW())"
 );
 $byStatus = Database::fetchAll("SELECT status, COUNT(*) as n FROM quotes GROUP BY status");
 $smap     = array_column($byStatus, 'n', 'status');
@@ -70,32 +72,58 @@ $activePage = 'dashboard';
 include __DIR__ . '/layout-top.php';
 ?>
 
-<!-- Stats compactos -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
-  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Cot. este mes</div>
-    <div style="font-size:22px;font-weight:800;line-height:1"><?php echo (int)($statsCot['n']??0); ?></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">cotizaciones</div>
+<?php
+$todayStr = date('Y-m-d');
+// Próximos eventos: enviadas/aceptadas/eventos con fecha futura o de hoy
+$upcoming = array_slice(array_values(array_filter($calQuotes, function ($q) use ($todayStr) {
+    return $q['event_date'] >= $todayStr;
+})), 0, 6);
+
+// Datos del mini-calendario (mes actual)
+$mcMonths = array('', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre');
+$mcYear   = (int)date('Y');
+$mcMonth  = (int)date('n');
+$mcToday  = (int)date('j');
+$mcLead   = (int)date('N', mktime(0, 0, 0, $mcMonth, 1, $mcYear)) - 1; // 0 = Lunes
+$mcDays   = (int)date('t', mktime(0, 0, 0, $mcMonth, 1, $mcYear));
+
+// Clase de color por estado (amarillo=enviada, verde=aceptada, morado=evento)
+function dashState($q) {
+    if (($q['origin'] ?? '') === 'event') return 'evento';
+    return ($q['status'] ?? '') === 'aceptada' ? 'aceptada' : 'enviada';
+}
+function dashStateLabel($q) {
+    if (($q['origin'] ?? '') === 'event') return 'Evento';
+    return ($q['status'] ?? '') === 'aceptada' ? 'Aceptada' : 'Enviada';
+}
+?>
+
+<!-- STATS -->
+<div class="dash-stats">
+  <div class="dstat dstat-cot">
+    <div class="dstat-label">Cot. este mes</div>
+    <div class="dstat-num"><?php echo (int)($statsCot['n'] ?? 0); ?></div>
+    <div class="dstat-sub">cotizaciones</div>
   </div>
-  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Facturado mes</div>
-    <div style="font-size:15px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?php echo formatMoney((float)($statsFacturado['sum']??0)); ?></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">aceptadas</div>
+  <div class="dstat dstat-fact">
+    <div class="dstat-label">Facturado mes</div>
+    <div class="dstat-num money"><?php echo formatMoney((float)($statsFacturado['sum'] ?? 0)); ?></div>
+    <div class="dstat-sub">eventos del mes</div>
   </div>
-  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Aceptadas</div>
-    <div style="font-size:22px;font-weight:800;line-height:1;color:var(--green)"><?php echo (int)(isset($smap['aceptada'])?$smap['aceptada']:0); ?></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">historico</div>
+  <div class="dstat dstat-acc">
+    <div class="dstat-label">Aceptadas</div>
+    <div class="dstat-num"><?php echo (int)(isset($smap['aceptada']) ? $smap['aceptada'] : 0); ?></div>
+    <div class="dstat-sub">histórico</div>
   </div>
-  <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);position:relative">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Solicitudes</div>
-    <div style="font-size:22px;font-weight:800;line-height:1;color:<?php echo $pendingReq>0?'#ca8a04':'var(--text-primary)'; ?>"><?php echo $pendingReq; ?></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">pendientes</div>
-    <?php if ($pendingReq > 0): ?>
-    <a href="<?php echo APP_URL; ?>/admin/requests/index.php" style="position:absolute;top:8px;right:8px;background:#fef9c3;color:#854d0e;font-size:10px;padding:2px 7px;border-radius:6px;text-decoration:none;font-weight:600">Ver</a>
-    <?php endif; ?>
-  </div>
+  <a class="dstat dstat-req" href="<?php echo APP_URL; ?>/admin/requests/index.php" style="text-decoration:none">
+    <div class="dstat-label">Solicitudes</div>
+    <div class="dstat-num" style="color:#fb923c"><?php echo $pendingReq; ?></div>
+    <div class="dstat-sub">pendientes</div>
+  </a>
 </div>
+
+<div class="dash-grid">
+  <div class="dash-main">
 
 <!-- CALENDARIO -->
 <div class="card" style="margin-bottom:20px">
@@ -129,72 +157,89 @@ include __DIR__ . '/layout-top.php';
   <!-- Leyenda -->
   <div style="display:flex;gap:14px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
-      <span style="width:10px;height:10px;border-radius:2px;background:#dbeafe;display:inline-block"></span>Enviada
+      <span style="width:10px;height:10px;border-radius:2px;background:#FCDA13;display:inline-block"></span>Enviada
     </div>
     <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
-      <span style="width:10px;height:10px;border-radius:2px;background:#dcfce7;display:inline-block"></span>Aceptada
+      <span style="width:10px;height:10px;border-radius:2px;background:#16a34a;display:inline-block"></span>Aceptada
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
+      <span style="width:10px;height:10px;border-radius:2px;background:#7c3aed;display:inline-block"></span>Evento directo
     </div>
   </div>
 </div>
 
-<!-- Últimas cotizaciones -->
+<!-- PRÓXIMOS EVENTOS -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Ultimas cotizaciones</span>
+    <span class="card-title">Próximos eventos</span>
     <a href="<?php echo APP_URL; ?>/quotes/list.php" class="btn btn-ghost btn-sm">Ver todas &rarr;</a>
   </div>
-  <?php if (empty($recentQuotes)): ?>
-  <div class="empty-state">
-    <div class="empty-state-icon">&#128203;</div>
-    <h3>Sin cotizaciones</h3>
-    <a href="<?php echo APP_URL; ?>/quotes/create.php" class="btn btn-primary">+ Nueva cotizacion</a>
+  <?php if (empty($upcoming)): ?>
+  <div class="empty-state" style="padding:36px 20px">
+    <p>Sin eventos próximos</p>
+    <a href="<?php echo APP_URL; ?>/quotes/create.php" class="btn btn-primary">+ Nueva cotización</a>
   </div>
-  <?php else: ?>
-  <!-- Desktop -->
-  <div class="dash-desktop">
-    <div class="table-wrap" style="border:none;border-radius:0">
-      <table class="data-table">
-        <thead><tr><th>N°</th><th>Cliente</th><th>Evento</th><th>Total</th><th>Estado</th><th></th></tr></thead>
-        <tbody>
-          <?php foreach ($recentQuotes as $q): ?>
-          <tr>
-            <td><a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>" style="font-weight:700;color:var(--red);text-decoration:none"><?php echo clean($q['quote_number']); ?></a><div style="font-size:11px;color:var(--text-muted)"><?php echo formatDate($q['created_at']); ?></div></td>
-            <td><?php echo clean($q['client_name']); ?></td>
-            <td><?php echo clean($q['event_type']?:'—'); ?></td>
-            <td><strong><?php echo formatMoney((float)$q['total']); ?></strong></td>
-            <td><?php echo quoteStatusBadge($q['status']); ?></td>
-            <td><div class="td-actions"><a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>" class="btn btn-ghost btn-sm">Editar</a><a href="<?php echo APP_URL; ?>/quotes/pdf.php?id=<?php echo $q['id']; ?>" class="btn btn-secondary btn-sm" target="_blank">PDF</a></div></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+  <?php else: foreach ($upcoming as $q): $st = dashState($q); ?>
+  <a class="ev-row" href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>">
+    <span class="ev-dot ev-dot-<?php echo $st; ?>"></span>
+    <div class="ev-info">
+      <div class="ev-name"><?php echo clean($q['client_name']); ?></div>
+      <div class="ev-meta"><?php echo clean($q['event_type'] ?: 'Evento'); ?> · <?php echo formatDate($q['event_date']); ?><?php echo (int)$q['num_people'] > 0 ? ' · ' . (int)$q['num_people'] . ' pers.' : ''; ?></div>
     </div>
-  </div>
-  <!-- Mobile -->
-  <div class="dash-mobile">
-    <?php foreach ($recentQuotes as $q):
-      $sc = array('borrador'=>'#aaa','enviada'=>'#2563eb','aceptada'=>'#16a34a','rechazada'=>'#dc2626');
-      $dc = isset($sc[$q['status']])?$sc[$q['status']]:'#aaa';
-    ?>
-    <a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>"
-       style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);text-decoration:none;gap:10px;-webkit-tap-highlight-color:transparent">
-      <div style="min-width:0">
-        <div style="font-size:14px;font-weight:700;color:var(--red)"><?php echo clean($q['quote_number']); ?></div>
-        <div style="font-size:13px;font-weight:600;color:#1a1a1a;margin-top:1px"><?php echo clean($q['client_name']); ?></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?php echo $dc; ?>;margin-right:3px;vertical-align:middle"></span>
-          <?php echo quoteStatusLabel($q['status']); ?><?php echo $q['event_type']?' &middot; '.clean($q['event_type']):''; ?>
-        </div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:15px;font-weight:800;color:#1a1a1a"><?php echo formatMoney((float)$q['total']); ?></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><?php echo formatDate($q['created_at']); ?></div>
-      </div>
-    </a>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
+    <span class="ev-badge ev-badge-<?php echo $st; ?>"><?php echo dashStateLabel($q); ?></span>
+    <span class="ev-amount"><?php echo formatMoney((float)$q['total']); ?></span>
+  </a>
+  <?php endforeach; endif; ?>
 </div>
+
+  </div><!-- /dash-main -->
+
+  <!-- PANEL LATERAL -->
+  <div class="side-panel">
+
+    <!-- Acciones rápidas -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Acciones rápidas</span></div>
+      <div class="qa-grid">
+        <a class="qa" href="<?php echo APP_URL; ?>/quotes/create.php">
+          <span class="qa-ico qa-ico-y"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+          <span class="qa-txt">Nueva cotización</span>
+        </a>
+        <a class="qa" href="<?php echo APP_URL; ?>/admin/events/create">
+          <span class="qa-ico qa-ico-p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg></span>
+          <span class="qa-txt">Nuevo evento</span>
+        </a>
+        <a class="qa" href="<?php echo APP_URL; ?>/admin/clients/form.php">
+          <span class="qa-ico qa-ico-g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="qa-txt">Nuevo cliente</span>
+        </a>
+        <a class="qa" href="<?php echo APP_URL; ?>/admin/requests/index.php">
+          <span class="qa-ico qa-ico-o"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg></span>
+          <span class="qa-txt">Solicitudes</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Mini calendario -->
+    <div class="card">
+      <div class="mc-head">
+        <span class="mc-title"><?php echo $mcMonths[$mcMonth] . ' ' . $mcYear; ?></span>
+      </div>
+      <div class="mc-grid">
+        <?php foreach (array('L','M','X','J','V','S','D') as $d): ?><div class="mc-dow"><?php echo $d; ?></div><?php endforeach; ?>
+        <?php for ($i = 0; $i < $mcLead; $i++): ?><div class="mc-day muted"></div><?php endfor; ?>
+        <?php for ($d = 1; $d <= $mcDays; $d++):
+          $ds        = sprintf('%04d-%02d-%02d', $mcYear, $mcMonth, $d);
+          $dayEvents = isset($calMap[$ds]) ? $calMap[$ds] : array();
+          $isToday   = ($d === $mcToday);
+        ?>
+        <div class="mc-day<?php echo $isToday ? ' today' : ''; ?>"><?php echo $d; ?><?php if (!empty($dayEvents)): $st = dashState($dayEvents[0]); $dotcol = $st === 'aceptada' ? '#16a34a' : ($st === 'evento' ? '#7c3aed' : '#FCDA13'); ?><span class="mk" style="background:<?php echo $dotcol; ?>"></span><?php endif; ?></div>
+        <?php endfor; ?>
+      </div>
+    </div>
+
+  </div><!-- /side-panel -->
+</div><!-- /dash-grid -->
 
 <style>
 .dash-desktop{display:block}.dash-mobile{display:none}
@@ -202,8 +247,9 @@ include __DIR__ . '/layout-top.php';
 .cal-day-cell{min-height:60px;padding:4px 3px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top}
 .cal-day-cell:nth-child(7n){border-right:none}
 .cal-ev{border-radius:3px;padding:1px 4px;font-size:9px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;display:block;text-decoration:none}
-.cal-ev-e{background:#dbeafe;color:#1e40af}
+.cal-ev-e{background:rgba(252,218,19,.28);color:#7a6800}
 .cal-ev-a{background:#dcfce7;color:#166534}
+.cal-ev-v{background:#ede9fe;color:#5b21b6}
 .list-item{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .list-item:last-child{border-bottom:none}
 .list-item:hover{background:#fafafa}
@@ -223,8 +269,8 @@ function setView(v) {
   view = v;
   document.getElementById('viewMonth').style.display = v==='month' ? '' : 'none';
   document.getElementById('viewList').style.display  = v==='list'  ? '' : 'none';
-  document.getElementById('btnMonth').style.cssText  = v==='month' ? 'color:var(--red);border-color:var(--red);background:rgba(200,16,46,.06)' : '';
-  document.getElementById('btnList').style.cssText   = v==='list'  ? 'color:var(--red);border-color:var(--red);background:rgba(200,16,46,.06)' : '';
+  document.getElementById('btnMonth').style.cssText  = v==='month' ? 'color:var(--ink);border-color:var(--brand);background:var(--brand-soft)' : '';
+  document.getElementById('btnList').style.cssText   = v==='list'  ? 'color:var(--ink);border-color:var(--brand);background:var(--brand-soft)' : '';
   if (v==='month') renderMonth();
   else renderList();
 }

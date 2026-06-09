@@ -96,6 +96,13 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['csrf_token'];
+
+// Logo activo (igual que el panel: active_logo elige A/B)
+$activeLogo = getSetting('active_logo', 'a');
+$logoRel    = $activeLogo === 'b' ? getSetting('company_logo_b', '') : getSetting('company_logo', '');
+if (empty($logoRel)) $logoRel = getSetting('company_logo', '');
+$logoUrl    = $logoRel ? UPLOAD_URL  . $logoRel : '';
+$logoFile   = $logoRel ? UPLOAD_PATH . $logoRel : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -119,14 +126,16 @@ body {
 }
 .wrap { width: 100%; max-width: 400px; }
 .brand { text-align: center; margin-bottom: 28px; }
-.brand-icon {
-  width: 68px; height: 68px;
-  background: #C8102E; border-radius: 18px;
+.brand-logo { margin: 0 auto 16px; }
+.brand-logo img { width: 160px; max-height: 84px; object-fit: contain; display: block; margin: 0 auto; }
+.brand-logo-fallback {
+  width: 80px; height: 80px;
+  background: #FCDA13; border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 14px; font-size: 30px;
+  margin: 0 auto; font-size: 30px; font-weight: 900; color: #1a1a1a; letter-spacing: -1px;
 }
 .brand-name { font-size: 20px; font-weight: 700; color: #fff; }
-.brand-sub  { font-size: 13px; color: #555; margin-top: 3px; }
+.brand-sub  { font-size: 13px; color: #666; margin-top: 3px; letter-spacing: .3px; }
 .card {
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
@@ -155,8 +164,11 @@ body {
 .input-icon {
   position: absolute; left: 13px; top: 50%;
   transform: translateY(-50%);
-  color: #444; font-size: 16px; pointer-events: none;
+  color: #555; pointer-events: none;
+  display: flex;
 }
+.input-icon svg { width: 17px; height: 17px; display: block; }
+.toggle-pass svg { width: 18px; height: 18px; display: block; }
 input[type="email"],
 input[type="password"],
 input[type="text"] {
@@ -170,7 +182,7 @@ input[type="text"] {
   transition: border-color .2s;
   -webkit-appearance: none;
 }
-input:focus { border-color: #C8102E; }
+input:focus { border-color: #FCDA13; }
 input::placeholder { color: #333; }
 .toggle-pass {
   position: absolute; right: 12px; top: 50%;
@@ -179,24 +191,24 @@ input::placeholder { color: #333; }
   color: #444; cursor: pointer; font-size: 16px;
   padding: 2px; transition: color .2s;
 }
-.toggle-pass:hover { color: #C8102E; }
+.toggle-pass:hover { color: #FCDA13; }
 .remember {
   display: flex; align-items: center;
   gap: 8px; margin-bottom: 20px;
 }
 .remember input[type="checkbox"] {
   width: 16px; height: 16px;
-  accent-color: #C8102E; cursor: pointer;
+  accent-color: #FCDA13; cursor: pointer;
 }
 .remember label { font-size: 13px; color: #666; cursor: pointer; }
 .btn-submit {
   width: 100%; padding: 14px;
-  background: #C8102E; color: #fff;
+  background: #FCDA13; color: #1a1a1a;
   border: none; border-radius: 10px;
   font-size: 15px; font-weight: 700;
   cursor: pointer; transition: background .2s;
 }
-.btn-submit:hover { background: #a80d25; }
+.btn-submit:hover { background: #e6c400; }
 .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #333; }
 </style>
 </head>
@@ -204,9 +216,15 @@ input::placeholder { color: #333; }
 
 <div class="wrap">
   <div class="brand">
-    <div class="brand-icon">&#127828;</div>
+    <div class="brand-logo">
+      <?php if ($logoUrl && file_exists($logoFile)): ?>
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="El Gringo">
+      <?php else: ?>
+        <div class="brand-logo-fallback">EG</div>
+      <?php endif; ?>
+    </div>
     <div class="brand-name">El Gringo Burger Joint</div>
-    <div class="brand-sub">Sistema de Cotizacion</div>
+    <div class="brand-sub">Sistema de Cotización</div>
   </div>
 
   <div class="card">
@@ -223,7 +241,7 @@ input::placeholder { color: #333; }
       <div class="form-group">
         <label class="form-label" for="email">Correo electronico</label>
         <div class="input-wrap">
-          <span class="input-icon">&#9993;</span>
+          <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></span>
           <input type="email" id="email" name="email"
                  value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>"
                  placeholder="tu@correo.com"
@@ -234,11 +252,11 @@ input::placeholder { color: #333; }
       <div class="form-group">
         <label class="form-label" for="password">Contrasena</label>
         <div class="input-wrap">
-          <span class="input-icon">&#128274;</span>
+          <span class="input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
           <input type="password" id="password" name="password"
                  placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
                  autocomplete="current-password" required>
-          <button type="button" class="toggle-pass" id="togglePass">&#128065;</button>
+          <button type="button" class="toggle-pass" id="togglePass" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
 
@@ -255,14 +273,16 @@ input::placeholder { color: #333; }
 </div>
 
 <script>
+var EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 document.getElementById('togglePass').addEventListener('click', function() {
   var inp = document.getElementById('password');
   if (inp.type === 'password') {
     inp.type = 'text';
-    this.innerHTML = '&#128584;';
+    this.innerHTML = EYE_OFF;
   } else {
     inp.type = 'password';
-    this.innerHTML = '&#128065;';
+    this.innerHTML = EYE;
   }
 });
 </script>
