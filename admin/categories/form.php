@@ -100,7 +100,11 @@ include __DIR__ . '/../layout-top.php';
 
       <div style="display:flex;gap:12px;margin-top:8px">
         <button type="submit" class="btn btn-primary">
-          <?= $isEdit ? '💾 Guardar cambios' : '+ Crear categoría' ?>
+          <?php if ($isEdit): ?>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar cambios
+          <?php else: ?>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Crear categoría
+          <?php endif; ?>
         </button>
         <a href="<?= APP_URL ?>/admin/categories/index.php" class="btn btn-ghost">Cancelar</a>
       </div>

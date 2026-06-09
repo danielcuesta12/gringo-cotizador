@@ -334,7 +334,13 @@ body {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
+/* Icono SVG en títulos de sección/página (global) */
+.sec-ico { display: inline-flex; align-items: center; color: var(--text-secondary); }
+.sec-ico svg { width: 17px; height: 17px; display: block; }
 .card-body { padding: 22px; }
 
 /* ---- Stat cards (dashboard) ---- */

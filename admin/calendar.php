@@ -48,8 +48,8 @@ include __DIR__ . '/layout-top.php';
     <h1>Calendario de eventos</h1>
     <p>Cotizaciones enviadas, aceptadas y eventos directos</p>
   </div>
-  <a href="<?php echo APP_URL; ?>/admin/events/create" class="btn btn-secondary" style="color:#7c3aed;border-color:#7c3aed">
-    &#128197; Nuevo evento
+  <a href="<?php echo APP_URL; ?>/admin/events/create" class="btn btn-secondary" style="color:#7c3aed;border-color:#7c3aed;display:inline-flex;align-items:center;gap:7px">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Nuevo evento
   </a>
 </div>
 
@@ -151,8 +151,8 @@ function setView(v) {
   view = v;
   document.getElementById('viewMonth').style.display = v==='month' ? '' : 'none';
   document.getElementById('viewList').style.display  = v==='list'  ? '' : 'none';
-  document.getElementById('btnMonth').style.cssText  = v==='month' ? 'color:var(--red);border-color:var(--red);background:rgba(200,16,46,.06)' : '';
-  document.getElementById('btnList').style.cssText   = v==='list'  ? 'color:var(--red);border-color:var(--red);background:rgba(200,16,46,.06)' : '';
+  document.getElementById('btnMonth').style.cssText  = v==='month' ? 'color:var(--ink);border-color:var(--red);background:var(--red-light)' : '';
+  document.getElementById('btnList').style.cssText   = v==='list'  ? 'color:var(--ink);border-color:var(--red);background:var(--red-light)' : '';
   if (v==='month') renderMonth(); else renderList();
 }
 
@@ -224,9 +224,12 @@ function showTooltip(e, qid) {
   document.getElementById('ttBadge').textContent  = badgeLabel(q);
 
   var body = '';
-  if (q.event_time) body += '<div class="tt-info-row"><span>&#128336;</span><span>'+q.event_time+(q.event_duration?' · '+q.event_duration:'')+'</span></div>';
-  if (q.event_location) body += '<div class="tt-info-row"><span>&#128205;</span><span>'+q.event_location+'</span></div>';
-  if (q.num_people>0) body += '<div class="tt-info-row"><span>&#128101;</span><span>'+q.num_people+' personas</span></div>';
+  var icoClock = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  var icoPin = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var icoPeople = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  if (q.event_time) body += '<div class="tt-info-row">'+icoClock+'<span>'+q.event_time+(q.event_duration?' · '+q.event_duration:'')+'</span></div>';
+  if (q.event_location) body += '<div class="tt-info-row">'+icoPin+'<span>'+q.event_location+'</span></div>';
+  if (q.num_people>0) body += '<div class="tt-info-row">'+icoPeople+'<span>'+q.num_people+' personas</span></div>';
   document.getElementById('ttBody').innerHTML = body;
   document.getElementById('ttProds').textContent = q.items_summary || 'Sin productos';
   document.getElementById('ttTotal').textContent = fmtMoney(q.total);

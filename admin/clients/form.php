@@ -152,7 +152,7 @@ include __DIR__ . '/../layout-top.php';
                    style="display:none" onchange="updateTypeUI()">
             <div class="type-option" id="opt-empresa"
                  style="border:2px solid;border-radius:10px;padding:14px;text-align:center;transition:.15s">
-              <div style="font-size:22px">&#127970;</div>
+              <div style="display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></div>
               <div style="font-size:13px;font-weight:600;margin-top:4px">Empresa</div>
               <div style="font-size:11px;color:var(--text-muted)">Con RUC</div>
             </div>
@@ -163,7 +163,7 @@ include __DIR__ . '/../layout-top.php';
                    style="display:none" onchange="updateTypeUI()">
             <div class="type-option" id="opt-persona"
                  style="border:2px solid;border-radius:10px;padding:14px;text-align:center;transition:.15s">
-              <div style="font-size:22px">&#128100;</div>
+              <div style="display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div style="font-size:13px;font-weight:600;margin-top:4px">Persona natural</div>
               <div style="font-size:11px;color:var(--text-muted)">Con DNI</div>
             </div>
@@ -251,8 +251,14 @@ include __DIR__ . '/../layout-top.php';
       </label>
 
       <div style="display:flex;gap:12px">
-        <button type="submit" class="btn btn-primary">
-          <?php echo $isEdit ? '&#128190; Guardar cambios' : '+ Crear cliente'; ?>
+        <button type="submit" class="btn btn-primary" style="gap:6px">
+          <?php if ($isEdit): ?>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Guardar cambios
+          <?php else: ?>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Crear cliente
+          <?php endif; ?>
         </button>
         <a href="<?php echo APP_URL; ?>/admin/clients/index.php" class="btn btn-ghost">Cancelar</a>
       </div>

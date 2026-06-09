@@ -61,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pageTitle  = $isEdit ? 'Editar paquete' : 'Nuevo paquete';
 $activePage = 'packages';
+$extraHead  = '<style>.card-title .sec-ico{display:inline-flex;vertical-align:-3px;margin-right:7px;color:var(--text-secondary)}.card-title .sec-ico svg{width:17px;height:17px}</style>';
 include __DIR__ . '/../layout-top.php';
 ?>
 
@@ -84,7 +85,7 @@ include __DIR__ . '/../layout-top.php';
   <!-- Productos a incluir -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">🍔 Productos del paquete</span>
+      <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>Productos del paquete</span>
       <span style="font-size:13px;color:var(--text-muted)" id="selectedCount">0 seleccionados</span>
     </div>
     <div class="card-body" style="padding:0">
@@ -165,7 +166,11 @@ include __DIR__ . '/../layout-top.php';
     </div>
 
     <button type="submit" class="btn btn-primary btn-lg btn-block">
-      <?= $isEdit ? '💾 Guardar cambios' : '+ Crear paquete' ?>
+      <?php if ($isEdit): ?>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar cambios
+      <?php else: ?>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Crear paquete
+      <?php endif; ?>
     </button>
     <a href="<?= APP_URL ?>/admin/packages/index.php" class="btn btn-ghost btn-block">Cancelar</a>
   </div>

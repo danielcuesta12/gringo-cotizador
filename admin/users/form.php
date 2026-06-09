@@ -70,6 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pageTitle  = $isEdit ? 'Editar usuario' : 'Nuevo usuario';
 $activePage = 'users';
+$extraHead = '<style>
+.btn .btn-ico{display:inline-flex;vertical-align:-2px;margin-right:5px}
+.btn .btn-ico svg{width:15px;height:15px}
+.hint-ico{display:inline-flex;vertical-align:-2px;margin-right:4px}
+.hint-ico svg{width:14px;height:14px}
+.pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;padding:0}
+.pass-toggle svg{width:18px;height:18px}
+</style>';
 include __DIR__ . '/../layout-top.php';
 ?>
 
@@ -108,15 +116,15 @@ include __DIR__ . '/../layout-top.php';
         <label>Rol</label>
         <select name="role" <?= $isSelf ? 'disabled' : '' ?>>
           <option value="admin"     <?= $data['role']==='admin'     ?'selected':'' ?>>
-            🔑 Administrador — acceso total
+            Administrador — acceso total
           </option>
           <option value="asistente" <?= $data['role']==='asistente' ?'selected':'' ?>>
-            👤 Asistente — solo cotizaciones y clientes
+            Asistente — solo cotizaciones y clientes
           </option>
         </select>
         <?php if ($isSelf): ?>
           <input type="hidden" name="role" value="<?= clean($data['role']) ?>">
-          <div class="form-hint" style="color:var(--yellow)">⚠ No puedes cambiar tu propio rol</div>
+          <div class="form-hint" style="color:var(--yellow)"><span class="hint-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>No puedes cambiar tu propio rol</div>
         <?php endif; ?>
       </div>
 
@@ -129,8 +137,9 @@ include __DIR__ . '/../layout-top.php';
                  placeholder="Mínimo 8 caracteres"
                  <?= !$isEdit ? 'required' : '' ?>
                  autocomplete="new-password">
-          <button type="button" onclick="togglePass('passInput',this)"
-                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px">👁</button>
+          <button type="button" onclick="togglePass('passInput',this)" class="pass-toggle" aria-label="Mostrar u ocultar contraseña">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
         </div>
       </div>
 
@@ -154,7 +163,11 @@ include __DIR__ . '/../layout-top.php';
 
       <div style="display:flex;gap:12px">
         <button type="submit" class="btn btn-primary">
-          <?= $isEdit ? '💾 Guardar cambios' : '+ Crear usuario' ?>
+          <?php if ($isEdit): ?>
+            <span class="btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></span>Guardar cambios
+          <?php else: ?>
+            <span class="btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>Crear usuario
+          <?php endif; ?>
         </button>
         <a href="<?= APP_URL ?>/admin/users/index.php" class="btn btn-ghost">Cancelar</a>
       </div>
@@ -163,10 +176,12 @@ include __DIR__ . '/../layout-top.php';
 </div>
 
 <script>
+var EYE_ICON     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+var EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
 function togglePass(id, btn) {
   const inp = document.getElementById(id);
   inp.type  = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  btn.innerHTML = inp.type === 'password' ? EYE_ICON : EYE_OFF_ICON;
 }
 </script>
 

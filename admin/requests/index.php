@@ -31,11 +31,15 @@ include __DIR__ . '/../layout-top.php';
 
 <div class="page-header">
   <div class="page-header-left">
-    <h1>Solicitudes de cotizacion</h1>
+    <h1 style="display:flex;align-items:center;gap:8px">
+      <span style="display:inline-flex;color:var(--text-secondary)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg></span>
+      Solicitudes de cotizacion
+    </h1>
     <p>Solicitudes enviadas desde el formulario publico</p>
   </div>
-  <a href="<?php echo APP_URL; ?>/solicitud" class="btn btn-ghost btn-sm" target="_blank">
-    &#128279; Ver formulario publico
+  <a href="<?php echo APP_URL; ?>/solicitud" class="btn btn-ghost btn-sm" target="_blank" style="display:inline-flex;align-items:center;gap:6px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    Ver formulario publico
   </a>
 </div>
 
@@ -58,7 +62,7 @@ include __DIR__ . '/../layout-top.php';
 <div class="card">
   <?php if (empty($requests)): ?>
   <div class="empty-state">
-    <div class="empty-state-icon">&#128203;</div>
+    <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg></div>
     <h3>Sin solicitudes</h3>
     <p>Cuando un cliente complete el formulario publico, aparecera aqui</p>
   </div>
@@ -78,7 +82,13 @@ include __DIR__ . '/../layout-top.php';
                style="font-weight:600;color:var(--ink);text-decoration:none"><?php echo clean($r['name']); ?></a>
             <?php if ($r['email']): ?><div style="font-size:11px;color:var(--text-muted)"><?php echo clean($r['email']); ?></div><?php endif; ?>
           </td>
-          <td><?php echo $r['type']==='empresa'?'&#127970; Empresa':'&#128100; Persona'; ?></td>
+          <td>
+            <?php if ($r['type']==='empresa'): ?>
+              <span style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg> Empresa</span>
+            <?php else: ?>
+              <span style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Persona</span>
+            <?php endif; ?>
+          </td>
           <td>
             <?php echo $r['event_date'] ? formatDate($r['event_date']) : '—'; ?>
             <?php if ($r['event_location']): ?><div style="font-size:11px;color:var(--text-muted)"><?php echo clean(mb_substr($r['event_location'],0,30)); ?></div><?php endif; ?>

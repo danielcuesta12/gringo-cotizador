@@ -77,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pageTitle  = $isEdit ? 'Editar producto' : 'Nuevo producto';
 $activePage = 'products';
+$extraHead  = '<style>.card-title .sec-ico{display:inline-flex;vertical-align:-3px;margin-right:7px;color:var(--text-secondary)}.card-title .sec-ico svg{width:17px;height:17px}</style>';
 include __DIR__ . '/../layout-top.php';
 ?>
 
@@ -136,13 +137,14 @@ include __DIR__ . '/../layout-top.php';
     <!-- Precios -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">💰 Precios</span>
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Precios</span>
       </div>
       <div class="card-body">
 
-        <div class="alert alert-info" style="margin-bottom:20px">
-          ℹ️ Al cotizar podrás elegir entre estos precios o ingresar un precio libre.
-          Deja en <strong>0.00</strong> los que no apliquen.
+        <div class="alert alert-info" style="margin-bottom:20px;display:flex;gap:9px;align-items:flex-start">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>Al cotizar podrás elegir entre estos precios o ingresar un precio libre.
+          Deja en <strong>0.00</strong> los que no apliquen.</span>
         </div>
 
         <div class="form-row form-row-2">
@@ -189,7 +191,7 @@ include __DIR__ . '/../layout-top.php';
         <?php endif; ?>
 
         <label class="img-upload-box" for="imageInput" id="uploadBox">
-          <div style="font-size:28px;margin-bottom:8px">📷</div>
+          <div style="margin-bottom:8px;display:flex;justify-content:center;color:var(--text-muted)"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg></div>
           <div style="font-size:14px;font-weight:600;color:var(--text-secondary)">
             Subir imagen
           </div>
@@ -228,7 +230,11 @@ include __DIR__ . '/../layout-top.php';
     <!-- Acciones -->
     <div style="display:flex;flex-direction:column;gap:10px">
       <button type="submit" class="btn btn-primary btn-lg btn-block">
-        <?= $isEdit ? '💾 Guardar cambios' : '+ Crear producto' ?>
+        <?php if ($isEdit): ?>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar cambios
+        <?php else: ?>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Crear producto
+        <?php endif; ?>
       </button>
       <a href="<?= APP_URL ?>/admin/products/index.php" class="btn btn-ghost btn-block">
         Cancelar

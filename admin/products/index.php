@@ -83,7 +83,7 @@ include __DIR__ . '/../layout-top.php';
     <h1>Productos</h1>
     <p><?= $total ?> productos en el catálogo</p>
   </div>
-  <a href="<?= APP_URL ?>/admin/products/form.php" class="btn btn-primary">+ Nuevo producto</a>
+  <a href="<?= APP_URL ?>/admin/products/form.php" class="btn btn-primary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Nuevo producto</a>
 </div>
 
 <div class="card">
@@ -91,7 +91,7 @@ include __DIR__ . '/../layout-top.php';
   <div class="toolbar">
     <form method="get" style="display:contents">
       <div class="search-bar">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <input type="text" name="q" value="<?= clean($search) ?>"
                placeholder="Buscar producto…" oninput="this.form.submit()">
       </div>
@@ -119,10 +119,10 @@ include __DIR__ . '/../layout-top.php';
 
   <?php if (empty($products)): ?>
     <div class="empty-state">
-      <div class="empty-state-icon">🍔</div>
+      <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
       <h3>Sin productos</h3>
       <p>Agrega tus productos para poder cotizarlos</p>
-      <a href="<?= APP_URL ?>/admin/products/form.php" class="btn btn-primary">+ Nuevo producto</a>
+      <a href="<?= APP_URL ?>/admin/products/form.php" class="btn btn-primary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Nuevo producto</a>
     </div>
   <?php else: ?>
   <div class="table-wrap" style="border:none;border-radius:0">
@@ -146,7 +146,7 @@ include __DIR__ . '/../layout-top.php';
               <img src="<?= UPLOAD_URL . clean($p['image']) ?>"
                    style="width:42px;height:42px;object-fit:cover;border-radius:8px;display:block">
             <?php else: ?>
-              <div style="width:42px;height:42px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🍔</div>
+              <div style="width:42px;height:42px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
             <?php endif; ?>
           </td>
           <td>
@@ -177,7 +177,7 @@ include __DIR__ . '/../layout-top.php';
           </td>
           <td>
             <div class="td-actions">
-              <a href="form.php?id=<?= $p['id'] ?>" class="btn btn-ghost btn-sm">Editar</a>
+              <a href="form.php?id=<?= $p['id'] ?>" class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar</a>
               <form method="post" style="display:inline">
                 <?= csrfField() ?>
                 <input type="hidden" name="delete_id" value="<?= $p['id'] ?>">

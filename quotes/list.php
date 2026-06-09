@@ -125,7 +125,7 @@ include __DIR__ . '/../admin/layout-top.php';
     <form method="get" style="display:contents">
       <input type="hidden" name="status" value="<?php echo clean($status); ?>">
       <div class="search-bar">
-        <span class="search-icon">&#128269;</span>
+        <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <input type="text" name="q" value="<?php echo clean($search); ?>"
                placeholder="N° cotizacion, cliente, evento…" oninput="this.form.submit()">
       </div>
@@ -141,7 +141,7 @@ include __DIR__ . '/../admin/layout-top.php';
 
   <?php if (empty($quotes)): ?>
   <div class="empty-state">
-    <div class="empty-state-icon">&#128203;</div>
+    <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
     <h3>Sin cotizaciones</h3>
     <p>Crea tu primera cotizacion ahora</p>
     <a href="<?php echo APP_URL; ?>/quotes/create.php" class="btn btn-primary">+ Nueva cotizacion</a>
@@ -177,8 +177,12 @@ include __DIR__ . '/../admin/layout-top.php';
           </td>
           <td>
             <strong><?php echo clean($q['client_name']); ?></strong>
-            <div style="font-size:12px;color:var(--text-muted)">
-              <?php echo $q['client_type']==='empresa' ? '&#127970;' : '&#128100;'; ?>
+            <div style="font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:4px">
+              <?php if ($q['client_type']==='empresa'): ?>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>Empresa
+              <?php else: ?>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Persona
+              <?php endif; ?>
             </div>
           </td>
           <td><?php echo clean($q['event_type'] ?: '—'); ?></td>
@@ -196,7 +200,7 @@ include __DIR__ . '/../admin/layout-top.php';
               <a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>" class="btn btn-ghost btn-sm">Editar</a>
               <a href="<?php echo APP_URL; ?>/quotes/pdf.php?id=<?php echo $q['id']; ?>" class="btn btn-secondary btn-sm" target="_blank">PDF</a>
               <div class="smw" style="position:relative">
-                <button type="button" class="btn btn-ghost btn-sm smw-trigger">&#9660;</button>
+                <button type="button" class="btn btn-ghost btn-sm smw-trigger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
                 <div class="smenu" style="display:none">
                   <?php foreach (array('borrador','enviada','aceptada','rechazada') as $st): ?>
                     <?php if ($st !== $q['status']): ?>
@@ -208,7 +212,7 @@ include __DIR__ . '/../admin/layout-top.php';
                   <?php if (isAdmin()): ?>
                   <button type="button" class="smenu-danger"
                           onclick="deleteQuote(<?php echo $q['id']; ?>,'<?php echo clean($q['quote_number']); ?>')">
-                    &#128465; Eliminar
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Eliminar
                   </button>
                   <?php endif; ?>
                 </div>
@@ -263,13 +267,13 @@ include __DIR__ . '/../admin/layout-top.php';
       <!-- Fila 4: acciones -->
       <div class="qcard-actions">
         <a href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>" class="qbtn">
-          &#9998; Editar
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar
         </a>
         <a href="<?php echo APP_URL; ?>/quotes/pdf.php?id=<?php echo $q['id']; ?>" target="_blank" class="qbtn">
-          &#128438; PDF
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg> PDF
         </a>
         <div class="smw" style="position:relative">
-          <button type="button" class="qbtn smw-trigger">&#9660; Estado</button>
+          <button type="button" class="qbtn smw-trigger"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg> Estado</button>
           <div class="smenu" style="display:none">
             <?php foreach (array('borrador','enviada','aceptada','rechazada') as $st): ?>
               <?php if ($st !== $q['status']): ?>
@@ -281,7 +285,7 @@ include __DIR__ . '/../admin/layout-top.php';
             <?php if (isAdmin()): ?>
             <button type="button" class="smenu-danger"
                     onclick="deleteQuote(<?php echo $q['id']; ?>,'<?php echo clean($q['quote_number']); ?>')">
-              &#128465; Eliminar
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Eliminar
             </button>
             <?php endif; ?>
           </div>
@@ -340,7 +344,7 @@ include __DIR__ . '/../admin/layout-top.php';
   -webkit-tap-highlight-color: transparent;
 }
 .smenu button:last-child { border-bottom: none; }
-.smenu button:hover, .smenu button:active { background: var(--red-light); color: var(--red); }
+.smenu button:hover, .smenu button:active { background: var(--red-light); color: var(--ink); }
 .smenu-danger { color: #dc2626 !important; }
 .smenu-danger:hover { background: #fee2e2 !important; color: #dc2626 !important; }
 

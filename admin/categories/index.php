@@ -61,14 +61,14 @@ include __DIR__ . '/../layout-top.php';
     <p>Organiza tus productos en categorías</p>
   </div>
   <?php if (isAdmin()): ?>
-  <a href="<?= APP_URL ?>/admin/categories/form.php" class="btn btn-primary">+ Nueva categoría</a>
+  <a href="<?= APP_URL ?>/admin/categories/form.php" class="btn btn-primary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Nueva categoría</a>
   <?php endif; ?>
 </div>
 
 <div class="card">
   <div class="toolbar">
     <div class="search-bar">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
       <form method="get">
         <input type="text" name="q" value="<?= clean($search) ?>" placeholder="Buscar categoría…" oninput="this.form.submit()">
       </form>
@@ -78,10 +78,10 @@ include __DIR__ . '/../layout-top.php';
 
   <?php if (empty($categories)): ?>
     <div class="empty-state">
-      <div class="empty-state-icon">🏷️</div>
+      <div class="empty-state-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg></div>
       <h3>Sin categorías</h3>
       <p>Crea tu primera categoría para organizar los productos</p>
-      <a href="<?= APP_URL ?>/admin/categories/form.php" class="btn btn-primary">+ Nueva categoría</a>
+      <a href="<?= APP_URL ?>/admin/categories/form.php" class="btn btn-primary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px"><path d="M12 5v14M5 12h14"/></svg>Nueva categoría</a>
     </div>
   <?php else: ?>
   <div class="table-wrap" style="border:none;border-radius:0">
@@ -114,13 +114,13 @@ include __DIR__ . '/../layout-top.php';
           </td>
           <td>
             <div class="td-actions">
-              <a href="form.php?id=<?= $cat['id'] ?>" class="btn btn-ghost btn-sm">Editar</a>
+              <a href="form.php?id=<?= $cat['id'] ?>" class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar</a>
               <form method="post" style="display:inline">
                 <?= csrfField() ?>
                 <input type="hidden" name="delete_id" value="<?= $cat['id'] ?>">
                 <button type="submit" class="btn btn-danger btn-sm"
                   data-confirm="¿Eliminar la categoría «<?= clean($cat['name']) ?>»?">
-                  Eliminar
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Eliminar
                 </button>
               </form>
             </div>
