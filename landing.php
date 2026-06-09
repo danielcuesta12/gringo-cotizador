@@ -19,7 +19,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#141210">
-<link rel="icon" type="image/png" href="<?= APP_URL ?>/assets/img/favicon-32.png">
+<link rel="icon" type="image/png" href="/img/favicon.png">
 <title>El Gringo Burger Joint</title>
 <style>
   :root{ --bg:#141210; --card:#1f1c19; --line:rgba(255,255,255,.08); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:#fff; --muted:rgba(255,255,255,.5); }
@@ -50,6 +50,12 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk.wa   .lnk-ico{background:rgba(37,211,102,.15);color:var(--green)}
   .lnk.pink .lnk-ico{background:rgba(250,184,192,.16);color:var(--pink)}
   .lnk.dark .lnk-ico{background:rgba(255,255,255,.10);color:#fff}
+  /* card desplegable (cotizar evento) */
+  .lnk-expand{width:100%;border:none;text-align:left;font:inherit;cursor:pointer}
+  .lnk-chev svg{transition:transform .28s ease}
+  .lnk-expand.open .lnk-chev svg{transform:rotate(180deg)}
+  .quote-panel{height:0;overflow:hidden;transition:height .34s ease;border-radius:16px}
+  .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(255,255,255,.3);text-align:center}
 </style>
 </head>
@@ -64,20 +70,58 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <div class="links" style="margin-top:26px">
     <?php foreach ($links as $l):
       $tab = $l['new_tab'] ? ' target="_blank" rel="noopener"' : '';
+      $isQuote = strpos($l['url'], 'solicitud') !== false;
     ?>
-    <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?>
-       data-link-id="<?= (int)$l['id'] ?>">
-      <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
-      <span class="lnk-tx">
-        <span class="lnk-title"><?= clean($l['label']) ?></span>
-        <?php if ($l['sublabel']): ?><span class="lnk-sub"><?= clean($l['sublabel']) ?></span><?php endif; ?>
-      </span>
-      <span class="lnk-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
-    </a>
+      <?php if ($isQuote):
+        $embedUrl = $l['url'] . (strpos($l['url'], '?') !== false ? '&' : '?') . 'embed=1';
+      ?>
+      <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false">
+        <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
+        <span class="lnk-tx">
+          <span class="lnk-title"><?= clean($l['label']) ?></span>
+          <?php if ($l['sublabel']): ?><span class="lnk-sub"><?= clean($l['sublabel']) ?></span><?php endif; ?>
+        </span>
+        <span class="lnk-arrow lnk-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+      </button>
+      <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy" scrolling="no"></iframe></div>
+      <?php else: ?>
+      <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>">
+        <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
+        <span class="lnk-tx">
+          <span class="lnk-title"><?= clean($l['label']) ?></span>
+          <?php if ($l['sublabel']): ?><span class="lnk-sub"><?= clean($l['sublabel']) ?></span><?php endif; ?>
+        </span>
+        <span class="lnk-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+      </a>
+      <?php endif; ?>
     <?php endforeach; ?>
   </div>
 
   <div class="foot">© 2013 El Gringo Burger Joint · Lima, Perú</div>
 </div>
+<script>
+  var quoteOpen = false;
+  function toggleQuote(btn){
+    var panel = document.getElementById('quotePanel'), frame = document.getElementById('quoteFrame');
+    quoteOpen = !quoteOpen;
+    btn.classList.toggle('open', quoteOpen);
+    btn.setAttribute('aria-expanded', quoteOpen);
+    if (quoteOpen){
+      if (!frame.src) frame.src = frame.dataset.src;          // carga diferida
+      panel.style.height = (frame._h || 540) + 'px';
+      setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+    } else {
+      panel.style.height = '0px';
+    }
+  }
+  window.addEventListener('message', function(e){
+    if (!e.data || !e.data.eg_quote_height) return;
+    var frame = document.getElementById('quoteFrame'), panel = document.getElementById('quotePanel');
+    if (!frame) return;
+    frame._h = e.data.eg_quote_height;
+    frame.style.height = e.data.eg_quote_height + 'px';
+    if (quoteOpen) panel.style.height = e.data.eg_quote_height + 'px';
+  });
+</script>
 </body>
 </html>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" href="/img/favicon.png">
 <title>Cotiza tu evento — El Gringo</title>
 <?php
 require_once __DIR__ . '/config/config.php';
@@ -63,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Valor por defecto del tipo (para re-render con error)
 $pType = in_array(isset($_POST['type'])?$_POST['type']:'', array('empresa','persona')) ? $_POST['type'] : 'empresa';
 function pv($k){ return clean(isset($_POST[$k]) ? $_POST[$k] : ''); }
+$embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
 ?>
 <meta name="theme-color" content="#FCDA13">
 <style>
@@ -120,11 +122,17 @@ function pv($k){ return clean(isset($_POST[$k]) ? $_POST[$k] : ''); }
   .wa{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;text-decoration:none;padding:14px 22px;border-radius:12px;font-weight:700}
   .wa svg{width:18px;height:18px}
   @media(min-width:520px){ body{padding:24px 16px}.wrap{min-height:auto;background:var(--card);border-radius:18px;box-shadow:0 6px 30px rgba(0,0,0,.08);overflow:hidden;min-height:600px} }
+  /* modo embebido (dentro de la landing) */
+  body.embed{background:transparent}
+  body.embed .wrap{min-height:0!important;box-shadow:none;border-radius:16px}
+  body.embed .body{padding-top:14px}
+  @media(min-width:520px){ body.embed{padding:0}body.embed .wrap{box-shadow:none} }
 </style>
 </head>
-<body>
+<body class="<?php echo $embed ? 'embed' : ''; ?>">
 <div class="wrap">
 
+  <?php if (!$embed): ?>
   <div class="top">
     <?php if ($logoUrl && file_exists($logoPath)): ?>
       <img src="<?php echo clean($logoUrl); ?>" alt="<?php echo clean($co['name']); ?>">
@@ -134,6 +142,7 @@ function pv($k){ return clean(isset($_POST[$k]) ? $_POST[$k] : ''); }
     <h1>Cotiza tu evento</h1>
     <p>Cuéntanos y te armamos una propuesta a tu medida</p>
   </div>
+  <?php endif; ?>
 
   <?php if ($success): ?>
   <div id="done">
@@ -230,6 +239,7 @@ function pv($k){ return clean(isset($_POST[$k]) ? $_POST[$k] : ''); }
 
 <script>
 var cur = 1, total = 3;
+function postH(){ if(window.parent!==window){ try{ parent.postMessage({eg_quote_height: Math.ceil(document.documentElement.getBoundingClientRect().height)+10}, '*'); }catch(e){} } }
 function render(){
   document.querySelectorAll('.step').forEach(function(s){ s.classList.toggle('active', +s.dataset.step===cur); });
   document.querySelectorAll('.prog .seg').forEach(function(s,i){ s.classList.toggle('done', i<cur); });
@@ -238,6 +248,7 @@ function render(){
   document.getElementById('backBtn').style.display = cur>1?'flex':'none';
   document.getElementById('nextBtn').style.display   = cur<total?'flex':'none';
   document.getElementById('submitBtn').style.display = cur===total?'flex':'none';
+  postH();
 }
 function validateStep(){
   var step = document.querySelector('.step[data-step="'+cur+'"]');
@@ -265,6 +276,7 @@ function setType(t){
   document.getElementById('docLabel').textContent   = t==='empresa'?'RUC':'DNI';
   document.getElementById('docInput').placeholder   = t==='empresa'?'11 dígitos':'8 dígitos';
   document.getElementById('contactGroup').style.display = t==='empresa'?'':'none';
+  postH();
 }
 function people(d){ var el=document.getElementById('pplInput'); el.value=Math.max(0,(parseInt(el.value)||0)+d); el.classList.remove('err'); }
 var f=document.getElementById('reqForm');
@@ -276,6 +288,8 @@ if (f){
   render();
   <?php if ($errors): ?>document.getElementById('nameInput').classList.add('err');<?php endif; ?>
 }
+window.addEventListener('load', function(){ postH(); setTimeout(postH, 350); });
+window.addEventListener('resize', postH);
 </script>
 </body>
 </html>
