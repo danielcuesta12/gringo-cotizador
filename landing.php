@@ -60,9 +60,8 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <?php else: ?>
     <div class="logo-fallback">EL GRINGO</div>
   <?php endif; ?>
-  <div class="tagline"><?= clean($tagline) ?></div>
 
-  <div class="links">
+  <div class="links" style="margin-top:26px">
     <?php foreach ($links as $l):
       $tab = $l['new_tab'] ? ' target="_blank" rel="noopener"' : '';
     ?>
@@ -78,7 +77,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
     <?php endforeach; ?>
   </div>
 
-  <div class="foot">© <?= date('Y') ?> El Gringo Burger Joint · Lima, Perú</div>
+  <div class="foot">© 2013 El Gringo Burger Joint · Lima, Perú</div>
 </div>
 </body>
 </html>
