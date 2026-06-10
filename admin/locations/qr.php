@@ -10,9 +10,9 @@ $id  = cleanInt($_GET['id'] ?? 0);
 $loc = $id ? Database::fetch("SELECT * FROM ubicaciones WHERE id = ?", [$id]) : null;
 if (!$loc) { flashMessage('error', 'Ubicación no encontrada.'); redirect('/admin/locations/index.php'); }
 
-// URL pública del menú: raíz del dominio + /{slug}/menu
+// URL pública del menú: raíz del dominio + /{slug}/menu + origen para atribución
 $base    = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
-$menuUrl = $base . '/' . rawurlencode($loc['slug']) . '/menu';
+$menuUrl = $base . '/' . rawurlencode($loc['slug']) . '/menu?src=qr-' . rawurlencode($loc['slug']);
 
 $pageTitle  = 'QR — ' . $loc['nombre'];
 $activePage = 'locations';
