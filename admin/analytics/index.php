@@ -7,8 +7,16 @@ requireLogin();
 if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
 
 // ── Filtros ──
-$hoy    = date('Y-m-d');
-$desde  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['desde'] ?? '') ? $_GET['desde'] : date('Y-m-d', strtotime('-29 days'));
+// Usamos el reloj de la BASE DE DATOS (no el de PHP) para los rangos por defecto,
+// porque created_at se graba con la hora del servidor MySQL. Si difiere la zona
+// horaria de PHP, calcular las fechas en PHP dejaría fuera los eventos de "hoy".
+$hoy = date('Y-m-d'); $defDesde = date('Y-m-d', strtotime('-29 days'));
+try {
+    $clk = Database::fetch("SELECT CURDATE() hoy, DATE(NOW() - INTERVAL 29 DAY) hace29");
+    if ($clk) { $hoy = $clk['hoy']; $defDesde = $clk['hace29']; }
+} catch (Exception $e) {}
+
+$desde  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['desde'] ?? '') ? $_GET['desde'] : $defDesde;
 $hasta  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['hasta'] ?? '') ? $_GET['hasta'] : $hoy;
 $ubiF   = cleanInt($_GET['ubi'] ?? 0);
 
