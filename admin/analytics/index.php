@@ -19,8 +19,21 @@ $porPagina = []; $porDispositivo = []; $porDia = []; $fuentes = [];
 $embudo = ['carta'=>0,'add'=>0,'checkout'=>0,'order'=>0];
 $clicksLanding = []; $topVistos = []; $busquedas = []; $topLikes = [];
 
+// ¿Existe la tabla? (solo esto decide el estado "falta SQL")
 try {
-    $ubicaciones = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre");
+    $ready = (bool) Database::fetch("SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'analytics_events'");
+} catch (Exception $e) { $ready = false; }
+
+if ($ready) {
+    // helpers tolerantes: un fallo en una sección no tumba el resto
+    $scalar = function ($sql, $params = [], $col = 'n') {
+        try { $r = Database::fetch($sql, $params); return (int)($r[$col] ?? 0); } catch (Exception $e) { return 0; }
+    };
+    $rows = function ($sql, $params = []) {
+        try { return Database::fetchAll($sql, $params); } catch (Exception $e) { return []; }
+    };
+
+    try { $ubicaciones = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre"); } catch (Exception $e) {}
 
     // WHERE común para analytics_events
     $w = "created_at >= ? AND created_at <= ?";
@@ -28,60 +41,63 @@ try {
     if ($ubiF) { $w .= " AND ubicacion_id = ?"; $p[] = $ubiF; }
 
     // KPIs
-    $kpi['visitas'] = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w", $p)['n'] ?? 0);
-    $kpi['unicos']  = (int)(Database::fetch("SELECT COUNT(DISTINCT session_id) n FROM analytics_events WHERE event_type='page_view' AND $w", $p)['n'] ?? 0);
-    $kpi['pedidos'] = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='order_placed' AND $w", $p)['n'] ?? 0);
+    $kpi['visitas'] = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w", $p);
+    $kpi['unicos']  = $scalar("SELECT COUNT(DISTINCT session_id) n FROM analytics_events WHERE event_type='page_view' AND $w", $p);
+    $kpi['pedidos'] = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='order_placed' AND $w", $p);
 
     // Ingresos reales desde pedidos (no cancelados)
     $wp = "created_at >= ? AND created_at <= ? AND estado <> 'cancelado'";
     $pp = [$desde.' 00:00:00', $hasta.' 23:59:59'];
     if ($ubiF) { $wp .= " AND ubicacion_id = ?"; $pp[] = $ubiF; }
-    $kpi['ingresos'] = (float)(Database::fetch("SELECT COALESCE(SUM(total),0) s FROM pedidos WHERE $wp", $pp)['s'] ?? 0);
+    $kpi['ingresos'] = (float)$scalar("SELECT COALESCE(SUM(total),0) n FROM pedidos WHERE $wp", $pp);
 
-    // Visitas por página
-    $porPagina = Database::fetchAll("SELECT page, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY page ORDER BY n DESC", $p);
-    // Dispositivos
-    $porDispositivo = Database::fetchAll("SELECT device, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY device ORDER BY n DESC", $p);
-    // Fuentes (src)
-    $fuentes = Database::fetchAll("SELECT COALESCE(NULLIF(src,''),'(directo)') src, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY src ORDER BY n DESC LIMIT 10", $p);
-    // Visitas por día
-    $porDia = Database::fetchAll("SELECT DATE(created_at) d, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY DATE(created_at) ORDER BY d", $p);
+    $porPagina      = $rows("SELECT page, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY page ORDER BY n DESC", $p);
+    $porDispositivo = $rows("SELECT device, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY device ORDER BY n DESC", $p);
+    $fuentes        = $rows("SELECT COALESCE(NULLIF(src,''),'(directo)') src, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY src ORDER BY n DESC LIMIT 10", $p);
+    $porDia         = $rows("SELECT DATE(created_at) d, COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND $w GROUP BY DATE(created_at) ORDER BY d", $p);
 
     // Embudo de la carta
-    $embudo['carta']    = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND page='carta' AND $w", $p)['n'] ?? 0);
-    $embudo['add']      = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='add_to_cart' AND $w", $p)['n'] ?? 0);
-    $embudo['checkout'] = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='checkout_open' AND $w", $p)['n'] ?? 0);
-    $embudo['order']    = (int)(Database::fetch("SELECT COUNT(*) n FROM analytics_events WHERE event_type='order_placed' AND $w", $p)['n'] ?? 0);
+    $embudo['carta']    = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='page_view' AND page='carta' AND $w", $p);
+    $embudo['add']      = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='add_to_cart' AND $w", $p);
+    $embudo['checkout'] = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='checkout_open' AND $w", $p);
+    $embudo['order']    = $scalar("SELECT COUNT(*) n FROM analytics_events WHERE event_type='order_placed' AND $w", $p);
 
-    // Clics de la landing
-    $clicksLanding = Database::fetchAll(
-        "SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(meta_json,'$.label')),''),'(sin nombre)') label, COUNT(*) n
-         FROM analytics_events WHERE event_type='link_click' AND $w GROUP BY label ORDER BY n DESC LIMIT 12", $p);
+    // Agregaciones sobre meta_json — en PHP (sin funciones JSON de SQL, por compatibilidad)
+    $tally = function ($eventType, $key) use ($rows, $w, $p) {
+        $out = [];
+        foreach ($rows("SELECT meta_json FROM analytics_events WHERE event_type='$eventType' AND $w", $p) as $r) {
+            $m = json_decode($r['meta_json'] ?? '', true);
+            if (!is_array($m) || !isset($m[$key]) || $m[$key] === '') continue;
+            $k = (string)$m[$key];
+            $out[$k] = ($out[$k] ?? 0) + 1;
+        }
+        arsort($out);
+        return $out;
+    };
 
-    // Top productos vistos
-    $topVistos = Database::fetchAll(
-        "SELECT p.name nombre, COUNT(*) n
-         FROM analytics_events e
-         JOIN products p ON p.id = CAST(JSON_UNQUOTE(JSON_EXTRACT(e.meta_json,'$.product_id')) AS UNSIGNED)
-         WHERE e.event_type='product_view' AND $w
-         GROUP BY p.id, p.name ORDER BY n DESC LIMIT 10",
-        $p);
+    // Clics de la landing (por label)
+    foreach (array_slice($tally('link_click', 'label'), 0, 12, true) as $k => $v) $clicksLanding[] = ['label' => $k, 'n' => $v];
 
-    // Búsquedas
-    $busquedas = Database::fetchAll(
-        "SELECT LOWER(JSON_UNQUOTE(JSON_EXTRACT(meta_json,'$.term'))) term, COUNT(*) n
-         FROM analytics_events WHERE event_type='search' AND $w
-         GROUP BY term ORDER BY n DESC LIMIT 12", $p);
+    // Búsquedas (por término)
+    foreach (array_slice($tally('search', 'term'), 0, 12, true) as $k => $v) $busquedas[] = ['term' => mb_strtolower($k), 'n' => $v];
 
-    // Likes (no dependen del rango de fechas, son acumulados)
-    $likeWhere = $ubiF ? "WHERE pl.ubicacion_id = ?" : "";
+    // Top productos vistos (por product_id -> nombre)
+    $views = $tally('product_view', 'product_id');
+    $views = array_slice($views, 0, 10, true);
+    if ($views) {
+        $ids = array_map('intval', array_keys($views));
+        $in  = implode(',', array_fill(0, count($ids), '?'));
+        $nmap = [];
+        foreach ($rows("SELECT id,name FROM products WHERE id IN ($in)", $ids) as $r) $nmap[(int)$r['id']] = $r['name'];
+        foreach ($views as $pid => $cnt) $topVistos[] = ['nombre' => $nmap[(int)$pid] ?? ('#'.$pid), 'n' => $cnt];
+    }
+
+    // Likes (acumulados; no dependen del rango)
+    $likeWhere  = $ubiF ? "WHERE pl.ubicacion_id = ?" : "";
     $likeParams = $ubiF ? [$ubiF] : [];
-    $topLikes = Database::fetchAll(
+    $topLikes = $rows(
         "SELECT p.name nombre, SUM(pl.total) n FROM product_likes pl JOIN products p ON p.id = pl.product_id $likeWhere
          GROUP BY p.id, p.name HAVING n > 0 ORDER BY n DESC LIMIT 10", $likeParams);
-
-} catch (Exception $e) {
-    $ready = false;
 }
 
 function pct($n, $base) { return $base > 0 ? round($n * 100 / $base) : 0; }
