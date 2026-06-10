@@ -105,6 +105,25 @@ try {
     </a>
     <?php endif; ?>
 
+    <?php if (isAdmin()): ?>
+    <div class="nav-section-label">Inventario</div>
+
+    <a href="<?php echo APP_URL; ?>/admin/inventory/insumos.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-insumos'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></span> Insumos
+    </a>
+
+    <a href="<?php echo APP_URL; ?>/admin/inventory/stock.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-stock'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-7m7 5h-7m7 5h-7M4 7h.01M4 12h.01M4 17h.01"/></svg></span> Stock
+    </a>
+
+    <a href="<?php echo APP_URL; ?>/admin/inventory/recetas.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-recetas'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 11a2 2 0 1 1-4 0 4 4 0 0 1 8 0c0 4-4 7-4 11"/><path d="M9 22h6"/></svg></span> Recetas y costos
+    </a>
+    <?php endif; ?>
+
     <div class="nav-section-label">Operación</div>
 
     <a href="<?php echo APP_URL; ?>/admin/pedidos/index.php"
