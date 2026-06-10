@@ -69,7 +69,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   }
   body::before{
     content:'';position:fixed;inset:0;z-index:0;
-    background:linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.72) 100%);
+    background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.12) 55%, rgba(0,0,0,.28) 100%);
   }
   .wrap{position:relative;z-index:1}
   .logo-fallback{color:#fff}
