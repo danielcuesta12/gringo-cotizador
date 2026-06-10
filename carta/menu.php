@@ -459,10 +459,13 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
     function updateScheduleBadge() {
       const badge = document.getElementById('schedule-badge');
       if (!badge) return;
+      const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
+      if (OPEN_H === CLOSE_H) { badge.style.display = 'none'; return; }
       const h = new Date().getHours();
-      const isOpen = h >= 18 && h < 24;
+      const isOpen = CLOSE_H > OPEN_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
+      const closeLabel = (CLOSE_H % 24 === 0) ? '24:00' : (CLOSE_H + ':00');
       badge.className = 'schedule-badge ' + (isOpen ? 'open' : 'closed');
-      badge.innerHTML = `<div class="schedule-dot"></div>${isOpen ? 'Abierto · hasta las 24:00' : 'Abre a las 18:00'}`;
+      badge.innerHTML = `<div class="schedule-dot"></div>${isOpen ? 'Abierto · hasta las ' + closeLabel : 'Abre a las ' + OPEN_H + ':00'}`;
     }
     updateScheduleBadge();
     setInterval(updateScheduleBadge, 60000);

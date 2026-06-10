@@ -15,6 +15,7 @@ $errors = [];
 $data   = $loc ?? [
     'nombre' => '', 'slug' => '', 'descripcion' => '', 'color_header' => '#FCDA13',
     'sales_mode' => 'menu', 'whatsapp_number' => '', 'direccion' => '', 'maps_url' => '',
+    'hora_apertura' => 18, 'hora_cierre' => 24, 'instagram' => '',
     'activa' => 1, 'es_principal' => 0, 'sort_order' => 0,
 ];
 
@@ -37,6 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'whatsapp_number' => preg_replace('/\D/', '', $_POST['whatsapp_number'] ?? ''),
         'direccion'       => clean($_POST['direccion'] ?? ''),
         'maps_url'        => clean($_POST['maps_url'] ?? ''),
+        'hora_apertura'   => max(0, min(24, cleanInt($_POST['hora_apertura'] ?? 18))),
+        'hora_cierre'     => max(0, min(24, cleanInt($_POST['hora_cierre'] ?? 24))),
+        'instagram'       => ltrim(clean($_POST['instagram'] ?? ''), '@'),
         'activa'          => isset($_POST['activa']) ? 1 : 0,
         'es_principal'    => isset($_POST['es_principal']) ? 1 : 0,
         'sort_order'      => cleanInt($_POST['sort_order'] ?? 0),
@@ -62,14 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($isEdit) {
             Database::execute(
-                "UPDATE ubicaciones SET nombre=?,slug=?,descripcion=?,color_header=?,sales_mode=?,whatsapp_number=?,direccion=?,maps_url=?,activa=?,es_principal=?,sort_order=? WHERE id=?",
-                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['activa'],$data['es_principal'],$data['sort_order'],$id]
+                "UPDATE ubicaciones SET nombre=?,slug=?,descripcion=?,color_header=?,sales_mode=?,whatsapp_number=?,direccion=?,maps_url=?,hora_apertura=?,hora_cierre=?,instagram=?,activa=?,es_principal=?,sort_order=? WHERE id=?",
+                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa'],$data['es_principal'],$data['sort_order'],$id]
             );
             flashMessage('success', 'Ubicación actualizada.');
         } else {
             Database::insert(
-                "INSERT INTO ubicaciones (nombre,slug,descripcion,color_header,sales_mode,whatsapp_number,direccion,maps_url,activa,es_principal,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['activa'],$data['es_principal'],$data['sort_order']]
+                "INSERT INTO ubicaciones (nombre,slug,descripcion,color_header,sales_mode,whatsapp_number,direccion,maps_url,hora_apertura,hora_cierre,instagram,activa,es_principal,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa'],$data['es_principal'],$data['sort_order']]
             );
             flashMessage('success', 'Ubicación creada. Ahora agrégale ítems a su carta.');
         }
@@ -144,6 +148,24 @@ include __DIR__ . '/../layout-top.php';
         <div class="form-group">
           <label>Link de Google Maps <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label>
           <input type="text" name="maps_url" value="<?= clean($data['maps_url']) ?>" placeholder="https://maps.app.goo.gl/...">
+        </div>
+      </div>
+
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label>Hora de apertura</label>
+          <input type="number" name="hora_apertura" value="<?= (int)$data['hora_apertura'] ?>" min="0" max="24" step="1">
+          <div class="form-hint">Hora (0–24). Ej: 18 = 6pm</div>
+        </div>
+        <div class="form-group">
+          <label>Hora de cierre</label>
+          <input type="number" name="hora_cierre" value="<?= (int)$data['hora_cierre'] ?>" min="0" max="24" step="1">
+          <div class="form-hint">24 = medianoche</div>
+        </div>
+        <div class="form-group">
+          <label>Instagram <small style="font-weight:400;color:var(--text-muted)">(usuario)</small></label>
+          <input type="text" name="instagram" value="<?= clean($data['instagram']) ?>" placeholder="elgringoburger">
+          <div class="form-hint">Sin @, solo el usuario</div>
         </div>
       </div>
 
