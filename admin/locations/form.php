@@ -10,13 +10,18 @@ $id  = cleanInt($_GET['id'] ?? 0);
 $loc = $id ? Database::fetch("SELECT * FROM ubicaciones WHERE id = ?", [$id]) : null;
 if ($id && !$loc) { flashMessage('error', 'Ubicación no encontrada.'); redirect('/admin/locations/index.php'); }
 
+// ¿Existe ya la columna de cierre manual? (tolerante si aún no se aplicó el SQL)
+$hasCerrado = (bool) Database::fetch(
+    "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ubicaciones' AND column_name = 'cerrado_manual'"
+);
+
 $isEdit = (bool)$loc;
 $errors = [];
 $data   = $loc ?? [
     'nombre' => '', 'slug' => '', 'descripcion' => '', 'color_header' => '#FCDA13',
     'sales_mode' => 'menu', 'whatsapp_number' => '', 'direccion' => '', 'maps_url' => '',
     'hora_apertura' => 18, 'hora_cierre' => 24, 'instagram' => '',
-    'activa' => 1, 'es_principal' => 0, 'sort_order' => 0,
+    'activa' => 1, 'cerrado_manual' => 0, 'es_principal' => 0, 'sort_order' => 0,
 ];
 
 // Genera un slug a partir de un texto
@@ -42,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'hora_cierre'     => max(0, min(24, cleanInt($_POST['hora_cierre'] ?? 24))),
         'instagram'       => ltrim(clean($_POST['instagram'] ?? ''), '@'),
         'activa'          => isset($_POST['activa']) ? 1 : 0,
+        'cerrado_manual'  => isset($_POST['cerrado_manual']) ? 1 : 0,
         'es_principal'    => isset($_POST['es_principal']) ? 1 : 0,
         'sort_order'      => cleanInt($_POST['sort_order'] ?? 0),
     ];
@@ -65,16 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Database::execute("UPDATE ubicaciones SET es_principal = 0 WHERE id <> ?", [$id ?: 0]);
         }
         if ($isEdit) {
+            $params = [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa'],$data['es_principal'],$data['sort_order']];
+            if ($hasCerrado) { array_splice($params, 12, 0, [$data['cerrado_manual']]); }
             Database::execute(
-                "UPDATE ubicaciones SET nombre=?,slug=?,descripcion=?,color_header=?,sales_mode=?,whatsapp_number=?,direccion=?,maps_url=?,hora_apertura=?,hora_cierre=?,instagram=?,activa=?,es_principal=?,sort_order=? WHERE id=?",
-                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa'],$data['es_principal'],$data['sort_order'],$id]
+                "UPDATE ubicaciones SET nombre=?,slug=?,descripcion=?,color_header=?,sales_mode=?,whatsapp_number=?,direccion=?,maps_url=?,hora_apertura=?,hora_cierre=?,instagram=?,activa=?" . ($hasCerrado ? ',cerrado_manual=?' : '') . ",es_principal=?,sort_order=? WHERE id=?",
+                array_merge($params, [$id])
             );
             flashMessage('success', 'Ubicación actualizada.');
         } else {
-            Database::insert(
-                "INSERT INTO ubicaciones (nombre,slug,descripcion,color_header,sales_mode,whatsapp_number,direccion,maps_url,hora_apertura,hora_cierre,instagram,activa,es_principal,sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa'],$data['es_principal'],$data['sort_order']]
-            );
+            $cols = "nombre,slug,descripcion,color_header,sales_mode,whatsapp_number,direccion,maps_url,hora_apertura,hora_cierre,instagram,activa" . ($hasCerrado ? ',cerrado_manual' : '') . ",es_principal,sort_order";
+            $vals = "?,?,?,?,?,?,?,?,?,?,?,?" . ($hasCerrado ? ',?' : '') . ",?,?";
+            $params = [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa']];
+            if ($hasCerrado) { $params[] = $data['cerrado_manual']; }
+            $params[] = $data['es_principal']; $params[] = $data['sort_order'];
+            Database::insert("INSERT INTO ubicaciones ($cols) VALUES ($vals)", $params);
             flashMessage('success', 'Ubicación creada. Ahora agrégale ítems a su carta.');
         }
         redirect('/admin/locations/index.php');
@@ -190,6 +200,20 @@ include __DIR__ . '/../layout-top.php';
               <span class="toggle-label">Principal</span>
             </label>
           </div>
+        </div>
+
+        <div class="form-group" style="margin-top:4px">
+          <label>Estado de la tienda</label>
+          <label class="toggle-wrap" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:<?= !empty($data['cerrado_manual']) ? 'rgba(220,38,38,.06)' : 'transparent' ?>">
+            <input type="checkbox" name="cerrado_manual" value="1" <?= !empty($data['cerrado_manual'])?'checked':'' ?> style="width:18px;height:18px;accent-color:var(--danger)">
+            <span>
+              <span class="toggle-label" style="font-weight:700">Cerrar tienda (cierre manual)</span>
+              <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Mientras esté activo, la carta sale <strong>Cerrada</strong> sin importar el horario y no se pueden hacer pedidos.</span>
+            </span>
+          </label>
+          <?php if (!$hasCerrado): ?>
+            <div class="form-hint" style="color:var(--danger);margin-top:6px">Falta aplicar <code>install/ubicaciones_cerrado.sql</code> para que este interruptor funcione.</div>
+          <?php endif; ?>
         </div>
       </div>
 

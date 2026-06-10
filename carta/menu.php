@@ -64,13 +64,23 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
       background: rgba(0,0,0,0.12); color: #1A1A1A; letter-spacing: 0.03em;
-      display: flex; align-items: center; gap: 5px;
+      display: flex; align-items: center; gap: 6px;
     }
     .schedule-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #777; flex-shrink: 0; transition: background .3s;
+      position: relative; width: 8px; height: 8px; border-radius: 50%;
+      background: #777; flex-shrink: 0;
     }
-    .schedule-badge.open .schedule-dot { background: #1A8C1A; }
+    .schedule-badge.open   .schedule-dot { background: #16a34a; }
+    .schedule-badge.closed .schedule-dot { background: #dc2626; }
+    .schedule-dot::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: inherit; animation: dotPulse 1.8s ease-out infinite;
+    }
+    @keyframes dotPulse {
+      0%   { transform: scale(1);   opacity: .65; }
+      70%  { transform: scale(2.8); opacity: 0; }
+      100% { opacity: 0; }
+    }
     .ig-link { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #1A1A1A; font-size: 13px; font-weight: 700; }
     .ig-link svg { width: 18px; height: 18px; fill: #1A1A1A; }
 
@@ -465,16 +475,27 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     let _closeTimer = null;
 
     /* SCHEDULE */
+    const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
+    const CERRADO_MANUAL = <?= !empty($ubi['cerrado_manual']) ? 'true' : 'false' ?>;
+    function isStoreOpen() {
+      if (CERRADO_MANUAL) return false;
+      if (OPEN_H === CLOSE_H) return true;
+      const h = new Date().getHours();
+      return CLOSE_H > OPEN_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
+    }
     function updateScheduleBadge() {
       const badge = document.getElementById('schedule-badge');
       if (!badge) return;
-      const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
-      if (OPEN_H === CLOSE_H) { badge.style.display = 'none'; return; }
-      const h = new Date().getHours();
-      const isOpen = CLOSE_H > OPEN_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
-      const closeLabel = (CLOSE_H % 24 === 0) ? '24:00' : (CLOSE_H + ':00');
-      badge.className = 'schedule-badge ' + (isOpen ? 'open' : 'closed');
-      badge.innerHTML = `<div class="schedule-dot"></div>${isOpen ? 'Abierto · hasta las ' + closeLabel : 'Abre a las ' + OPEN_H + ':00'}`;
+      const open = isStoreOpen();
+      badge.className = 'schedule-badge ' + (open ? 'open' : 'closed');
+      let txt;
+      if (open) {
+        const closeLabel = (CLOSE_H % 24 === 0) ? '24:00' : (CLOSE_H + ':00');
+        txt = (OPEN_H === CLOSE_H) ? 'Abierto' : ('Abierto · hasta las ' + closeLabel);
+      } else {
+        txt = CERRADO_MANUAL ? 'Cerrado' : ('Cerrado · abre a las ' + OPEN_H + ':00');
+      }
+      badge.innerHTML = `<div class="schedule-dot"></div>${txt}`;
     }
     updateScheduleBadge();
     setInterval(updateScheduleBadge, 60000);

@@ -80,15 +80,43 @@ if ($salesMode === 'izipay') {
     }
     .logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0); }
     .schedule-badge {
-      margin-left: auto; font-size: 11px; font-weight: 700;
+      font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
       background: rgba(0,0,0,0.12); color: #1A1A1A; letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .schedule-dot {
+      position: relative; width: 8px; height: 8px; border-radius: 50%;
+      background: #777; flex-shrink: 0;
+    }
+    .schedule-badge.open   .schedule-dot { background: #16a34a; }
+    .schedule-badge.closed .schedule-dot { background: #dc2626; }
+    .schedule-dot::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: inherit; animation: dotPulse 1.8s ease-out infinite;
+    }
+    @keyframes dotPulse {
+      0%   { transform: scale(1);   opacity: .65; }
+      70%  { transform: scale(2.8); opacity: 0; }
+      100% { opacity: 0; }
     }
     .ig-link {
-      display: flex; align-items: center; gap: 6px;
-      color: #1A1A1A; text-decoration: none; font-size: 12px; font-weight: 600;
+      margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+      color: #1A1A1A; text-decoration: none; font-size: 13px; font-weight: 700;
     }
-    .ig-link svg { width: 16px; height: 16px; fill: #1A1A1A; }
+    .ig-link svg { width: 18px; height: 18px; fill: #1A1A1A; }
+
+    /* AVISO TIENDA CERRADA */
+    #cerrado-toast {
+      position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%) translateY(16px);
+      background: #1e1e1e; color: #fff; border: 1px solid #dc2626;
+      padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      z-index: 700; opacity: 0; pointer-events: none; max-width: 90%;
+      display: flex; align-items: center; gap: 8px; transition: opacity .25s, transform .25s;
+    }
+    #cerrado-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #cerrado-toast .ct-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+    body.tienda-cerrada .btn-wa, body.tienda-cerrada .btn-pay { filter: grayscale(.4); opacity: .7; }
 
     /* PAGE LAYOUT */
     .page-wrap { display: flex; max-width: 1200px; margin: 0 auto; }
@@ -225,6 +253,15 @@ if ($salesMode === 'izipay') {
     }
     .btn-wa:active { transform: scale(.98); }
     .btn-wa svg    { width: 18px; height: 18px; fill: #fff; }
+    .btn-pay {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px 16px; border-radius: 10px; border: none;
+      background: #1A1A1A; color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 12px; transition: background .15s, transform .1s;
+    }
+    .btn-pay:hover  { background: #000; }
+    .btn-pay:active { transform: scale(.98); }
+    .btn-pay svg    { width: 18px; height: 18px; fill: none; stroke: #fff; }
     .btn-vaciar {
       width: 100%; padding: 9px; border-radius: 8px; border: none;
       background: transparent; color: var(--dim); font-size: 12px;
@@ -550,10 +587,17 @@ if ($salesMode === 'izipay') {
           <span class="carrito-desktop-total-label">Total</span>
           <span class="carrito-desktop-total-val" id="desktop-total-val">S/0</span>
         </div>
+        <?php if ($salesMode === 'izipay'): ?>
+        <button class="btn-pay" id="desktop-wa-btn" style="display:none;margin-top:16px" onclick="enviarPedido()">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Realizar pedido
+        </button>
+        <?php else: ?>
         <button class="btn-wa" id="desktop-wa-btn" style="display:none;margin-top:16px" onclick="enviarPedido()">
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Pedir por WhatsApp' ?>
+          Pedir por WhatsApp
         </button>
+        <?php endif; ?>
         <button class="btn-vaciar" id="desktop-vaciar-btn" style="display:none" onclick="vaciarCarrito()">Vaciar pedido</button>
       </div>
     </div>
@@ -576,10 +620,17 @@ if ($salesMode === 'izipay') {
     </div>
     <div class="carrito-mobile-items" id="mobile-items-wrap">
       <div id="mobile-items"></div>
+      <?php if ($salesMode === 'izipay'): ?>
+      <button class="btn-pay" onclick="enviarPedido()">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Realizar pedido
+      </button>
+      <?php else: ?>
       <button class="btn-wa" onclick="enviarPedido()">
         <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Enviar pedido por WhatsApp' ?>
+        Enviar pedido por WhatsApp
       </button>
+      <?php endif; ?>
       <button class="btn-vaciar" onclick="vaciarCarrito()">Vaciar pedido</button>
     </div>
   </div>
@@ -677,8 +728,8 @@ if ($salesMode === 'izipay') {
         <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
       </div>
 
-      <!-- LEALTAD -->
-      <div style="margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
+      <!-- LEALTAD — oculta por ahora (no eliminar) -->
+      <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
         <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
           🍔 Tarjeta Gringo Lovers
         </div>
@@ -882,6 +933,27 @@ if ($salesMode === 'izipay') {
   const CARTA_ID = <?= (int)$ubiId ?>;
   const SALES_MODE = '<?= $salesMode ?>';
   const IZ_ENABLED = <?= $izEnabled ? 'true' : 'false' ?>;
+  const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
+  const CERRADO_MANUAL = <?= !empty($ubi['cerrado_manual']) ? 'true' : 'false' ?>;
+  function isStoreOpen() {
+    if (CERRADO_MANUAL) return false;
+    if (OPEN_H === CLOSE_H) return true;            // sin horario configurado => sin restricción
+    const h = new Date().getHours();
+    return CLOSE_H > OPEN_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
+  }
+  function reflectStoreState(open) { document.body.classList.toggle('tienda-cerrada', !open); }
+  let _cerradoToastT = null;
+  function avisoCerrado() {
+    let t = document.getElementById('cerrado-toast');
+    if (!t) {
+      t = document.createElement('div'); t.id = 'cerrado-toast';
+      t.innerHTML = '<span class="ct-dot"></span> Estamos cerrados en este momento';
+      document.body.appendChild(t);
+    }
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(_cerradoToastT);
+    _cerradoToastT = setTimeout(() => t.classList.remove('show'), 3200);
+  }
   const ANALYTICS_VERSION = 'pedidos';
   const ANALYTICS_API = '<?= APP_URL ?>/api/';
 
@@ -1095,9 +1167,9 @@ function cambiar(id, nombre, precio, delta) {
   function enviarPedido() {
     const items = Object.values(carrito);
     if (!items.length) return;
+    if (!isStoreOpen()) { avisoCerrado(); return; }
     poblarHorarios();
-    // Reset loyalty to default
-    setLoyalty('nueva');
+    setLoyalty('no');   // GringoLovers oculto por ahora
     document.getElementById('modal-pedido').style.display = 'flex';
     document.body.style.overflow = 'hidden';
   }
@@ -1144,6 +1216,7 @@ function cambiar(id, nombre, precio, delta) {
   }
 
   function confirmarPedido() {
+    if (!isStoreOpen()) { cerrarModal(); avisoCerrado(); return; }
     let valid = true;
     const nombre   = document.getElementById('campo-nombre').value.trim();
     const telefono = document.getElementById('campo-telefono').value.trim();
@@ -1332,15 +1405,17 @@ function cambiar(id, nombre, precio, delta) {
   function updateScheduleBadge() {
     const badge = document.getElementById('schedule-badge');
     if (!badge) return;
-    const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
-    if (OPEN_H === CLOSE_H) { badge.style.display = 'none'; return; }   // sin horario configurado
-    const h = new Date().getHours();
-    const isOpen = CLOSE_H > OPEN_H ? (h >= OPEN_H && h < CLOSE_H) : (h >= OPEN_H || h < CLOSE_H);
-    const closeLabel = (CLOSE_H % 24 === 0) ? '24:00' : (CLOSE_H + ':00');
-    badge.className = 'schedule-badge ' + (isOpen ? 'open' : 'closed');
-    badge.innerHTML = isOpen
-      ? '<div class="schedule-dot"></div> Abierto · hasta las ' + closeLabel
-      : '<div class="schedule-dot"></div> Abre a las ' + OPEN_H + ':00';
+    const open = isStoreOpen();
+    badge.className = 'schedule-badge ' + (open ? 'open' : 'closed');
+    let txt;
+    if (open) {
+      const closeLabel = (CLOSE_H % 24 === 0) ? '24:00' : (CLOSE_H + ':00');
+      txt = (OPEN_H === CLOSE_H) ? 'Abierto' : ('Abierto · hasta las ' + closeLabel);
+    } else {
+      txt = CERRADO_MANUAL ? 'Cerrado' : ('Cerrado · abre a las ' + OPEN_H + ':00');
+    }
+    badge.innerHTML = '<div class="schedule-dot"></div>' + txt;
+    reflectStoreState(open);
   }
   updateScheduleBadge();
   setInterval(updateScheduleBadge, 60000);
@@ -1608,7 +1683,7 @@ function cambiar(id, nombre, precio, delta) {
     try {
       const res = await fetch('<?= APP_URL ?>/api/izipay_create.php', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ amount:_pedidoData.total, nombre:_pedidoData.nombre, telefono:_pedidoData.telefono, email:_pedidoData.loyaltyEmail || 'cliente@elgringo.pe' })
+        body: JSON.stringify({ amount:_pedidoData.total, nombre:_pedidoData.nombre, telefono:_pedidoData.telefono, email:_pedidoData.loyaltyEmail || 'cliente@elgringo.pe', ubicacion_id: CARTA_ID })
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Error al crear el pago');

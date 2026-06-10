@@ -293,6 +293,20 @@ function igvRate(string $type): float
     };
 }
 
+/**
+ * ¿Está abierta la ubicación? (cierre manual o fuera de horario).
+ * Recibe la fila de `ubicaciones`. Zona horaria America/Lima (config.php).
+ */
+function ubicacionAbierta(array $ubi): bool
+{
+    if (!empty($ubi['cerrado_manual'])) return false;
+    $o = (int)($ubi['hora_apertura'] ?? 0);
+    $c = (int)($ubi['hora_cierre'] ?? 0);
+    if ($o === $c) return true;                 // sin horario configurado
+    $h = (int)date('G');                        // hora actual 0-23
+    return $c > $o ? ($h >= $o && $h < $c) : ($h >= $o || $h < $c);
+}
+
 // ------------------------------------------------------------
 // PAGINACIÓN
 // ------------------------------------------------------------

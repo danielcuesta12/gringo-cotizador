@@ -1,7 +1,22 @@
 <?php
 // Crea el pago en Izipay (REST) y devuelve el formToken para el formulario embebido.
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
+
 header('Content-Type: application/json; charset=utf-8');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
+
+$body    = json_decode(file_get_contents('php://input'), true) ?: [];
+
+// No crear cobros si la tienda está cerrada
+$ubiId = (int)($body['ubicacion_id'] ?? $body['carta_id'] ?? 0);
+if ($ubiId) {
+    $ubi = Database::fetch("SELECT * FROM ubicaciones WHERE id = ?", [$ubiId]);
+    if ($ubi && !ubicacionAbierta($ubi)) {
+        echo json_encode(['ok' => false, 'error' => 'La tienda está cerrada en este momento.']); exit;
+    }
+}
 
 $env = @parse_ini_file(__DIR__ . '/../.env');
 $shopId = $env['IZIPAY_SHOP_ID'] ?? '';
@@ -11,7 +26,6 @@ $mode       = $env['IZIPAY_MODE'] ?? 'TEST';
 $password   = $mode === 'TEST' ? ($env['IZIPAY_REST_PASS_TEST'] ?? '') : ($env['IZIPAY_REST_PASS_PROD'] ?? '');
 $restServer = $env['IZIPAY_REST_SERVER'] ?? 'https://api.micuentaweb.pe';
 
-$body    = json_decode(file_get_contents('php://input'), true) ?: [];
 $amount  = intval(floatval($body['amount'] ?? 0) * 100); // céntimos
 $orderId = 'EG-' . time() . '-' . rand(1000, 9999);
 
