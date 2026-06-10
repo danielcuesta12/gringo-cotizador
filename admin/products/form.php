@@ -15,6 +15,18 @@ $errors     = [];
 $categories = Database::fetchAll("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name");
 $data       = $prod ?? ['name'=>'','description'=>'','price_per_person'=>'','price_per_event'=>'','category_id'=>'','image'=>'','active'=>1,'sort_order'=>0];
 
+// Adicionales: grupos disponibles + los asignados al producto (tolerante a tablas no creadas)
+$modGroups = []; $assignedGroups = [];
+try {
+    $modGroups = Database::fetchAll("SELECT id,nombre,tipo FROM grupos_modificadores WHERE activo=1 ORDER BY orden,nombre");
+    if ($id) {
+        $assignedGroups = array_map('intval', array_column(
+            Database::fetchAll("SELECT grupo_id FROM product_modifier_groups WHERE product_id = ?", [$id]),
+            'grupo_id'
+        ));
+    }
+} catch (Exception $e) { $modGroups = []; }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
@@ -53,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data['image'] = '';
     }
 
+    // Adicionales seleccionados (para guardar y para re-render en caso de error)
+    $assignedGroups = array_map('intval', $_POST['mod_groups'] ?? []);
+
     if (empty($errors)) {
         if ($isEdit) {
             Database::execute(
@@ -61,9 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$data['name'],$data['description'],$data['price_per_person'],$data['price_per_event'],
                  $data['category_id'],$data['image'],$data['active'],$data['sort_order'],$id]
             );
+            $pid = $id;
             flashMessage('success', 'Producto actualizado.');
         } else {
-            Database::insert(
+            $pid = Database::insert(
                 "INSERT INTO products (name,description,price_per_person,price_per_event,category_id,image,active,sort_order)
                  VALUES (?,?,?,?,?,?,?,?)",
                 [$data['name'],$data['description'],$data['price_per_person'],$data['price_per_event'],
@@ -71,6 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             flashMessage('success', 'Producto creado.');
         }
+        // Sincronizar grupos de adicionales asignados (tolerante a tablas no creadas)
+        try {
+            Database::execute("DELETE FROM product_modifier_groups WHERE product_id = ?", [$pid]);
+            foreach ($assignedGroups as $i => $gid) {
+                if ($gid > 0) Database::insert("INSERT INTO product_modifier_groups (product_id,grupo_id,orden) VALUES (?,?,?)", [$pid, $gid, $i]);
+            }
+        } catch (Exception $e) { /* tablas de adicionales aún no creadas */ }
         redirect('/admin/products/index.php');
     }
 }
@@ -164,6 +187,35 @@ include __DIR__ . '/../layout-top.php';
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Adicionales -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>Adicionales</span>
+      </div>
+      <div class="card-body">
+        <?php if (empty($modGroups)): ?>
+          <p style="color:var(--text-muted);font-size:14px;margin:0">
+            No hay grupos de adicionales todavía.
+            <a href="<?= APP_URL ?>/admin/modifiers/form.php" style="color:var(--text-primary);font-weight:600">Crear uno →</a>
+          </p>
+        <?php else: ?>
+          <div class="form-hint" style="margin-bottom:12px">Marca los grupos de extras que aplican a este producto (se mostrarán en la carta de venta).</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <?php foreach ($modGroups as $g): ?>
+            <label class="toggle-wrap" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--border);border-radius:8px">
+              <input type="checkbox" name="mod_groups[]" value="<?= (int)$g['id'] ?>"
+                     <?= in_array((int)$g['id'], $assignedGroups, true) ? 'checked' : '' ?>
+                     style="width:18px;height:18px;accent-color:var(--brand)">
+              <span style="font-weight:600"><?= clean($g['nombre']) ?></span>
+              <span class="badge badge-secondary" style="margin-left:auto"><?= $g['tipo'] === 'multiple' ? 'Varios' : 'Elige 1' ?></span>
+            </label>
+            <?php endforeach; ?>
+          </div>
+          <a href="<?= APP_URL ?>/admin/modifiers/index.php" style="display:inline-block;margin-top:12px;font-size:13px;color:var(--text-secondary)">Administrar grupos de adicionales →</a>
+        <?php endif; ?>
       </div>
     </div>
 

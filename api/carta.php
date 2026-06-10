@@ -7,6 +7,30 @@ require_once __DIR__ . '/../includes/helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+// Adicionales (grupos de modificadores) de un producto. Tolerante a que las tablas aún no existan.
+function cartaModGroups($pid) {
+    try {
+        $grupos = Database::fetchAll(
+            "SELECT g.id, g.nombre, g.descripcion, g.tipo, g.max_opciones, g.requerido
+             FROM grupos_modificadores g
+             JOIN product_modifier_groups pmg ON pmg.grupo_id = g.id
+             WHERE pmg.product_id = ? AND g.activo = 1
+             ORDER BY pmg.orden, g.orden, g.id",
+            [$pid]
+        );
+        foreach ($grupos as &$g) {
+            $g['id']           = (int)$g['id'];
+            $g['requerido']    = (int)$g['requerido'];
+            $g['max_opciones'] = $g['max_opciones'] !== null ? (int)$g['max_opciones'] : null;
+            $g['modificadores'] = Database::fetchAll(
+                "SELECT id, nombre, precio_adicional FROM modificadores WHERE grupo_id = ? AND activo = 1 ORDER BY orden, id",
+                [$g['id']]
+            );
+        }
+        return $grupos;
+    } catch (Exception $e) { return []; }
+}
+
 $ubiId = cleanInt($_GET['ubicacion_id'] ?? 0);
 $slug  = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['slug'] ?? '');
 if (!$ubiId && $slug) {
@@ -52,7 +76,7 @@ foreach ($rows as $r) {
         'badge'                => 'ninguno',
         'activo'               => (int)$r['available'],   // el menú oculta los no disponibles
         'variantes'            => [],
-        'grupos_modificadores' => [],
+        'grupos_modificadores' => cartaModGroups((int)$r['pid']),
     ];
 }
 
