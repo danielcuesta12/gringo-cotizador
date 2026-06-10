@@ -19,6 +19,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
     redirect('/admin/landing/index.php');
 }
 
+// Apariencia del landing (foto de fondo + transparencia de cards)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
+    verifyCsrf();
+
+    setSetting('landing_cards_transparent', isset($_POST['cards_transparent']) ? '1' : '0');
+
+    if (!empty($_FILES['landing_bg']['name'])) {
+        $uploaded = uploadImage($_FILES['landing_bg'], 'landing');
+        if ($uploaded) {
+            $old = getSetting('landing_bg_image');
+            if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+            setSetting('landing_bg_image', $uploaded);
+            flashMessage('success', 'Apariencia actualizada.');
+        } else {
+            flashMessage('error', 'Error al subir la foto. Usa JPG, PNG o WebP (máx. 2MB).');
+        }
+    } else {
+        flashMessage('success', 'Apariencia actualizada.');
+    }
+
+    if (isset($_POST['remove_bg'])) {
+        $old = getSetting('landing_bg_image');
+        if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+        setSetting('landing_bg_image', '');
+    }
+    redirect('/admin/landing/index.php');
+}
+
+$bgRel         = getSetting('landing_bg_image', '');
+$bgUrl         = $bgRel ? UPLOAD_URL . $bgRel : '';
+$cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
+
 $links = Database::fetchAll("SELECT * FROM landing_links ORDER BY sort_order, id");
 $styleLabel = ['primary'=>'Amarillo','wa'=>'WhatsApp','dark'=>'Oscuro','pink'=>'Rosa','neutral'=>'Neutro'];
 
@@ -42,6 +74,40 @@ include __DIR__ . '/../layout-top.php';
       Nuevo botón
     </a>
   </div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <h2 style="font-size:16px;margin-bottom:4px">Apariencia</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Foto de fondo y estilo de las tarjetas de tu landing.</p>
+  <form method="post" enctype="multipart/form-data">
+    <?= csrfField() ?>
+    <input type="hidden" name="save_appearance" value="1">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:260px">
+        <label class="form-label">Foto de fondo</label>
+        <?php if ($bgUrl): ?>
+          <div style="margin-bottom:10px">
+            <img src="<?= htmlspecialchars($bgUrl) ?>" alt="Fondo actual" style="width:120px;height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block">
+          </div>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-bottom:10px;cursor:pointer">
+            <input type="checkbox" name="remove_bg" value="1"> Quitar foto actual
+          </label>
+        <?php endif; ?>
+        <input type="file" name="landing_bg" accept="image/jpeg,image/png,image/webp" class="form-input">
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">JPG, PNG o WebP · máx. 2MB. Sin foto se usa el fondo amarillo.</p>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <label class="form-label">Tarjetas</label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 0">
+          <input type="checkbox" name="cards_transparent" value="1" <?= $cardsTranspar ? 'checked' : '' ?>>
+          <span style="font-size:14px">Tarjetas translúcidas <span style="color:var(--text-muted)">(efecto vidrio sobre la foto)</span></span>
+        </label>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button type="submit" class="btn btn-primary">Guardar apariencia</button>
+    </div>
+  </form>
 </div>
 
 <div class="card">

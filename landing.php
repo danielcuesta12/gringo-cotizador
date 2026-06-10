@@ -11,6 +11,10 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $tagline = getSetting('landing_tagline', 'Smash burgers · Pollo crispy · Salchipapas');
 $ig      = getSetting('instagram_handle', 'elgringoburger');
 
+$bgRel     = getSetting('landing_bg_image', '');
+$bgUrl     = $bgRel ? UPLOAD_URL . $bgRel : '';
+$transpar  = getSetting('landing_cards_transparent', '0') === '1';
+
 $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'=>'rgba(37,211,102,.15)'];
 ?>
 <!DOCTYPE html>
@@ -57,6 +61,34 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(0,0,0,.45);text-align:center}
 </style>
+<?php if ($bgUrl): ?>
+<style>
+  body{
+    background:#181613 url('<?= htmlspecialchars($bgUrl) ?>') center/cover no-repeat fixed;
+    position:relative;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;z-index:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.72) 100%);
+  }
+  .wrap{position:relative;z-index:1}
+  .logo-fallback{color:#fff}
+  .foot{color:rgba(255,255,255,.6)}
+</style>
+<?php endif; ?>
+<?php if ($transpar): ?>
+<style>
+  .lnk, .lnk.primary{
+    background:rgba(20,18,15,.42);
+    border-color:rgba(255,255,255,.16);
+    -webkit-backdrop-filter:blur(13px) saturate(1.2);
+    backdrop-filter:blur(13px) saturate(1.2);
+  }
+  .lnk.primary .lnk-ico{background:var(--brand);color:#1a1a1a}
+  .lnk:hover{border-color:rgba(255,255,255,.28)}
+  .quote-panel iframe{background:rgba(244,244,240,.96)}
+</style>
+<?php endif; ?>
 </head>
 <body>
 <div class="wrap">
