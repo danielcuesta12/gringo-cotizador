@@ -32,10 +32,16 @@ include __DIR__ . '/../layout-top.php';
     <h1>Landing</h1>
     <p>Botones de tu página pública <a href="<?= APP_URL ?>/.." target="_blank" style="color:var(--ink)">elgringo.pe</a> — arrastra el orden con el campo "Orden"</p>
   </div>
-  <a href="<?= APP_URL ?>/admin/landing/form.php" class="btn btn-primary" style="gap:6px">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    Nuevo botón
-  </a>
+  <div style="display:flex;gap:8px">
+    <a href="<?= APP_URL ?>/admin/landing/qr.php" class="btn btn-ghost" style="gap:6px">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="14" y1="21" x2="21" y2="21"/><line x1="17.5" y1="17.5" x2="17.5" y2="17.51"/><line x1="21" y1="17.5" x2="21" y2="17.51"/></svg>
+      QR de la landing
+    </a>
+    <a href="<?= APP_URL ?>/admin/landing/form.php" class="btn btn-primary" style="gap:6px">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo botón
+    </a>
+  </div>
 </div>
 
 <div class="card">
