@@ -161,7 +161,7 @@ if ($salesMode === 'izipay') {
     .item-info { flex: 1; min-width: 0; padding: 10px; }
     .item-name { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.2; margin-bottom: 3px; }
     .item-desc { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .item-price { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 15px; font-weight: 700; color: #FCDA13; margin-top: 5px; white-space: nowrap; }
+    .item-price { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 19px; font-weight: 700; color: #FCDA13; margin-top: 5px; white-space: nowrap; }
     .item-right { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 10px; flex-shrink: 0; }
 
     .item-badge {
@@ -223,6 +223,7 @@ if ($salesMode === 'izipay') {
       transition: transform .35s cubic-bezier(.32,.72,0,1);
     }
     .carrito-mobile.visible { transform: translateY(0); }
+    @media (min-width: 900px) { .carrito-mobile { display: none !important; } }
     .carrito-mobile-top {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 4px; cursor: pointer; min-height: 60px;
