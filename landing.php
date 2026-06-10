@@ -14,6 +14,7 @@ $ig      = getSetting('instagram_handle', 'elgringoburger');
 $bgRel     = getSetting('landing_bg_image', '');
 $bgUrl     = $bgRel ? UPLOAD_URL . $bgRel : '';
 $transpar  = getSetting('landing_cards_transparent', '0') === '1';
+$ov        = max(0, min(100, (int) getSetting('landing_bg_overlay', '28'))) / 100;  // intensidad del oscurecido
 
 $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'=>'rgba(37,211,102,.15)'];
 ?>
@@ -69,7 +70,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   }
   body::before{
     content:'';position:fixed;inset:0;z-index:0;
-    background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.12) 55%, rgba(0,0,0,.28) 100%);
+    background:linear-gradient(180deg, rgba(0,0,0,<?= round($ov*0.18,3) ?>) 0%, rgba(0,0,0,<?= round($ov*0.45,3) ?>) 55%, rgba(0,0,0,<?= round($ov,3) ?>) 100%);
   }
   .wrap{position:relative;z-index:1}
   .logo-fallback{color:#fff}

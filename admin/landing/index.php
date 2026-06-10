@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
     verifyCsrf();
 
     setSetting('landing_cards_transparent', isset($_POST['cards_transparent']) ? '1' : '0');
+    setSetting('landing_bg_overlay', (string) max(0, min(100, cleanInt($_POST['bg_overlay'] ?? 28))));
 
     if (!empty($_FILES['landing_bg']['name'])) {
         $uploaded = uploadImage($_FILES['landing_bg'], 'landing');
@@ -50,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
 $bgRel         = getSetting('landing_bg_image', '');
 $bgUrl         = $bgRel ? UPLOAD_URL . $bgRel : '';
 $cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
+$bgOverlay     = (int) getSetting('landing_bg_overlay', '28');
 
 $links = Database::fetchAll("SELECT * FROM landing_links ORDER BY sort_order, id");
 $styleLabel = ['primary'=>'Amarillo','wa'=>'WhatsApp','dark'=>'Oscuro','pink'=>'Rosa','neutral'=>'Neutro'];
@@ -102,6 +104,14 @@ include __DIR__ . '/../layout-top.php';
           <input type="checkbox" name="cards_transparent" value="1" <?= $cardsTranspar ? 'checked' : '' ?>>
           <span style="font-size:14px">Tarjetas translúcidas <span style="color:var(--text-muted)">(efecto vidrio sobre la foto)</span></span>
         </label>
+
+        <label class="form-label" style="margin-top:14px">Oscurecer foto de fondo</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <input type="range" name="bg_overlay" min="0" max="100" step="5" value="<?= $bgOverlay ?>"
+                 oninput="document.getElementById('bgOverlayVal').textContent=this.value+'%'" style="flex:1">
+          <span id="bgOverlayVal" style="font-size:13px;font-weight:600;min-width:42px;text-align:right"><?= $bgOverlay ?>%</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">0% = foto a todo color · 100% = muy oscura. Solo aplica si hay foto de fondo.</p>
       </div>
     </div>
     <div style="margin-top:16px">
