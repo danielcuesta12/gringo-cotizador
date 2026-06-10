@@ -26,6 +26,10 @@ class Database
             ];
             try {
                 self::$instance = new PDO($dsn, DB_USER, DB_PASS, $options);
+                // Zona horaria de Perú (UTC-5) para NOW()/CURRENT_TIMESTAMP y la
+                // visualización de columnas TIMESTAMP. El servidor MySQL corre 1h
+                // adelantado (UTC-4); esto alinea toda la app a hora de Lima.
+                self::$instance->exec("SET time_zone = '-05:00'");
             } catch (PDOException $e) {
                 if (DEBUG_MODE) {
                     die('Error de conexión: ' . $e->getMessage());
