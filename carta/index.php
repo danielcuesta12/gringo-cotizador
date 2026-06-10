@@ -15,6 +15,16 @@ $logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');
 $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $waNum   = preg_replace('/\D/', '', $ubi['whatsapp_number'] ?: getSetting('whatsapp_number', ''));
 $ig      = ltrim($ubi['instagram'] ?? '', '@');
+
+// Izipay — solo si esta ubicación cobra con tarjeta y las credenciales están en .env
+$izEnabled = false; $izKey = ''; $izJsUrl = '';
+if ($salesMode === 'izipay') {
+    $izEnv  = @parse_ini_file(__DIR__ . '/../.env') ?: [];
+    $izMode = $izEnv['IZIPAY_MODE'] ?? 'TEST';
+    $izKey  = $izMode === 'TEST' ? ($izEnv['IZIPAY_PUBLIC_KEY_TEST'] ?? '') : ($izEnv['IZIPAY_PUBLIC_KEY_PROD'] ?? '');
+    $izJsUrl = $izEnv['IZIPAY_JS_URL'] ?? 'https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js';
+    $izEnabled = !empty($izEnv['IZIPAY_SHOP_ID']) && !empty($izKey);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -470,6 +480,29 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     }
     .item.in-cart { border-left: 3px solid #FCDA13; }
   </style>
+<?php if ($izEnabled): ?>
+  <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
+  <script src="<?= htmlspecialchars($izJsUrl, ENT_QUOTES) ?>"
+    kr-public-key="<?= htmlspecialchars($izKey, ENT_QUOTES) ?>"
+    kr-post-url-success="<?= APP_URL ?>/api/izipay_verify.php"
+    kr-language="es-PE"></script>
+  <link rel="stylesheet" href="https://static.micuentaweb.pe/static/js/krypton-client/V4.0/ext/classic.css">
+  <script src="https://static.micuentaweb.pe/static/js/krypton-client/V4.0/ext/classic.js"></script>
+  <style>
+    @keyframes spinIz { to { transform: rotate(360deg); } }
+    #izipay-container { padding: 4px 20px 16px !important; }
+    #izipay-container .kr-embedded { background:transparent!important;border:none!important;box-shadow:none!important;margin:0!important;padding:0!important;width:100%!important;max-width:100%!important;font-family:inherit!important; }
+    #izipay-container .kr-field-wrapper { margin:0 0 4px!important; }
+    #izipay-container label, #izipay-container .kr-label { font-size:11px!important;font-weight:700!important;color:#888!important;text-transform:uppercase!important;letter-spacing:.04em!important; }
+    #izipay-container .kr-pan, #izipay-container .kr-expiry, #izipay-container .kr-security-code { height:50px!important;border:1.5px solid #e4e4e4!important;border-radius:12px!important;background:#fafafa!important;margin:0!important;transition:border-color .15s!important; }
+    #izipay-container .kr-pan.kr-focus, #izipay-container .kr-expiry.kr-focus, #izipay-container .kr-security-code.kr-focus { border-color:#1A1A1A!important;background:#fff!important; }
+    #izipay-container .kr-field-row { display:flex!important;gap:12px!important;margin-top:12px!important; }
+    #izipay-container .kr-field-row .kr-expiry, #izipay-container .kr-field-row .kr-security-code { flex:1 1 50%!important;max-width:50%!important; }
+    #izipay-container .kr-form-error, #izipay-container .kr-field-error { min-height:0!important;height:auto!important;padding:0!important;margin:0!important; }
+    #izipay-container .kr-payment-button { width:100%!important;height:54px!important;border-radius:14px!important;margin-top:16px!important;margin-bottom:0!important;background:#1A1A1A!important;color:#fff!important;font-weight:800!important;letter-spacing:.02em!important;box-shadow:none!important;border:none!important; }
+    #izipay-container .kr-payment-button:hover { background:#000!important; }
+  </style>
+<?php endif; ?>
 </head>
 <body>
 
@@ -519,7 +552,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
         </div>
         <button class="btn-wa" id="desktop-wa-btn" style="display:none;margin-top:16px" onclick="enviarPedido()">
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          Pedir por WhatsApp
+          <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Pedir por WhatsApp' ?>
         </button>
         <button class="btn-vaciar" id="desktop-vaciar-btn" style="display:none" onclick="vaciarCarrito()">Vaciar pedido</button>
       </div>
@@ -545,7 +578,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       <div id="mobile-items"></div>
       <button class="btn-wa" onclick="enviarPedido()">
         <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Enviar pedido por WhatsApp
+        <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Enviar pedido por WhatsApp' ?>
       </button>
       <button class="btn-vaciar" onclick="vaciarCarrito()">Vaciar pedido</button>
     </div>
@@ -669,9 +702,13 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
         </div>
       </div>
 
-      <button onclick="confirmarPedido()" style="width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:16px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <button onclick="confirmarPedido()" style="width:100%;padding:14px;background:<?= $salesMode === 'izipay' ? '#1A1A1A' : '#25D366' ?>;color:#fff;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:16px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <?php if ($salesMode === 'izipay'): ?>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <?php else: ?>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Enviar pedido por WhatsApp
+        <?php endif; ?>
+        <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Enviar pedido por WhatsApp' ?>
       </button>
       <button onclick="cerrarModal()" style="width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;font-family:'DINMed',sans-serif;font-size:13px;color:#888;cursor:pointer;margin-top:10px;">Cancelar</button>
     </div>
@@ -843,6 +880,8 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   }
 
   const CARTA_ID = <?= (int)$ubiId ?>;
+  const SALES_MODE = '<?= $salesMode ?>';
+  const IZ_ENABLED = <?= $izEnabled ? 'true' : 'false' ?>;
   const ANALYTICS_VERSION = 'pedidos';
   const ANALYTICS_API = '<?= APP_URL ?>/api/';
 
@@ -1172,6 +1211,29 @@ function cambiar(id, nombre, precio, delta) {
       }
       document.getElementById('err-loyalty-email').style.display = 'none';
       document.getElementById('campo-loyalty-email').style.borderColor = '#ddd';
+    }
+
+    // ── IZIPAY: cobrar con tarjeta ANTES de registrar el pedido ──
+    if (SALES_MODE === 'izipay') {
+      if (!IZ_ENABLED) { alert('El pago con tarjeta no está disponible en este momento. Intenta más tarde.'); return; }
+      let izTotal = 0;
+      const izItems = Object.values(carrito).map(i => {
+        const sub = Math.round(i.precio * i.qty); izTotal += sub;
+        return { nombre: i.nombre, precio: i.precio, qty: i.qty, subtotal: sub, modificadores: i.mods || [] };
+      });
+      const loyaltyEmailIz = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
+      _pedidoData = {
+        nombre, telefono,
+        tipo_entrega: tipoEntrega,
+        direccion: tipoEntrega === 'delivery' ? direccion : '',
+        horario: horarioLabel, comentarios,
+        items: izItems, total: Math.round(izTotal),
+        carta_id: CARTA_ID, ubicacion_id: CARTA_ID,
+        loyaltyEmail: loyaltyEmailIz
+      };
+      cerrarModal();
+      iniciarPago();
+      return;
     }
 
     // Save order to database (fire and forget)
@@ -1536,6 +1598,163 @@ function cambiar(id, nombre, precio, delta) {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
   loadCarta();
+
+<?php if ($salesMode === 'izipay'): ?>
+  // ── IZIPAY ──────────────────────────────────────────────────────────────
+  let _pedidoData = null;
+
+  async function iniciarPago() {
+    document.getElementById('modal-cargando-pago').style.display = 'flex';
+    try {
+      const res = await fetch('<?= APP_URL ?>/api/izipay_create.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ amount:_pedidoData.total, nombre:_pedidoData.nombre, telefono:_pedidoData.telefono, email:_pedidoData.loyaltyEmail || 'cliente@elgringo.pe' })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Error al crear el pago');
+      _pedidoData.orderId = data.orderId;
+      localStorage.setItem('_iz_pedido', JSON.stringify(_pedidoData));
+      fetch('<?= APP_URL ?>/api/izipay_store_pending.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ..._pedidoData, orderId:data.orderId }) }).catch(()=>{});
+      if (typeof KR === 'undefined') throw new Error('No se pudo cargar el sistema de pago. Recarga la página.');
+      KR.onSubmit(handlePagoResult);
+      await KR.setFormToken(data.formToken);
+      document.getElementById('modal-cargando-pago').style.display = 'none';
+      document.getElementById('izipay-total-display').textContent = Number(_pedidoData.total).toFixed(2);
+      document.getElementById('izipay-container').style.display = 'block';
+      document.getElementById('modal-izipay').style.display = 'flex';
+    } catch(e) {
+      document.getElementById('modal-cargando-pago').style.display = 'none';
+      document.getElementById('error-pago-msg').textContent = e.message;
+      document.getElementById('modal-error-pago').style.display = 'flex';
+    }
+  }
+
+  async function handlePagoResult(resp) {
+    document.getElementById('modal-izipay').style.display = 'none';
+    document.getElementById('modal-cargando-pago').style.display = 'flex';
+    try {
+      const krAnswer = resp.rawClientAnswer || JSON.stringify(resp.clientAnswer);
+      const krHash   = resp.hash;
+      const verifData = await fetch('<?= APP_URL ?>/api/izipay_verify.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ 'kr-answer':krAnswer, 'kr-hash':krHash })
+      }).then(r=>r.json());
+      if (!verifData.ok) throw new Error(verifData.error || 'Pago no verificado');
+      const saveData = await fetch('<?= APP_URL ?>/api/pedido.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ ..._pedidoData, izipay:true, transaccion_id:verifData.transactionId, izipay_order_id:_pedidoData.orderId })
+      }).then(r=>r.json());
+      localStorage.removeItem('_iz_pedido');
+      document.getElementById('modal-cargando-pago').style.display = 'none';
+      mostrarConfirmacion({ pedidoId: saveData.id, total: verifData.amount ?? _pedidoData.total, cardLast4: verifData.cardLast4 });
+    } catch(e) {
+      document.getElementById('modal-cargando-pago').style.display = 'none';
+      document.getElementById('error-pago-msg').textContent = e.message;
+      document.getElementById('modal-error-pago').style.display = 'flex';
+    }
+    return false; // evita el redirect de KR; todo se maneja en la misma página
+  }
+
+  // Fallback: si Izipay redirige por navegador (onSubmit no capturó), recupera el carrito
+  (function checkIzipayRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('iz_ok')) {
+      const saved = localStorage.getItem('_iz_pedido');
+      if (saved) {
+        _pedidoData = JSON.parse(saved);
+        localStorage.removeItem('_iz_pedido');
+        fetch('<?= APP_URL ?>/api/pedido.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ..._pedidoData, izipay:true, izipay_order_id:_pedidoData.orderId }) })
+          .then(r=>r.json()).then(d=>{ mostrarConfirmacion({ pedidoId:d.id, total:_pedidoData.total, cardLast4:'****' }); })
+          .catch(()=>{ mostrarConfirmacion({ pedidoId:null, total:_pedidoData.total, cardLast4:'****' }); });
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('iz_err')) {
+      document.getElementById('error-pago-msg').textContent = 'El pago no se completó. Intenta de nuevo.';
+      document.getElementById('modal-error-pago').style.display = 'flex';
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  })();
+
+  function mostrarConfirmacion(data) {
+    cerrarModal();
+    const last4 = data.cardLast4 ? String(data.cardLast4).slice(-4) : '****';
+    const lines = [];
+    if (data.pedidoId) lines.push('Pedido #' + String(data.pedidoId).padStart(3,'0'));
+    lines.push('Total: S/' + Number(data.total).toFixed(2));
+    lines.push('Tarjeta terminada en ' + last4);
+    document.getElementById('confirmado-detalle').innerHTML = lines.join('<br>');
+    document.getElementById('modal-confirmado').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function vaciarYVolver() {
+    document.getElementById('modal-confirmado').style.display = 'none';
+    document.body.style.overflow = '';
+    if (_pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
+    _pedidoData = null;
+    vaciarCarrito();
+  }
+
+  function cerrarIzipay()  { document.getElementById('modal-izipay').style.display = 'none'; }
+  function reintentarPago(){ document.getElementById('modal-error-pago').style.display='none'; document.getElementById('modal-izipay').style.display='flex'; }
+  function cancelarPago()  { document.getElementById('modal-error-pago').style.display='none'; }
+<?php endif; ?>
   </script>
+
+<?php if ($salesMode === 'izipay'): ?>
+  <!-- MODAL CARGANDO PAGO -->
+  <div id="modal-cargando-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:520;align-items:center;justify-content:center;flex-direction:column;">
+    <div style="width:54px;height:54px;border:4px solid rgba(255,255,255,0.15);border-top-color:#FCDA13;border-radius:50%;animation:spinIz .8s linear infinite;"></div>
+    <div style="color:#fff;font-size:14px;margin-top:18px;letter-spacing:1px;">Procesando…</div>
+  </div>
+
+  <!-- MODAL IZIPAY -->
+  <div id="modal-izipay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:430;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:24px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;">
+        <div style="font-size:18px;font-weight:900;color:#00ADEF;letter-spacing:2px;text-transform:lowercase;">izipay</div>
+        <button onclick="cerrarIzipay()" style="width:32px;height:32px;border:none;border-radius:50%;background:#f0f0f0;color:#666;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+      </div>
+      <div style="margin:0 20px 14px;background:#f5f5f5;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;"><?= htmlspecialchars($ubi['nombre']) ?></div>
+        <div style="font-size:28px;font-weight:800;color:#1A1A1A;">S/<span id="izipay-total-display">0.00</span></div>
+      </div>
+      <div id="izipay-container" style="display:none;padding:0 20px 8px;">
+        <div class="kr-embedded">
+          <div class="kr-pan"></div>
+          <div class="kr-field-row">
+            <div class="kr-expiry"></div>
+            <div class="kr-security-code"></div>
+          </div>
+          <button class="kr-payment-button"></button>
+        </div>
+      </div>
+      <button onclick="cerrarIzipay()" style="margin:0 20px 24px;width:calc(100% - 40px);padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;font-size:13px;color:#888;cursor:pointer;">Cancelar — volver al formulario</button>
+    </div>
+  </div>
+
+  <!-- MODAL PAGO CONFIRMADO -->
+  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;">
+    <div style="width:80px;height:80px;border-radius:50%;background:#FCDA13;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div style="font-family:'Kimmy',sans-serif;font-size:28px;text-transform:uppercase;letter-spacing:2px;color:#fff;margin-bottom:8px;">¡Pedido confirmado!</div>
+    <div id="confirmado-detalle" style="font-size:14px;color:#888;line-height:1.9;margin-bottom:32px;"></div>
+    <button onclick="vaciarYVolver()" style="padding:14px 40px;background:#FCDA13;color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">Volver a la carta</button>
+  </div>
+
+  <!-- MODAL ERROR PAGO -->
+  <div id="modal-error-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:510;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#1e1e1e;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;text-align:center;">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(220,38,38,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+      <div style="font-family:'Kimmy',sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:1.5px;color:#fff;margin-bottom:8px;">Pago rechazado</div>
+      <div id="error-pago-msg" style="font-size:13px;color:#888;margin-bottom:24px;line-height:1.6;"></div>
+      <button onclick="reintentarPago()" style="width:100%;padding:13px;background:#FCDA13;color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-bottom:10px;">Intentar de nuevo</button>
+      <button onclick="cancelarPago()" style="width:100%;padding:11px;background:none;border:1px solid #333;border-radius:10px;font-size:13px;color:#888;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+<?php endif; ?>
 </body>
 </html>
