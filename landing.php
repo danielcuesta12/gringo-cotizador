@@ -75,7 +75,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
         $embedUrl = $l['url'] . (strpos($l['url'], '?') !== false ? '&' : '?') . 'embed=1';
       ?>
       <div class="lnk-wrap">
-        <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false">
+        <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false" data-link-id="<?= (int)$l['id'] ?>" data-label="<?= clean($l['label']) ?>">
           <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
           <span class="lnk-tx">
             <span class="lnk-title"><?= clean($l['label']) ?></span>
@@ -86,7 +86,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
         <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy"></iframe></div>
       </div>
       <?php else: ?>
-      <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>">
+      <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>" data-label="<?= clean($l['label']) ?>">
         <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
         <span class="lnk-tx">
           <span class="lnk-title"><?= clean($l['label']) ?></span>
@@ -125,6 +125,16 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
       setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
     }
   }
+</script>
+<script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>
+<script src="<?= APP_URL ?>/assets/js/track.js?v=<?= @filemtime(__DIR__ . '/assets/js/track.js') ?>"></script>
+<script>
+  track('page_view', 'landing');
+  document.querySelectorAll('.lnk').forEach(function (el) {
+    el.addEventListener('click', function () {
+      track('link_click', 'landing', { meta: { label: el.dataset.label || '', link_id: el.dataset.linkId || '' } });
+    });
+  });
 </script>
 </body>
 </html>

@@ -131,6 +131,8 @@ $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
 </style>
 </head>
 <body class="<?php echo $embed ? 'embed' : ''; ?>">
+<script>window.TRACK_URL = '<?php echo APP_URL; ?>/api/track.php';</script>
+<script src="<?php echo APP_URL; ?>/assets/js/track.js?v=<?php echo @filemtime(__DIR__ . '/assets/js/track.js'); ?>"></script>
 <div class="wrap">
 
   <?php if (!$embed): ?>
@@ -292,6 +294,7 @@ if (f){
 }
 window.addEventListener('load', function(){ postH(); setTimeout(postH, 350); });
 window.addEventListener('resize', postH);
+if (window.track) track('page_view', 'solicitud');
 </script>
 </body>
 </html>

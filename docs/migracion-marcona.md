@@ -47,7 +47,7 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
 - [ ] **E — POS** (caja, favoritos, pedidos presenciales)
 - [ ] **F — Reservas**
 - [ ] **G — Lealtad** + validador
-- [ ] **Transversal — Analítica** (visitas/clics landing + pedidos) y captura de leads
+- [x] **Transversal — Analítica** — tabla `analytics_events` + `api/track.php` + `api/carta_analytics.php` (views/likes) + `assets/js/track.js`; tracking en landing (page_view+clics), carta (page_view, add_to_cart, checkout_open, order_placed, search, product_view, likes), menú y solicitud; dashboard `admin/analytics/` filtrable por ubicación/fechas (KPIs, visitas/día, embudo, fuentes ?src, clics landing, top vistos, likes, búsquedas). Requiere `install/analytics.sql`.
 
 ## Landing link-in-bio ✅ EN VIVO (elgringo.pe)
 Ver [[landing-linkbio-project]]. La landing en la raíz `elgringo.pe` lleva a

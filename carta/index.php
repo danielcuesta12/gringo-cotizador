@@ -543,6 +543,8 @@ if ($salesMode === 'izipay') {
 <?php endif; ?>
 </head>
 <body>
+<script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>
+<script src="<?= APP_URL ?>/assets/js/track.js?v=<?= @filemtime(__DIR__ . '/../assets/js/track.js') ?>"></script>
 
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
@@ -915,8 +917,15 @@ if ($salesMode === 'izipay') {
   }
 
 
+  let _searchTrackT = null;
   function filtrarProductos(q) {
     const query = (q || '').toLowerCase().trim();
+    if (window.track) {
+      clearTimeout(_searchTrackT);
+      _searchTrackT = setTimeout(function () {
+        if (query.length >= 3) track('search', 'carta', { ubicacion_id: CARTA_ID, meta: { term: query } });
+      }, 900);
+    }
     document.querySelectorAll('.section').forEach(sec => {
       let any = false;
       sec.querySelectorAll('.item:not(.item-parent):not(.item-variant), .item-variant').forEach(item => {
@@ -996,6 +1005,7 @@ function cambiar(id, nombre, precio, delta) {
     if (!carrito[id]) carrito[id] = { nombre, precio, qty: 0 };
     carrito[id].qty = Math.max(0, carrito[id].qty + delta);
     if (carrito[id].qty === 0) delete carrito[id];
+    if (delta > 0 && window.track) track('add_to_cart', 'carta', { ubicacion_id: CARTA_ID, meta: { product_id: id, nombre: nombre } });
 
     // Update qty display
     const el = document.getElementById('qty-' + id);
@@ -1173,6 +1183,7 @@ function cambiar(id, nombre, precio, delta) {
     setLoyalty('no');   // GringoLovers oculto por ahora
     document.getElementById('modal-pedido').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    if (window.track) track('checkout_open', 'carta', { ubicacion_id: CARTA_ID, meta: { items: Object.keys(carrito).length } });
   }
 
   function poblarHorarios() {
@@ -1336,6 +1347,7 @@ function cambiar(id, nombre, precio, delta) {
     }).catch(e => console.error('save_pedido fetch error:', e));
 
     cerrarModal();
+    if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'whatsapp', total: Math.round(saveTotal) } });
     var _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
     var _w = window.open(_waUrl, '_blank');
     if (!_w) window.location.href = _waUrl;   // si el navegador bloquea la pestaña nueva, navega en la misma
@@ -1652,7 +1664,7 @@ function cambiar(id, nombre, precio, delta) {
       btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
     }
     try {
-      const res = await fetch(ANALYTICS_API + 'carta_analytics.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle_like',producto_id:prodId,ubicacion_id:CARTA_ID,version:ANALYTICS_VERSION})});
+      const res = await fetch(ANALYTICS_API + 'carta_analytics.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle_like',producto_id:prodId,ubicacion_id:CARTA_ID,version:ANALYTICS_VERSION,liked:newLiked})});
       const d = await res.json();
       if (d.ok) { const el = document.getElementById('heart-count'); if (el) el.textContent = d.total > 0 ? d.total : ''; }
     } catch(e) {}
@@ -1674,6 +1686,7 @@ function cambiar(id, nombre, precio, delta) {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
   loadCarta();
+  if (window.track) track('page_view', 'carta', { ubicacion_id: CARTA_ID, meta: { sales_mode: SALES_MODE } });
 
 <?php if ($salesMode === 'izipay'): ?>
   // ── IZIPAY ──────────────────────────────────────────────────────────────
@@ -1753,6 +1766,7 @@ function cambiar(id, nombre, precio, delta) {
 
   function mostrarConfirmacion(data) {
     cerrarModal();
+    if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'izipay', total: data.total } });
     const last4 = data.cardLast4 ? String(data.cardLast4).slice(-4) : '****';
     const lines = [];
     if (data.pedidoId) lines.push('Pedido #' + String(data.pedidoId).padStart(3,'0'));

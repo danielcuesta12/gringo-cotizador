@@ -408,6 +408,8 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   </style>
 </head>
 <body>
+<script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>
+<script src="<?= APP_URL ?>/assets/js/track.js?v=<?= @filemtime(__DIR__ . '/../assets/js/track.js') ?>"></script>
 
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
@@ -632,7 +634,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
         btn.classList.toggle('liked', newLiked);
         btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
       }
-      fetch('<?= APP_URL ?>/api/carta_analytics.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle_like',producto_id:id,ubicacion_id:CARTA_ID,version:'menu'})})
+      fetch('<?= APP_URL ?>/api/carta_analytics.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle_like',producto_id:id,ubicacion_id:CARTA_ID,version:'menu',liked:newLiked})})
         .then(r=>r.json()).then(function(d){ if(d.ok){ var el=document.getElementById('heart-count'); if(el) el.textContent=d.total>0?d.total:''; } }).catch(function(){});
     }
     /* DETAIL DRAWER */
@@ -732,6 +734,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
     loadCarta();
+    if (window.track) track('page_view', 'menu', { ubicacion_id: CARTA_ID });
   </script>
 </body>
 </html>
