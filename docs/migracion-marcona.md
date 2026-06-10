@@ -43,7 +43,7 @@ Origen del código (solo lectura): `~/Documents/Proyectos/elgringo-marcona`.
 - [x] **B — Menú de solo lectura** por ubicación (`/menu`) + conectar a la landing link-in-bio
 - [x] **C1 — Carta con venta + WhatsApp** (carrito, enviar pedido, guardar en `pedidos`) + selector sales_mode ✅ (falta aplicar SQL + .htaccess, ver docs/checklist-c1-c2.md)
 - [~] **C2 — Modalidad Izipay** (portar izipay_create/ipn/verify; credenciales en .env; IPN HTTPS; probar en TEST) — backend portado (inerte); falta credenciales .env + wirear UI + probar TEST
-- [ ] **D — KDS** por ubicación (pantalla cocina, beep, estados; polling)
+- [x] **D — KDS** por ubicación (pantalla cocina, beep WebAudio, estados, timers/colores, drag, historial; polling) — `admin/kds/index.php` + `api/kds_pedidos|update|historial.php`. Además `admin/pedidos/` (bandeja en el admin). Requiere `install/pedidos.sql` (incluye `origen`/`completado_at`) o `install/pedidos_kds.sql` si ya existía la tabla.
 - [ ] **E — POS** (caja, favoritos, pedidos presenciales)
 - [ ] **F — Reservas**
 - [ ] **G — Lealtad** + validador

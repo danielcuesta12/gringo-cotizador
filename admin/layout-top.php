@@ -105,6 +105,18 @@ try {
     </a>
     <?php endif; ?>
 
+    <div class="nav-section-label">Operación</div>
+
+    <a href="<?php echo APP_URL; ?>/admin/pedidos/index.php"
+       class="nav-link <?php echo ($activePage??'')==='pedidos'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span> Pedidos
+    </a>
+
+    <a href="<?php echo APP_URL; ?>/admin/kds/index.php" target="_blank"
+       class="nav-link">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span> KDS · Cocina
+    </a>
+
     <?php if (isAdmin()): ?>
     <div class="nav-section-label">Sitio</div>
 
