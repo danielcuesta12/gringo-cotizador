@@ -86,12 +86,45 @@ function descontarStockPedido(int $pedidoId): void
     } catch (Exception $e) { /* tablas/columna no creadas: ignorar */ }
 }
 
+/**
+ * Entrada de stock por compra: suma stock en la ubicación (movimiento 'compra')
+ * y actualiza el costo unitario del insumo con costo PROMEDIO PONDERADO
+ * (usando el stock global previo de ese insumo en todas las ubicaciones).
+ */
+function invEntradaCompra(int $ubicacionId, int $insumoId, float $cantidad, float $costoUnit, array $opts = []): void
+{
+    if ($insumoId <= 0 || $cantidad <= 0) return;
+    try {
+        $stockPrev = (float)(Database::fetch("SELECT COALESCE(SUM(stock),0) s FROM insumo_stock WHERE insumo_id = ?", [$insumoId])['s'] ?? 0);
+        $costoPrev = (float)(Database::fetch("SELECT costo_unitario c FROM insumos WHERE id = ?", [$insumoId])['c'] ?? 0);
+        $denom = $stockPrev + $cantidad;
+        $nuevoCosto = $denom > 0 ? (($stockPrev * $costoPrev) + ($cantidad * $costoUnit)) / $denom : $costoUnit;
+
+        invMovimiento($ubicacionId, $insumoId, 'compra', $cantidad, [
+            'costo_unitario' => $costoUnit,
+            'motivo'         => $opts['motivo'] ?? 'Compra',
+            'ref'            => $opts['ref'] ?? null,
+        ]);
+        Database::execute("UPDATE insumos SET costo_unitario = ? WHERE id = ?", [round($nuevoCosto, 4), $insumoId]);
+    } catch (Exception $e) {}
+}
+
 /** ¿Existe ya el módulo de inventario en la BD? (para mensajes "aplica el SQL"). */
 function inventarioListo(): bool
 {
     try {
         return (bool) Database::fetch(
             "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'insumos'"
+        );
+    } catch (Exception $e) { return false; }
+}
+
+/** ¿Existe ya el módulo de compras (Bloque C)? */
+function comprasListo(): bool
+{
+    try {
+        return (bool) Database::fetch(
+            "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'compras'"
         );
     } catch (Exception $e) { return false; }
 }

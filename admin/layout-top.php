@@ -128,6 +128,11 @@ try {
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 7v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M9 11h6"/></svg></span> Salida a evento
     </a>
 
+    <a href="<?php echo APP_URL; ?>/admin/inventory/compras.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-compras'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Compras
+    </a>
+
     <a href="<?php echo APP_URL; ?>/admin/inventory/movimientos.php"
        class="nav-link <?php echo ($activePage??'')==='inv-movimientos'?'active':''; ?>">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span> Movimientos
