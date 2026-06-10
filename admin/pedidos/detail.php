@@ -8,7 +8,7 @@ requireLogin();
 $id = cleanInt($_GET['id'] ?? 0);
 
 $ESTADOS = [
-    'pendiente'      => ['Pendiente',       'badge-warning'],
+    'pendiente'      => ['Esperando pago',  'badge-warning'],
     'en_preparacion' => ['En preparación',  'badge-info'],
     'listo'          => ['Listo',           'badge-success'],
     'entregado'      => ['Entregado',       'badge-secondary'],
