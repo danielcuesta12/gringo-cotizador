@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/inventario.php';
 
 header('Content-Type: application/json; charset=utf-8');
 if (!isLoggedIn()) { http_response_code(401); echo json_encode(['ok' => false, 'error' => 'auth']); exit; }
@@ -20,6 +21,7 @@ try {
             break;
         case 'marcar_listo':
             Database::execute("UPDATE pedidos SET estado='listo', completado_at=NOW() WHERE id=?", [$id]);
+            descontarStockPedido($id);   // descuenta insumos de la receta (idempotente)
             break;
         case 'cancelar':
             Database::execute("UPDATE pedidos SET estado='cancelado', completado_at=NOW() WHERE id=?", [$id]);

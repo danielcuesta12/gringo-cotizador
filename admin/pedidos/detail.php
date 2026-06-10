@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/inventario.php';
 
 requireLogin();
 
@@ -28,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Database::execute("UPDATE pedidos SET estado=?, aceptado_at=COALESCE(aceptado_at,NOW()) WHERE id=?", [$nuevo, $id]);
         } elseif (in_array($nuevo, ['listo','entregado','cancelado'], true)) {
             Database::execute("UPDATE pedidos SET estado=?, completado_at=NOW() WHERE id=?", [$nuevo, $id]);
+            if ($nuevo === 'listo' || $nuevo === 'entregado') descontarStockPedido($id);
         } else {
             Database::execute("UPDATE pedidos SET estado=? WHERE id=?", [$nuevo, $id]);
         }

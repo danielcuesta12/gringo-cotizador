@@ -122,6 +122,16 @@ try {
        class="nav-link <?php echo ($activePage??'')==='inv-recetas'?'active':''; ?>">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 11a2 2 0 1 1-4 0 4 4 0 0 1 8 0c0 4-4 7-4 11"/><path d="M9 22h6"/></svg></span> Recetas y costos
     </a>
+
+    <a href="<?php echo APP_URL; ?>/admin/inventory/salida_evento.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-evento'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 7v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M9 11h6"/></svg></span> Salida a evento
+    </a>
+
+    <a href="<?php echo APP_URL; ?>/admin/inventory/movimientos.php"
+       class="nav-link <?php echo ($activePage??'')==='inv-movimientos'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span> Movimientos
+    </a>
     <?php endif; ?>
 
     <div class="nav-section-label">Operación</div>

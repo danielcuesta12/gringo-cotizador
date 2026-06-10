@@ -59,6 +59,33 @@ function recetaCosto(int $productId): float
     } catch (Exception $e) { return 0.0; }
 }
 
+/**
+ * Descuenta del stock los insumos de un pedido (explota la receta de cada ítem).
+ * Idempotente: usa pedidos.stock_descontado para no descontar dos veces.
+ * Tolerante: si faltan tablas/columna, no hace nada (no rompe el KDS).
+ */
+function descontarStockPedido(int $pedidoId): void
+{
+    try {
+        $p = Database::fetch("SELECT id, ubicacion_id, items_json, stock_descontado FROM pedidos WHERE id = ?", [$pedidoId]);
+        if (!$p || (int)($p['stock_descontado'] ?? 0) === 1) return;
+
+        $ubi   = (int)$p['ubicacion_id'];
+        $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
+        foreach ($items as $it) {
+            $pid = (int)($it['product_id'] ?? 0);
+            $qty = (float)($it['qty'] ?? 0);
+            if ($pid <= 0 || $qty <= 0) continue;
+            $receta = Database::fetchAll("SELECT insumo_id, cantidad FROM recetas WHERE product_id = ?", [$pid]);
+            foreach ($receta as $r) {
+                invMovimiento($ubi, (int)$r['insumo_id'], 'venta', -((float)$r['cantidad'] * $qty),
+                    ['pedido_id' => $pedidoId, 'motivo' => 'Venta · pedido #' . str_pad((string)$pedidoId, 3, '0', STR_PAD_LEFT)]);
+            }
+        }
+        Database::execute("UPDATE pedidos SET stock_descontado = 1 WHERE id = ?", [$pedidoId]);
+    } catch (Exception $e) { /* tablas/columna no creadas: ignorar */ }
+}
+
 /** ¿Existe ya el módulo de inventario en la BD? (para mensajes "aplica el SQL"). */
 function inventarioListo(): bool
 {

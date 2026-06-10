@@ -1302,9 +1302,10 @@ function cambiar(id, nombre, precio, delta) {
     if (SALES_MODE === 'izipay') {
       if (!IZ_ENABLED) { alert('El pago con tarjeta no está disponible en este momento. Intenta más tarde.'); return; }
       let izTotal = 0;
-      const izItems = Object.values(carrito).map(i => {
+      const izItems = Object.entries(carrito).map(([cid, i]) => {
         const sub = Math.round(i.precio * i.qty); izTotal += sub;
-        return { nombre: i.nombre, precio: i.precio, qty: i.qty, subtotal: sub, modificadores: i.mods || [] };
+        const pid = parseInt((String(cid).match(/^p(\d+)/) || [])[1]) || 0;
+        return { product_id: pid, nombre: i.nombre, precio: i.precio, qty: i.qty, subtotal: sub, modificadores: i.mods || [] };
       });
       const loyaltyEmailIz = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
       _pedidoData = {
@@ -1323,10 +1324,11 @@ function cambiar(id, nombre, precio, delta) {
 
     // Save order to database (fire and forget)
     let saveTotal = 0;
-    const itemsData = Object.values(carrito).map(i => {
+    const itemsData = Object.entries(carrito).map(([cid, i]) => {
       const sub = Math.round(i.precio * i.qty);
       saveTotal += sub;
-      return { nombre: i.nombre, precio: i.precio, qty: i.qty, subtotal: sub, modificadores: i.mods || [] };
+      const pid = parseInt((String(cid).match(/^p(\d+)/) || [])[1]) || 0;
+      return { product_id: pid, nombre: i.nombre, precio: i.precio, qty: i.qty, subtotal: sub, modificadores: i.mods || [] };
     });
     fetch('<?= APP_URL ?>/api/pedido.php', {
       method: 'POST',
