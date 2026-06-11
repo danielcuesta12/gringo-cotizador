@@ -29,7 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
     $hex = fn($v, $def) => preg_match('/^#[0-9A-Fa-f]{6}$/', (string)$v) ? strtoupper($v) : $def;
     setSetting('landing_bg_color',   $hex($_POST['bg_color']   ?? '', '#FCDA13'));
     setSetting('landing_card_color', $hex($_POST['card_color'] ?? '', '#181613'));
-    setSetting('landing_text_color', $hex($_POST['text_color'] ?? '', '#FFFFFF'));
+    setSetting('landing_text_color',   $hex($_POST['text_color']   ?? '', '#FFFFFF'));
+    setSetting('landing_footer_color', $hex($_POST['footer_color'] ?? '', '#666666'));
 
     if (!empty($_FILES['landing_bg']['name'])) {
         $uploaded = uploadImage($_FILES['landing_bg'], 'landing');
@@ -59,8 +60,9 @@ $cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
 $bgOverlay     = (int) getSetting('landing_bg_overlay', '28');
 $bgColor       = getSetting('landing_bg_color',   '#FCDA13');
 $cardColor     = getSetting('landing_card_color', '#181613');
-$textColor     = getSetting('landing_text_color', '#FFFFFF');
-$palette       = ['#FFEFBC'=>'Crema', '#FFBBC8'=>'Rosa', '#FFDF00'=>'Amarillo', '#1E1E1E'=>'Negro'];
+$textColor     = getSetting('landing_text_color',   '#FFFFFF');
+$footerColor   = getSetting('landing_footer_color', '#666666');
+$palette       = ['#FFEFBC'=>'Crema', '#FFBBC8'=>'Rosa', '#FFDF00'=>'Amarillo', '#1E1E1E'=>'Negro', '#FFFFFF'=>'Blanco'];
 
 $links = Database::fetchAll("SELECT * FROM landing_links ORDER BY sort_order, id");
 $styleLabel = ['primary'=>'Amarillo','wa'=>'WhatsApp','dark'=>'Oscuro','pink'=>'Rosa','neutral'=>'Neutro'];
@@ -87,7 +89,7 @@ include __DIR__ . '/../layout-top.php';
   </div>
 </div>
 
-<div class="card" style="margin-bottom:18px">
+<div class="card" style="margin-bottom:18px;padding:24px 26px">
   <h2 style="font-size:16px;margin-bottom:4px">Apariencia</h2>
   <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px">Foto de fondo y estilo de las tarjetas de tu landing.</p>
   <form method="post" enctype="multipart/form-data">
@@ -153,9 +155,10 @@ include __DIR__ . '/../layout-top.php';
       </div>
     <?php }; ?>
     <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
-      <?php $colorField('bg_color',   'Fondo de página', $bgColor); ?>
-      <?php $colorField('card_color', 'Tarjetas',        $cardColor); ?>
-      <?php $colorField('text_color', 'Texto',           $textColor); ?>
+      <?php $colorField('bg_color',     'Fondo de página', $bgColor); ?>
+      <?php $colorField('card_color',   'Tarjetas',        $cardColor); ?>
+      <?php $colorField('text_color',   'Texto',           $textColor); ?>
+      <?php $colorField('footer_color', 'Pie de página',   $footerColor); ?>
     </div>
 
     <div style="margin-top:20px">

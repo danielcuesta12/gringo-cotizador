@@ -19,6 +19,7 @@ $ov        = max(0, min(100, (int) getSetting('landing_bg_overlay', '28'))) / 10
 $bgColor   = getSetting('landing_bg_color',   '#FCDA13');  // fondo de página (si no hay foto)
 $cardColor = getSetting('landing_card_color', '#181613');  // fondo de las tarjetas
 $textColor = getSetting('landing_text_color', '#FFFFFF');  // texto de las tarjetas
+$footColor = getSetting('landing_footer_color', '#666666'); // texto del pie de página
 $tcRgb     = sscanf($textColor, "#%02x%02x%02x");
 $mutedRgba = $tcRgb ? sprintf('rgba(%d,%d,%d,.55)', $tcRgb[0], $tcRgb[1], $tcRgb[2]) : 'rgba(255,255,255,.55)';
 
@@ -96,6 +97,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .quote-panel iframe{background:rgba(244,244,240,.96)}
 </style>
 <?php endif; ?>
+<style>.foot{color:<?= htmlspecialchars($footColor) ?>}</style>
 </head>
 <body>
 <div class="wrap">
