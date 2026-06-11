@@ -17,3 +17,6 @@ Thumbs.db
 # PHP
 vendor/
 composer.lock
+
+# Visual brainstorm companion
+.superpowers/
