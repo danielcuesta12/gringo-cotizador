@@ -68,7 +68,8 @@ pos_turnos        — id, usuario_id, ubicacion_id, monto_inicial, monto_final,
                     total_ventas, total_pedidos, abierto_en, cerrado_en,
                     estado ENUM('abierto','cerrado')
 pos_metodos_pago  — id, nombre, icono, activo, orden
-pos_favoritos     — id, usuario_id, ubicacion_id, producto_id, orden
+pos_favoritos     — id, ubicacion_id, producto_id, posicion (índice de celda en la cuadrícula)
+                    -- 'posicion' permite un tablero editable con celdas vacías (gaps), no una lista compacta
 ```
 **Extensiones a `pedidos`** (compatibles; no rompen carta/KDS):
 ```
@@ -98,6 +99,7 @@ El terminal es **táctil-first** (tablet) y debe sentirse como una app nativa:
 - **Cantidad:** botones **+/−** grandes por línea; tocar la cantidad permite teclear el número.
 - **Targets grandes**, sin nada dependiente de hover; scroll suave en grilla y carrito.
 - **Favoritos** y **categorías** como pestañas grandes para acceso de un toque.
+- **Cuadrícula de favoritos editable:** un **tablero** donde colocas cada producto en la celda que quieras (arrastrar/asignar/quitar) y **se permiten celdas vacías** (los huecos se respetan, no se compactan). Se guarda por `posicion` en `pos_favoritos`. Pensado para el acceso rápido a lo más vendido, ordenado a tu gusto.
 - En **PC** los mismos elementos funcionan con click; los gestos son una mejora táctil, no un requisito para operar.
 
 ## SUNAT / RENIEC — preparado, no construido
