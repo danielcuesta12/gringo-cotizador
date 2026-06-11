@@ -50,9 +50,9 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:12px;padding:0 14px;
 }
 #topbar .brand{
-  display:flex;flex-direction:column;align-items:flex-start;
-  justify-content:center;white-space:nowrap;flex:0 0 auto;
-  gap:1px;
+  display:flex;flex-direction:row;align-items:center;
+  justify-content:flex-start;white-space:nowrap;flex:0 0 auto;
+  gap:8px;
 }
 #topbar .brand-logo{
   height:26px;width:auto;display:block;
@@ -62,8 +62,8 @@ a{color:inherit;text-decoration:none}
   color:var(--yellow);line-height:1;
 }
 #topbar .brand-pos{
-  font-size:9px;font-weight:700;letter-spacing:.12em;
-  color:var(--muted);text-transform:uppercase;line-height:1;
+  font-size:17px;font-weight:800;letter-spacing:.08em;
+  color:var(--yellow);text-transform:uppercase;line-height:1;
 }
 #topbar .sep{color:var(--border);font-size:18px}
 #ubi-select{
@@ -1079,9 +1079,14 @@ function renderFavBoard() {
       } else {
         imgHtml = '<div class="fav-img-ph">&#127828;</div>';
       }
+      var favProd = state.productos.find(function(p) { return p.id === fav.producto_id; });
+      var favPrecioHtml = favProd && parseFloat(favProd.precio) > 0
+        ? '<div class="prod-precio" style="padding:0 8px 8px;margin-top:-4px">' + fmt(favProd.precio) + '</div>'
+        : '';
       html += '<div class="fav-cell filled' + (state.favEditMode ? ' edit-mode' : '') + '" data-pos="' + pos + '">'
             + imgHtml
             + '<div class="fav-nombre">' + esc(fav.nombre) + '</div>'
+            + favPrecioHtml
             + '</div>';
     } else {
       html += '<div class="fav-cell empty' + (state.favEditMode ? ' editable' : '') + '" data-pos="' + pos + '">'
