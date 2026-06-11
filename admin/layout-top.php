@@ -168,6 +168,14 @@ try {
        class="nav-link <?php echo ($activePage??'')==='qr-gen'?'active':''; ?>">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01M17 21h.01M21 17h.01"/></svg></span> Generador de QR
     </a>
+    <a href="<?php echo APP_URL; ?>/pos/terminal.php" target="_blank"
+       class="nav-link">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span> POS · Terminal
+    </a>
+    <a href="<?php echo APP_URL; ?>/admin/pos/metodos.php"
+       class="nav-link <?php echo ($activePage??'')==='pos-metodos'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span> POS · Métodos
+    </a>
 
     <a href="<?php echo APP_URL; ?>/admin/landing/index.php"
        class="nav-link <?php echo ($activePage??'')==='landing'?'active':''; ?>">
