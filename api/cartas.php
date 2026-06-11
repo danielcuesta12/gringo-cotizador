@@ -59,8 +59,10 @@ case 'save_meta':
     $nombre = clean($_POST['nombre'] ?? '') ?: 'Carta sin nombre';
     $tema   = ($_POST['tema'] ?? 'noche') === 'dia' ? 'dia' : 'noche';
     $ancho  = max(100, min(2000, cleanInt($_POST['ancho_mm'] ?? 420)));
+    $qrEnabled = !empty($_POST['qr_enabled']) ? 1 : 0;
+    $qrSrc     = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_POST['qr_src'] ?? ''));
     Database::execute(
-        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=? WHERE id=?",
+        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=?, qr_enabled=?, qr_src=? WHERE id=?",
         [$nombre, $tema, $ancho,
          $clampSize($_POST['size_section'] ?? '', 24),
          $clampSize($_POST['size_name'] ?? '', 18),
@@ -68,6 +70,7 @@ case 'save_meta':
          $clampSize($_POST['size_desc'] ?? '', 14),
          $clampSize($_POST['size_photo'] ?? '', 60),
          $clampSize($_POST['size_header'] ?? '', 55),
+         $qrEnabled, $qrSrc,
          $id]);
     jout(['ok' => true]);
 

@@ -19,6 +19,14 @@ foreach ($secs as &$s) {
     $s['items'] = Database::fetchAll("SELECT * FROM carta_items WHERE seccion_id = ? ORDER BY sort_order, id", [(int)$s['id']]);
 }
 unset($s);
+
+// QR opcional al pie → apunta al landing (raíz del dominio) con ?src= para rastreo
+$qrOn  = !empty($c['qr_enabled']);
+$qrUrl = '';
+if ($qrOn) {
+    $base  = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
+    $qrUrl = $base . '/?src=' . rawurlencode(($c['qr_src'] ?? '') !== '' ? $c['qr_src'] : 'carta');
+}
 ?>
 <!DOCTYPE html>
 <html lang="es" data-theme="<?= $theme ?>" style="--sz-section:<?= (float)$c['size_section'] ?>mm;--sz-name:<?= (float)$c['size_name'] ?>mm;--sz-price:<?= (float)$c['size_price'] ?>mm;--sz-desc:<?= (float)$c['size_desc'] ?>mm;--sz-photo:<?= (float)$c['size_photo'] ?>mm;--sz-header:<?= (float)$c['size_header'] ?>mm;--ancho:<?= (int)$c['ancho_mm'] ?>mm;">
@@ -50,6 +58,10 @@ unset($s);
   .row-name { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-name); text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
   .row-desc { font-size:var(--sz-desc); color:var(--muted); line-height:1.3; margin-top:2.5mm; }
   .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-price); font-weight:700; color:var(--accent); white-space:nowrap; flex-shrink:0; text-align:right; padding-left:8mm; }
+  .banner-qr { text-align:center; padding:0 14mm 20mm; }
+  .banner-qr .qr-card { display:inline-block; background:#fff; padding:6mm; border-radius:6mm; }
+  .banner-qr .qr-card img, .banner-qr .qr-card canvas { width:52mm !important; height:52mm !important; display:block; }
+  .banner-qr .qr-label { color:var(--text); font-size:5mm; font-weight:700; letter-spacing:1mm; text-transform:uppercase; margin-top:5mm; }
   .printbar { position:fixed; top:10px; right:10px; z-index:10; display:flex; gap:8px; font-family:-apple-system,sans-serif; }
   .printbar button { padding:10px 16px; border:none; border-radius:10px; background:#1A1A1A; color:#fff; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); }
   @media print { .printbar { display:none !important; } }
@@ -88,6 +100,17 @@ unset($s);
     </div>
     <?php endforeach; ?>
   </div>
+
+  <?php if ($qrOn): ?>
+  <div class="banner-qr">
+    <div class="qr-card"><div id="qrbox"></div></div>
+    <div class="qr-label">Escanéame</div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    new QRCode(document.getElementById('qrbox'), { text: <?= json_encode($qrUrl) ?>, width: 360, height: 360, colorDark: '#1A1A1A', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  </script>
+  <?php endif; ?>
 
   <script>
     var ANCHO_MM = <?= (int)$c['ancho_mm'] ?>;

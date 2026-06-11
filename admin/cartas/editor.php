@@ -97,6 +97,16 @@ include __DIR__ . '/../layout-top.php';
       <div class="ed-slider"><label>Descripción <span id="v-desc"></span></label><input type="range" id="s-desc" min="4" max="40" step="0.5" oninput="onSize()"></div>
       <div class="ed-slider"><label>Foto <span id="v-photo"></span></label><input type="range" id="s-photo" min="20" max="120" step="1" oninput="onSize()"></div>
       <div class="ed-slider"><label>Header / logo <span id="v-header"></span></label><input type="range" id="s-header" min="20" max="120" step="1" oninput="onSize()"></div>
+      <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:12px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;font-weight:600">
+          <input type="checkbox" id="qr-enabled" onchange="saveMeta()"> Incluir QR al pie (al landing)
+        </label>
+        <div style="margin-top:8px">
+          <label style="font-size:12px;color:var(--text-secondary)">Etiqueta de origen (src) para rastreo</label>
+          <input type="text" id="qr-src" placeholder="ej: carta-junio" onchange="saveMeta()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-top:3px;font-size:13px">
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:5px">El QR abre <strong>elgringo.pe</strong> con <code>?src=</code> tu etiqueta, para rastrear escaneos en la analítica.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -181,6 +191,8 @@ include __DIR__ . '/../layout-top.php';
       // meta controls
       document.getElementById('ed-nombre').value = res.carta.nombre || '';
       setSliderVals(res.carta);
+      document.getElementById('qr-enabled').checked = (res.carta.qr_enabled == 1);
+      document.getElementById('qr-src').value = res.carta.qr_src || '';
       setTemaUI(res.carta.tema);
       renderBuilder();
       refreshPreview();
@@ -241,7 +253,9 @@ include __DIR__ . '/../layout-top.php';
         size_price: document.getElementById('s-price').value,
         size_desc: document.getElementById('s-desc').value,
         size_photo: document.getElementById('s-photo').value,
-        size_header: document.getElementById('s-header').value
+        size_header: document.getElementById('s-header').value,
+        qr_enabled: document.getElementById('qr-enabled').checked ? 1 : 0,
+        qr_src: document.getElementById('qr-src').value
       };
       apiPost('save_meta', d).then(function(){ refreshPreview(); });
     }, 400);
