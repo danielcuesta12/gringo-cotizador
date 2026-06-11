@@ -240,7 +240,7 @@ include __DIR__ . '/../layout-top.php';
 
   // ── SECCIONES ──
   function addSeccion(){ apiPost('seccion_create', {carta_id:CARTA_ID, nombre:'Nueva sección'}).then(load); }
-  function renameSeccion(id, val){ var s=findSec(id); apiPost('seccion_update', {id:id, nombre:val, columnas:(s?s.columnas:1)}).then(refreshPreview); }
+  function renameSeccion(id, val){ var s=findSec(id); apiPost('seccion_update', {id:id, nombre:val, columnas:(s?s.columnas:1)}).then(load); }
   function setCols(id, n){ var s=findSec(id); apiPost('seccion_update', {id:id, nombre:(s?s.nombre:''), columnas:n}).then(load); }
   function delSeccion(id){ if(!confirm('¿Borrar esta sección y sus ítems?')) return; apiPost('seccion_delete', {id:id}).then(load); }
   function moveSeccion(id, dir){

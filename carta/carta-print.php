@@ -3,6 +3,8 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
+requireLogin(); // las cartas del generador son borradores del dueño, no públicas
+
 $id      = cleanInt($_GET['id'] ?? 0);
 $preview = isset($_GET['preview']);
 $c       = $id ? Database::fetch("SELECT * FROM cartas WHERE id = ?", [$id]) : null;
