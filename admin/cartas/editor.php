@@ -27,8 +27,8 @@ include __DIR__ . '/../layout-top.php';
   .ed-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
   .ed-top input.ed-nombre { font-weight:700; font-size:15px; padding:9px 12px; border:1px solid var(--border); border-radius:9px; min-width:200px; flex:1; }
   .ed-wrap { display:flex; gap:16px; align-items:flex-start; }
-  .ed-left { flex:1.1; min-width:0; }
-  .ed-right { flex:1; min-width:0; position:sticky; top:14px; }
+  .ed-left { flex:0 1 600px; min-width:0; }
+  .ed-right { flex:1 1 0; min-width:320px; position:sticky; top:14px; }
   @media (max-width:900px){ .ed-wrap{ flex-direction:column; } .ed-right{ position:static; width:100%; } }
   .ed-sec { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px; }
   .ed-sec-head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
