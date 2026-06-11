@@ -9,7 +9,23 @@ $id      = cleanInt($_GET['id'] ?? 0);
 $preview = isset($_GET['preview']);
 $c       = $id ? Database::fetch("SELECT * FROM cartas WHERE id = ?", [$id]) : null;
 if (!$c) { http_response_code(404); echo 'Carta no encontrada.'; exit; }
-$theme = ($_GET['theme'] ?? $c['tema']) === 'dia' ? 'dia' : 'noche';
+
+// Colores de la carta (default = paleta noche si la columna no existe)
+$col = [
+  'bg'          => $c['col_bg']          ?? '#161412',
+  'surface'     => $c['col_surface']     ?? '#211e1b',
+  'text'        => $c['col_text']        ?? '#ffffff',
+  'muted'       => $c['col_muted']       ?? '#9a9089',
+  'accent'      => $c['col_accent']      ?? '#FFDF00',
+  'section'     => $c['col_section']     ?? '#FFEFBC',
+  'divider'     => $c['col_divider']     ?? '#4a4640',
+  'header_bg'   => $c['col_header_bg']   ?? '#FFDF00',
+  'header_text' => $c['col_header_text'] ?? '#1A1A1A',
+];
+// ¿el header es oscuro? → decide el filtro del logo (claro u oscuro)
+$hb = sscanf($col['header_bg'], "#%02x%02x%02x");
+$headerDark = $hb ? ((0.299*$hb[0] + 0.587*$hb[1] + 0.114*$hb[2]) < 140) : false;
+$logoFilter = $headerDark ? 'brightness(0) invert(1)' : 'brightness(0)';
 
 $logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');
 $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
@@ -36,21 +52,17 @@ if ($qr2On) {
 $anyQr = $qr1On || $qr2On;
 ?>
 <!DOCTYPE html>
-<html lang="es" data-theme="<?= $theme ?>" style="--sz-section:<?= (float)$c['size_section'] ?>mm;--sz-name:<?= (float)$c['size_name'] ?>mm;--sz-price:<?= (float)$c['size_price'] ?>mm;--sz-desc:<?= (float)$c['size_desc'] ?>mm;--sz-photo:<?= (float)$c['size_photo'] ?>mm;--sz-header:<?= (float)$c['size_header'] ?>mm;--ancho:<?= (int)$c['ancho_mm'] ?>mm;">
+<html lang="es" style="--sz-section:<?= (float)$c['size_section'] ?>mm;--sz-name:<?= (float)$c['size_name'] ?>mm;--sz-price:<?= (float)$c['size_price'] ?>mm;--sz-desc:<?= (float)$c['size_desc'] ?>mm;--sz-photo:<?= (float)$c['size_photo'] ?>mm;--sz-header:<?= (float)$c['size_header'] ?>mm;--ancho:<?= (int)$c['ancho_mm'] ?>mm;--bg:<?= htmlspecialchars($col['bg']) ?>;--surface:<?= htmlspecialchars($col['surface']) ?>;--text:<?= htmlspecialchars($col['text']) ?>;--muted:<?= htmlspecialchars($col['muted']) ?>;--accent:<?= htmlspecialchars($col['accent']) ?>;--section:<?= htmlspecialchars($col['section']) ?>;--divider:<?= htmlspecialchars($col['divider']) ?>;--header-bg:<?= htmlspecialchars($col['header_bg']) ?>;--header-text:<?= htmlspecialchars($col['header_text']) ?>;">
 <head>
 <meta charset="UTF-8">
 <title>Carta · <?= clean($c['nombre']) ?></title>
 <style>
   @font-face { font-family:'ArialNarrowBold'; src:url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype'); font-display:swap; }
-  html[data-theme="noche"] { --bg:#161412; --surface:#211e1b; --text:#ffffff; --muted:#9a9089; --accent:#FFDF00; --section:#FFEFBC; --divider:rgba(255,255,255,.18); --header-bg:#FFDF00; --header-text:#1A1A1A; }
-  html[data-theme="dia"]   { --bg:#FFEFBC; --surface:#ffffff; --text:#1E1E1E; --muted:#7a6f55; --accent:#1E1E1E; --section:#1E1E1E; --divider:rgba(30,30,30,.25); --header-bg:#1E1E1E; --header-text:#FFEFBC; }
   * { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   html, body { background:var(--bg); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body { width:var(--ancho); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; }
   .banner-header { background:var(--header-bg); color:var(--header-text); text-align:center; padding:18mm 14mm; }
-  .banner-header img { height:var(--sz-header); width:auto; object-fit:contain; }
-  html[data-theme="noche"] .banner-header img { filter:brightness(0); }
-  html[data-theme="dia"]   .banner-header img { filter:brightness(0) invert(1); }
+  .banner-header img { height:var(--sz-header); width:auto; object-fit:contain; filter:<?= $logoFilter ?>; }
   .banner-header .brandtxt { font-weight:900; font-size:24mm; letter-spacing:1mm; line-height:.95; }
   .banner-body { padding:14mm 16mm 18mm; }
   .sec { margin-bottom:14mm; break-inside:avoid; }

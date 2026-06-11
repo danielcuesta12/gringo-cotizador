@@ -52,6 +52,9 @@ include __DIR__ . '/../layout-top.php';
   .ed-slider { margin-bottom:10px; }
   .ed-slider label { display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary); margin-bottom:3px; }
   .ed-slider input[type=range] { width:100%; }
+  .ed-colorgrid { display:grid; grid-template-columns:1fr 1fr; gap:9px 16px; }
+  .ed-color { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-secondary); }
+  .ed-color input[type=color] { width:44px; height:26px; border:1px solid var(--border); border-radius:6px; padding:1px; cursor:pointer; background:#fff; flex-shrink:0; }
   .ed-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px; }
   .ed-overlay.open { display:flex; }
   .ed-modal { background:#fff; border-radius:14px; padding:22px; max-width:440px; width:100%; }
@@ -78,16 +81,27 @@ include __DIR__ . '/../layout-top.php';
   <div class="ed-left">
     <div id="builder"></div>
     <button type="button" class="btn btn-ghost" onclick="addSeccion()" style="margin-top:4px">+ Agregar sección</button>
-  </div>
-  <div class="ed-right">
-    <div class="pv-bar">
-      <span style="font-size:12px;font-weight:700;color:var(--text-secondary)">Vista previa</span>
-      <span class="ed-tema" id="ed-tema">
-        <button type="button" data-t="noche" onclick="setTema('noche')">🌙 Noche</button>
-        <button type="button" data-t="dia" onclick="setTema('dia')">☀️ Crema</button>
-      </span>
+
+    <div class="ed-sizes">
+      <h4>Colores</h4>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--text-secondary)">Presets:</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="aplicarPreset('noche')">🌙 Noche</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="aplicarPreset('dia')">☀️ Crema</button>
+      </div>
+      <div class="ed-colorgrid">
+        <label class="ed-color"><span>Fondo</span><input type="color" id="c-bg" value="#161412" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Tarjeta / foto</span><input type="color" id="c-surface" value="#211e1b" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto</span><input type="color" id="c-text" value="#ffffff" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto tenue</span><input type="color" id="c-muted" value="#9a9089" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Acento (precio)</span><input type="color" id="c-accent" value="#FFDF00" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Título sección</span><input type="color" id="c-section" value="#FFEFBC" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Línea divisoria</span><input type="color" id="c-divider" value="#4a4640" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Fondo header</span><input type="color" id="c-headerbg" value="#FFDF00" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto header</span><input type="color" id="c-headertext" value="#1A1A1A" oninput="saveMeta()"></label>
+      </div>
     </div>
-    <div id="pv-wrap"><iframe id="preview" onload="fitPreview()"></iframe></div>
+
     <div class="ed-sizes">
       <h4>Tamaños (mm) y ancho</h4>
       <div class="ed-slider"><label>Ancho del banner <span id="v-ancho"></span></label><input type="range" id="s-ancho" min="100" max="1200" step="10" oninput="onSize()"></div>
@@ -125,6 +139,10 @@ include __DIR__ . '/../layout-top.php';
         </div>
       </div>
     </div>
+  </div>
+  <div class="ed-right">
+    <div class="pv-bar"><span style="font-size:12px;font-weight:700;color:var(--text-secondary)">Vista previa</span></div>
+    <div id="pv-wrap"><iframe id="preview" onload="fitPreview()"></iframe></div>
   </div>
 </div>
 
@@ -196,8 +214,7 @@ include __DIR__ . '/../layout-top.php';
   function refreshPreview(){
     clearTimeout(_pvTimer);
     _pvTimer = setTimeout(function(){
-      var t = (state && state.carta && state.carta.tema === 'dia') ? 'dia' : 'noche';
-      document.getElementById('preview').src = PRINT+'?id='+CARTA_ID+'&preview=1&theme='+t+'&t='+Date.now();
+      document.getElementById('preview').src = PRINT+'?id='+CARTA_ID+'&preview=1&t='+Date.now();
     }, 300);
   }
 
@@ -214,7 +231,11 @@ include __DIR__ . '/../layout-top.php';
       document.getElementById('qr2-url').value = res.carta.qr2_url || '';
       document.getElementById('qr2-label').value = res.carta.qr2_label || '';
       document.getElementById('qr2-src').value = res.carta.qr2_src || '';
-      setTemaUI(res.carta.tema);
+      setColorPickers({
+        bg: res.carta.col_bg||'#161412', surface: res.carta.col_surface||'#211e1b', text: res.carta.col_text||'#ffffff',
+        muted: res.carta.col_muted||'#9a9089', accent: res.carta.col_accent||'#FFDF00', section: res.carta.col_section||'#FFEFBC',
+        divider: res.carta.col_divider||'#4a4640', headerbg: res.carta.col_header_bg||'#FFDF00', headertext: res.carta.col_header_text||'#1A1A1A'
+      });
       renderBuilder();
       refreshPreview();
     });
@@ -227,9 +248,18 @@ include __DIR__ . '/../layout-top.php';
         document.getElementById('v-'+p[0]).textContent = (p[0]==='ancho'? c[p[1]]+'mm' : parseFloat(c[p[1]])+'mm');
       });
   }
-  function setTemaUI(t){
-    document.querySelectorAll('#ed-tema button').forEach(function(b){ b.classList.toggle('on', b.dataset.t === (t==='dia'?'dia':'noche')); });
+  var PRESETS = {
+    noche: { bg:'#161412', surface:'#211e1b', text:'#ffffff', muted:'#9a9089', accent:'#FFDF00', section:'#FFEFBC', divider:'#4a4640', headerbg:'#FFDF00', headertext:'#1A1A1A' },
+    dia:   { bg:'#FFEFBC', surface:'#ffffff', text:'#1E1E1E', muted:'#7a6f55', accent:'#1E1E1E', section:'#1E1E1E', divider:'#d8cfa8', headerbg:'#1E1E1E', headertext:'#FFEFBC' }
+  };
+  function setColorPickers(p){
+    document.getElementById('c-bg').value=p.bg; document.getElementById('c-surface').value=p.surface;
+    document.getElementById('c-text').value=p.text; document.getElementById('c-muted').value=p.muted;
+    document.getElementById('c-accent').value=p.accent; document.getElementById('c-section').value=p.section;
+    document.getElementById('c-divider').value=p.divider; document.getElementById('c-headerbg').value=p.headerbg;
+    document.getElementById('c-headertext').value=p.headertext;
   }
+  function aplicarPreset(name){ setColorPickers(PRESETS[name] || PRESETS.noche); saveMeta(); }
 
   function renderBuilder(){
     var box = document.getElementById('builder'); box.innerHTML='';
@@ -267,8 +297,16 @@ include __DIR__ . '/../layout-top.php';
       var d = {
         id: CARTA_ID,
         nombre: document.getElementById('ed-nombre').value,
-        tema: (state && state.carta.tema === 'dia') ? 'dia' : 'noche',
         ancho_mm: document.getElementById('s-ancho').value,
+        col_bg: document.getElementById('c-bg').value,
+        col_surface: document.getElementById('c-surface').value,
+        col_text: document.getElementById('c-text').value,
+        col_muted: document.getElementById('c-muted').value,
+        col_accent: document.getElementById('c-accent').value,
+        col_section: document.getElementById('c-section').value,
+        col_divider: document.getElementById('c-divider').value,
+        col_header_bg: document.getElementById('c-headerbg').value,
+        col_header_text: document.getElementById('c-headertext').value,
         size_section: document.getElementById('s-section').value,
         size_name: document.getElementById('s-name').value,
         size_price: document.getElementById('s-price').value,
@@ -292,7 +330,6 @@ include __DIR__ . '/../layout-top.php';
     });
     saveMeta();
   }
-  function setTema(t){ if(!state) return; state.carta.tema = (t==='dia'?'dia':'noche'); setTemaUI(state.carta.tema); saveMeta(); refreshPreview(); }
 
   // ── SECCIONES ──
   function addSeccion(){ apiPost('seccion_create', {carta_id:CARTA_ID, nombre:'Nueva sección'}).then(load); }
@@ -367,8 +404,7 @@ include __DIR__ . '/../layout-top.php';
     });
   }
   function generarPDF(){
-    var t=(state&&state.carta.tema==='dia')?'dia':'noche';
-    window.open(PRINT+'?id='+CARTA_ID+'&theme='+t, '_blank');
+    window.open(PRINT+'?id='+CARTA_ID, '_blank');
   }
 
   load();

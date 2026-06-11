@@ -67,8 +67,18 @@ case 'save_meta':
     $qr2Url     = mb_substr($qr2Url, 0, 480);
     $qr2Src     = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_POST['qr2_src'] ?? ''));
     $qr2Label   = mb_substr(trim(strip_tags((string)($_POST['qr2_label'] ?? ''))), 0, 60);
+    $hex = fn($v, $def) => preg_match('/^#[0-9A-Fa-f]{6}$/', (string)$v) ? strtoupper($v) : $def;
+    $cBg     = $hex($_POST['col_bg'] ?? '', '#161412');
+    $cSurf   = $hex($_POST['col_surface'] ?? '', '#211E1B');
+    $cText   = $hex($_POST['col_text'] ?? '', '#FFFFFF');
+    $cMuted  = $hex($_POST['col_muted'] ?? '', '#9A9089');
+    $cAccent = $hex($_POST['col_accent'] ?? '', '#FFDF00');
+    $cSection= $hex($_POST['col_section'] ?? '', '#FFEFBC');
+    $cDiv    = $hex($_POST['col_divider'] ?? '', '#4A4640');
+    $cHbg    = $hex($_POST['col_header_bg'] ?? '', '#FFDF00');
+    $cHtxt   = $hex($_POST['col_header_text'] ?? '', '#1A1A1A');
     Database::execute(
-        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=?, qr_enabled=?, qr_src=?, qr2_enabled=?, qr2_url=?, qr2_src=?, qr2_label=? WHERE id=?",
+        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=?, qr_enabled=?, qr_src=?, qr2_enabled=?, qr2_url=?, qr2_src=?, qr2_label=?, col_bg=?, col_surface=?, col_text=?, col_muted=?, col_accent=?, col_section=?, col_divider=?, col_header_bg=?, col_header_text=? WHERE id=?",
         [$nombre, $tema, $ancho,
          $clampSize($_POST['size_section'] ?? '', 24),
          $clampSize($_POST['size_name'] ?? '', 18),
@@ -78,6 +88,7 @@ case 'save_meta':
          $clampSize($_POST['size_header'] ?? '', 55),
          $qrEnabled, $qrSrc,
          $qr2Enabled, $qr2Url, $qr2Src, $qr2Label,
+         $cBg, $cSurf, $cText, $cMuted, $cAccent, $cSection, $cDiv, $cHbg, $cHtxt,
          $id]);
     jout(['ok' => true]);
 
