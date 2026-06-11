@@ -96,16 +96,20 @@ include __DIR__ . '/../layout-top.php';
     <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
       <div style="flex:1;min-width:260px">
         <label class="form-label">Foto de fondo</label>
-        <?php if ($bgUrl): ?>
-          <div style="margin-bottom:10px">
-            <img src="<?= htmlspecialchars($bgUrl) ?>" alt="Fondo actual" style="width:120px;height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <?php if ($bgUrl): ?>
+            <img src="<?= htmlspecialchars($bgUrl) ?>" alt="Fondo actual" style="width:84px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;flex-shrink:0">
+          <?php endif; ?>
+          <div style="flex:1;min-width:0">
+            <input type="file" name="landing_bg" accept="image/jpeg,image/png,image/webp" class="form-input">
+            <p style="font-size:12px;color:var(--text-muted);margin-top:6px">JPG, PNG o WebP · máx. 2MB. Sin foto se usa el fondo amarillo.</p>
+            <?php if ($bgUrl): ?>
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-top:10px;cursor:pointer">
+                <input type="checkbox" name="remove_bg" value="1"> Quitar foto actual
+              </label>
+            <?php endif; ?>
           </div>
-          <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-bottom:10px;cursor:pointer">
-            <input type="checkbox" name="remove_bg" value="1"> Quitar foto actual
-          </label>
-        <?php endif; ?>
-        <input type="file" name="landing_bg" accept="image/jpeg,image/png,image/webp" class="form-input">
-        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">JPG, PNG o WebP · máx. 2MB. Sin foto se usa el fondo amarillo.</p>
+        </div>
       </div>
       <div style="flex:1;min-width:260px">
         <label class="form-label">Tarjetas</label>
