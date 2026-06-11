@@ -13,6 +13,24 @@ $cleanFoto = function ($v) {
     $v = trim((string)$v);
     return ($v !== '' && strpos($v, '..') === false && preg_match('#^[A-Za-z0-9._/-]+$#', $v)) ? $v : '';
 };
+// Sanitiza el JSON de badges de un ítem → string JSON limpio o null
+$cleanBadges = function ($raw) {
+    $arr = json_decode((string)$raw, true);
+    if (!is_array($arr)) return null;
+    $out = [];
+    foreach ($arr as $b) {
+        if (!is_array($b)) continue;
+        $txt = mb_substr(trim(strip_tags((string)($b['texto'] ?? ''))), 0, 30);
+        if ($txt === '') continue;
+        $pos = (($b['posicion'] ?? 'abajo') === 'lado') ? 'lado' : 'abajo';
+        $bg  = preg_match('/^#[0-9A-Fa-f]{6}$/', (string)($b['bg'] ?? ''))    ? strtoupper($b['bg'])    : '#16A34A';
+        $fg  = preg_match('/^#[0-9A-Fa-f]{6}$/', (string)($b['color'] ?? '')) ? strtoupper($b['color']) : '#FFFFFF';
+        $sz  = max(4.0, min(40.0, (float)($b['size'] ?? 10)));
+        $out[] = ['texto' => $txt, 'posicion' => $pos, 'bg' => $bg, 'color' => $fg, 'size' => $sz];
+        if (count($out) >= 6) break;
+    }
+    return $out ? json_encode($out, JSON_UNESCAPED_UNICODE) : null;
+};
 
 $action = clean($_GET['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
@@ -123,10 +141,11 @@ case 'item_create':
     $desc    = clean($_POST['descripcion'] ?? '');
     $precio  = cleanFloat($_POST['precio'] ?? 0);
     $foto    = $cleanFoto($_POST['foto'] ?? '');
+    $badges  = $cleanBadges($_POST['badges'] ?? '');
     $ord     = (int) (Database::fetch("SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM carta_items WHERE seccion_id=?", [$secId])['n'] ?? 1);
     $iid     = Database::insert(
-        "INSERT INTO carta_items (carta_id, seccion_id, nombre, descripcion, precio, foto, sort_order) VALUES (?,?,?,?,?,?,?)",
-        [$cartaId, $secId, $nombre, $desc ?: null, $precio, $foto ?: null, $ord]);
+        "INSERT INTO carta_items (carta_id, seccion_id, nombre, descripcion, precio, foto, badges, sort_order) VALUES (?,?,?,?,?,?,?,?)",
+        [$cartaId, $secId, $nombre, $desc ?: null, $precio, $foto ?: null, $badges, $ord]);
     jout(['ok' => true, 'id' => $iid]);
 
 case 'item_update':
@@ -135,13 +154,14 @@ case 'item_update':
     $desc   = clean($_POST['descripcion'] ?? '');
     $precio = cleanFloat($_POST['precio'] ?? 0);
     $foto   = $cleanFoto($_POST['foto'] ?? '');
+    $badges = $cleanBadges($_POST['badges'] ?? '');
     if (isset($_POST['seccion_id'])) {
         $secId = cleanInt($_POST['seccion_id']);
-        Database::execute("UPDATE carta_items SET nombre=?, descripcion=?, precio=?, foto=?, seccion_id=? WHERE id=?",
-            [$nombre, $desc ?: null, $precio, $foto ?: null, $secId, $iid]);
+        Database::execute("UPDATE carta_items SET nombre=?, descripcion=?, precio=?, foto=?, badges=?, seccion_id=? WHERE id=?",
+            [$nombre, $desc ?: null, $precio, $foto ?: null, $badges, $secId, $iid]);
     } else {
-        Database::execute("UPDATE carta_items SET nombre=?, descripcion=?, precio=?, foto=? WHERE id=?",
-            [$nombre, $desc ?: null, $precio, $foto ?: null, $iid]);
+        Database::execute("UPDATE carta_items SET nombre=?, descripcion=?, precio=?, foto=?, badges=? WHERE id=?",
+            [$nombre, $desc ?: null, $precio, $foto ?: null, $badges, $iid]);
     }
     jout(['ok' => true]);
 

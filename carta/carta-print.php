@@ -30,6 +30,16 @@ $logoFilter = $headerDark ? 'brightness(0) invert(1)' : 'brightness(0)';
 $logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');
 $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 
+// Pinta un badge a partir de su definición {texto,bg,color,size}
+$renderBadge = function ($b) {
+    $txt = trim((string)($b['texto'] ?? ''));
+    if ($txt === '') return '';
+    $bg = preg_match('/^#[0-9A-Fa-f]{6}$/', (string)($b['bg'] ?? ''))    ? $b['bg']    : '#16A34A';
+    $fg = preg_match('/^#[0-9A-Fa-f]{6}$/', (string)($b['color'] ?? '')) ? $b['color'] : '#FFFFFF';
+    $sz = max(4.0, min(40.0, (float)($b['size'] ?? 10)));
+    return '<span class="badge" style="background:' . $bg . ';color:' . $fg . ';font-size:' . $sz . 'mm">' . clean($txt) . '</span>';
+};
+
 $secs = Database::fetchAll("SELECT * FROM carta_secciones WHERE carta_id = ? ORDER BY sort_order, id", [$id]);
 foreach ($secs as &$s) {
     $s['items'] = Database::fetchAll("SELECT * FROM carta_items WHERE seccion_id = ? ORDER BY sort_order, id", [(int)$s['id']]);
@@ -77,7 +87,11 @@ $anyQr = $qr1On || $qr2On;
   .sec-rows.cols2 > .row { display:grid; grid-template-columns:auto 1fr; grid-template-areas:"foto name" "desc desc" "price price"; column-gap:8mm; row-gap:3mm; align-items:center; }
   .row-foto, .row-foto-ph { grid-area:foto; width:var(--sz-photo); height:var(--sz-photo); border-radius:7mm; background:var(--surface); }
   .row-foto { object-fit:cover; }
-  .row-name { grid-area:name; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-name); text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
+  .row-name { grid-area:name; display:flex; flex-direction:column; align-items:flex-start; gap:2.5mm; }
+  .row-name-line { display:flex; align-items:center; gap:3mm; flex-wrap:wrap; }
+  .row-name-txt { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-name); text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
+  .row-badges { display:flex; flex-wrap:wrap; gap:2.5mm; }
+  .badge { display:inline-block; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.3mm; line-height:1.05; padding:.32em .72em; border-radius:99mm; white-space:nowrap; }
   .row-desc { grid-area:desc; font-size:var(--sz-desc); color:var(--muted); line-height:1.3; }
   .row-price { grid-area:price; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-price); font-weight:700; color:var(--accent); white-space:nowrap; align-self:center; }
   .sec-rows.cols1 .row-price { text-align:right; }
@@ -114,7 +128,19 @@ $anyQr = $qr1On || $qr2On;
           <?php else: ?>
             <div class="row-foto-ph"></div>
           <?php endif; ?>
-          <div class="row-name"><?= clean($p['nombre']) ?></div>
+          <?php
+            $badges = [];
+            if (!empty($p['badges'])) { $tmp = json_decode($p['badges'], true); if (is_array($tmp)) $badges = $tmp; }
+            $bLado  = array_filter($badges, fn($b) => (($b['posicion'] ?? 'abajo') === 'lado'));
+            $bAbajo = array_filter($badges, fn($b) => (($b['posicion'] ?? 'abajo') !== 'lado'));
+          ?>
+          <div class="row-name">
+            <div class="row-name-line">
+              <span class="row-name-txt"><?= clean($p['nombre']) ?></span>
+              <?php foreach ($bLado as $b) echo $renderBadge($b); ?>
+            </div>
+            <?php if ($bAbajo): ?><div class="row-badges"><?php foreach ($bAbajo as $b) echo $renderBadge($b); ?></div><?php endif; ?>
+          </div>
           <?php if (trim((string)$p['descripcion']) !== ''): ?><div class="row-desc"><?= clean($p['descripcion']) ?></div><?php endif; ?>
           <div class="row-price"><?= formatMoney((float)$p['precio']) ?></div>
         </div>

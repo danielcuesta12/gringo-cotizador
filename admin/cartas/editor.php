@@ -62,6 +62,12 @@ include __DIR__ . '/../layout-top.php';
   .ed-modal label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
   .ed-modal input, .ed-modal textarea, .ed-modal select { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; }
   .ed-modal-actions { display:flex; gap:8px; margin-top:6px; }
+  .bdg-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; background:#fafafa; border:1px solid var(--border); border-radius:8px; padding:6px; margin-bottom:6px; }
+  .bdg-row input[type=text].bdg-txt { flex:1; min-width:96px; padding:6px 8px; }
+  .bdg-row select.bdg-pos { width:auto; flex:0 0 auto; padding:6px 6px; font-size:12px; }
+  .bdg-row input[type=color] { width:32px; height:28px; padding:1px; border:1px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; flex:0 0 auto; }
+  .bdg-row input.bdg-size { width:52px; flex:0 0 auto; padding:6px 4px; text-align:center; }
+  .bdg-hint { font-size:11px; color:var(--text-muted); margin-top:2px; }
 </style>
 
 <div class="ed-top">
@@ -157,6 +163,12 @@ include __DIR__ . '/../layout-top.php';
     <div class="field"><label>Nombre</label><input type="text" id="im-nombre"></div>
     <div class="field"><label>Precio (S/)</label><input type="text" inputmode="decimal" id="im-precio" placeholder="0.00"></div>
     <div class="field"><label>Descripción</label><textarea id="im-desc" rows="2"></textarea></div>
+    <div class="field">
+      <label>Badges</label>
+      <div id="im-badges"></div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="addBadge()" style="margin-top:2px">+ Agregar badge</button>
+      <div class="bdg-hint">Texto · posición (al lado del nombre / abajo) · color de fondo · color de letra · tamaño (mm).</div>
+    </div>
     <div class="field"><label>Sección</label><select id="im-seccion"></select></div>
     <div class="field"><label>Foto</label>
       <div style="display:flex;gap:10px;align-items:center">
@@ -275,8 +287,10 @@ include __DIR__ . '/../layout-top.php';
       var sec = document.createElement('div'); sec.className='ed-sec';
       var items = (s.items||[]).map(function(it, ii){
         var thumb = it.foto ? '<img src="'+esc(UPLOAD_URL+it.foto)+'" alt="">' : '<div class="ph"></div>';
+        var nb=0; if(it.badges){ try{ var a=JSON.parse(it.badges); if(Array.isArray(a)) nb=a.length; }catch(e){} }
+        var bChip = nb ? ' <span style="font-size:10px;color:var(--text-muted)">· '+nb+' badge'+(nb>1?'s':'')+'</span>' : '';
         return '<div class="ed-item">'+thumb+
-          '<div style="flex:1;min-width:0"><div class="nm">'+esc(it.nombre)+'</div><div class="pr">'+fmtMoney(it.precio)+'</div></div>'+
+          '<div style="flex:1;min-width:0"><div class="nm">'+esc(it.nombre)+'</div><div class="pr">'+fmtMoney(it.precio)+bChip+'</div></div>'+
           '<button class="ed-mini" title="Subir" onclick="moveItem('+s.id+','+it.id+',-1)">↑</button>'+
           '<button class="ed-mini" title="Bajar" onclick="moveItem('+s.id+','+it.id+',1)">↓</button>'+
           '<button class="btn btn-ghost btn-sm" onclick="openItem('+s.id+','+it.id+')">Editar</button>'+
@@ -364,6 +378,10 @@ include __DIR__ . '/../layout-top.php';
     var pv=document.getElementById('im-foto-pv');
     if(it&&it.foto){ pv.src=UPLOAD_URL+it.foto; pv.style.display='block'; } else { pv.style.display='none'; pv.src=''; }
     document.getElementById('im-file').value='';
+    // badges
+    imBadges = [];
+    if (it && it.badges){ try{ var bb=JSON.parse(it.badges); if(Array.isArray(bb)) imBadges = bb.map(function(x){ return {texto:x.texto||'', posicion:(x.posicion==='lado'?'lado':'abajo'), bg:x.bg||'#16A34A', color:x.color||'#FFFFFF', size:(x.size!=null?x.size:10)}; }); }catch(e){} }
+    renderBadges();
     document.getElementById('im-del').style.display = it?'block':'none';
     // select de secciones
     var sel=document.getElementById('im-seccion'); sel.innerHTML='';
@@ -371,6 +389,28 @@ include __DIR__ . '/../layout-top.php';
     document.getElementById('itemOverlay').classList.add('open');
   }
   function closeItem(){ document.getElementById('itemOverlay').classList.remove('open'); }
+
+  // ── BADGES (dentro del modal de ítem) ──
+  var imBadges = [];
+  function renderBadges(){
+    var box=document.getElementById('im-badges'); box.innerHTML='';
+    imBadges.forEach(function(b, i){
+      var row=document.createElement('div'); row.className='bdg-row';
+      row.innerHTML =
+        '<input type="text" class="bdg-txt" placeholder="Texto" value="'+esc(b.texto)+'" oninput="imBadges['+i+'].texto=this.value">'+
+        '<select class="bdg-pos" onchange="imBadges['+i+'].posicion=this.value">'+
+          '<option value="abajo"'+(b.posicion!=='lado'?' selected':'')+'>Abajo</option>'+
+          '<option value="lado"'+(b.posicion==='lado'?' selected':'')+'>Al lado</option>'+
+        '</select>'+
+        '<input type="color" list="brandcolors" title="Fondo" value="'+esc(b.bg)+'" oninput="imBadges['+i+'].bg=this.value">'+
+        '<input type="color" list="brandcolors" title="Letra" value="'+esc(b.color)+'" oninput="imBadges['+i+'].color=this.value">'+
+        '<input type="text" inputmode="decimal" class="bdg-size" title="Tamaño (mm)" value="'+esc(b.size)+'" oninput="imBadges['+i+'].size=this.value">'+
+        '<button type="button" class="ed-mini" style="color:var(--red)" title="Quitar" onclick="rmBadge('+i+')">✕</button>';
+      box.appendChild(row);
+    });
+  }
+  function addBadge(){ imBadges.push({texto:'', posicion:'abajo', bg:'#16A34A', color:'#FFFFFF', size:10}); renderBadges(); }
+  function rmBadge(i){ imBadges.splice(i,1); renderBadges(); }
   function uploadFoto(input){
     var f=input.files[0]; if(!f) return;
     var fd=new FormData(); fd.append('foto', f);
@@ -383,8 +423,10 @@ include __DIR__ . '/../layout-top.php';
   function saveItem(){
     var id=document.getElementById('im-id').value;
     var secId=document.getElementById('im-seccion').value;
+    var cleanBdg = imBadges.filter(function(b){ return (b.texto||'').trim() !== ''; });
     var d={ nombre:document.getElementById('im-nombre').value||'Ítem', precio:document.getElementById('im-precio').value||0,
-            descripcion:document.getElementById('im-desc').value, foto:document.getElementById('im-foto').value, seccion_id:secId };
+            descripcion:document.getElementById('im-desc').value, foto:document.getElementById('im-foto').value,
+            badges:JSON.stringify(cleanBdg), seccion_id:secId };
     if(id){ d.id=id; apiPost('item_update', d).then(function(){ closeItem(); load(); }); }
     else { d.carta_id=CARTA_ID; apiPost('item_create', d).then(function(){ closeItem(); load(); }); }
   }
