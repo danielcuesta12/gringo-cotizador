@@ -49,15 +49,20 @@ if ($qrOn) {
   .sec { margin-bottom:14mm; break-inside:avoid; }
   .sec-title { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-section); letter-spacing:2.5mm; text-transform:uppercase; color:var(--section); font-weight:700; padding-bottom:4mm; margin-bottom:8mm; border-bottom:1.4mm solid var(--divider); }
   .sec-rows.cols2 { display:grid; grid-template-columns:1fr 1fr; column-gap:14mm; }
-  .row { display:flex; gap:10mm; align-items:center; padding:6mm 0; break-inside:avoid; }
+  .row { padding:6mm 0; break-inside:avoid; }
   .sec-rows.cols1 > .row + .row { border-top:.5mm solid var(--divider); }
   .sec-rows.cols2 > .row { border-top:.5mm solid var(--divider); }
-  .row-foto { width:var(--sz-photo); height:var(--sz-photo); border-radius:7mm; object-fit:cover; flex-shrink:0; background:var(--surface); }
-  .row-foto-ph { width:var(--sz-photo); height:var(--sz-photo); border-radius:7mm; flex-shrink:0; background:var(--surface); }
-  .row-main { flex:1; min-width:0; }
-  .row-name { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-name); text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
-  .row-desc { font-size:var(--sz-desc); color:var(--muted); line-height:1.3; margin-top:2.5mm; }
-  .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-price); font-weight:700; color:var(--accent); white-space:nowrap; flex-shrink:0; text-align:right; padding-left:8mm; }
+  /* 1 columna: foto | nombre+descripción | precio a la derecha */
+  .sec-rows.cols1 > .row { display:grid; grid-template-columns:auto 1fr auto; grid-template-areas:"foto name price" "foto desc price"; column-gap:10mm; row-gap:1.5mm; align-items:center; }
+  /* 2 columnas: foto+nombre arriba, descripción debajo, precio centrado debajo */
+  .sec-rows.cols2 > .row { display:grid; grid-template-columns:auto 1fr; grid-template-areas:"foto name" "desc desc" "price price"; column-gap:8mm; row-gap:3mm; align-items:center; }
+  .row-foto, .row-foto-ph { grid-area:foto; width:var(--sz-photo); height:var(--sz-photo); border-radius:7mm; background:var(--surface); }
+  .row-foto { object-fit:cover; }
+  .row-name { grid-area:name; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-name); text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
+  .row-desc { grid-area:desc; font-size:var(--sz-desc); color:var(--muted); line-height:1.3; }
+  .row-price { grid-area:price; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-price); font-weight:700; color:var(--accent); white-space:nowrap; align-self:center; }
+  .sec-rows.cols1 .row-price { text-align:right; }
+  .sec-rows.cols2 .row-price { text-align:center; }
   .banner-qr { text-align:center; padding:0 14mm 20mm; }
   .banner-qr .qr-card { display:inline-block; background:#fff; padding:6mm; border-radius:6mm; }
   .banner-qr .qr-card img, .banner-qr .qr-card canvas { width:52mm !important; height:52mm !important; display:block; }
@@ -89,10 +94,8 @@ if ($qrOn) {
           <?php else: ?>
             <div class="row-foto-ph"></div>
           <?php endif; ?>
-          <div class="row-main">
-            <div class="row-name"><?= clean($p['nombre']) ?></div>
-            <?php if (trim((string)$p['descripcion']) !== ''): ?><div class="row-desc"><?= clean($p['descripcion']) ?></div><?php endif; ?>
-          </div>
+          <div class="row-name"><?= clean($p['nombre']) ?></div>
+          <?php if (trim((string)$p['descripcion']) !== ''): ?><div class="row-desc"><?= clean($p['descripcion']) ?></div><?php endif; ?>
           <div class="row-price"><?= formatMoney((float)$p['precio']) ?></div>
         </div>
         <?php endforeach; ?>
