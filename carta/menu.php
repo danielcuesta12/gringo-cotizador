@@ -12,8 +12,20 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $ig      = ltrim($ubi['instagram'] ?? '', '@');
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="noche">
 <head>
+  <script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('carta_theme');
+      var theme = (saved === 'dia' || saved === 'noche') ? saved : null;
+      if (!theme) { var h = new Date().getHours(); theme = (h >= 18 || h < 7) ? 'noche' : 'dia'; }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'noche');
+    }
+  })();
+  </script>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="/img/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,48 +34,98 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   <style>
     @font-face {
       font-family: 'Kimmy';
-      src: url('/marcona/fonts/Kimmy.woff2') format('woff2');
+      src: url('<?= APP_URL ?>/assets/fonts/Kimmy.woff2') format('woff2');
       font-display: swap;
     }
 
     @font-face {
       font-family: 'ArialNarrowBold';
-      src: url('/marcona/fonts/Arial_Narrow_Bold.ttf') format('truetype');
+      src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
       font-display: swap;
     }
 
     :root {
-      --yellow: #FCDA13;
-      --dark:   #1A1A1A;
-      --card:   #242424;
-      --sheet:  #1e1e1e;
-      --text:   #FFFFFF;
-      --muted:  #999999;
-      --dim:    #666666;
-      --pink:   #FAB8C0;
-      --border: rgba(255,255,255,0.08);
-      --font:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    html[data-theme="noche"] {
+      --bg:        #1A1A1A;   /* body, search-bar */
+      --bg-deep:   #111111;   /* category-bar, bottom-bar */
+      --surface:   #242424;   /* card de ítem, search inner */
+      --surface-2: #2a2a2a;   /* hover, chips, mod-option, cat-pill, like-btn */
+      --surface-3: #333333;   /* bordes mod-option */
+      --sheet:     #1e1e1e;   /* detail sheet */
+      --text:      #FFFFFF;
+      --text-soft: #aaaaaa;   /* detail-desc */
+      --muted:     #999999;
+      --dim:       #666666;
+      --faint:     #444444;
+      --accent:    #FCDA13;   /* amarillo: precios, activos, acentos */
+      --accent-ink:#1A1A1A;   /* texto sobre amarillo */
+      --accent-tint: rgba(252,218,19,.15);
+      --accent-tint-strong: rgba(252,218,19,.7);
+      --pink:      #FAB8C0;
+      --pink-tint: rgba(250,184,192,.2);
+      --green:     #34d399;
+      --green-tint: rgba(52,211,153,.15);
+      --error:     #e53935;
+      --border:    rgba(255,255,255,0.08);
+      --hairline:  rgba(255,255,255,0.06);
+      --overlay:   rgba(0,0,0,0.72);
+      --on-accent-soft: rgba(0,0,0,0.12);
+      --header-bg: var(--accent);
+      --header-text: var(--accent-ink);
+    }
+
+    html[data-theme="dia"] {
+      --bg:        #FFEFBC;
+      --bg-deep:   #f6e2a8;
+      --surface:   #ffffff;
+      --surface-2: #f1ede2;
+      --surface-3: #e4ddca;
+      --sheet:     #ffffff;
+      --text:      #1E1E1E;
+      --text-soft: #6f6750;
+      --muted:     #7a6f55;
+      --dim:       #8a7d63;
+      --faint:     #b3a888;
+      --accent:    #1E1E1E;
+      --accent-ink:#FFEFBC;
+      --accent-tint: rgba(30,30,30,.08);
+      --accent-tint-strong: rgba(30,30,30,.6);
+      --pink:      #b03a63;
+      --pink-tint: #FFBBC8;
+      --green:     #1f8a4c;
+      --green-tint: rgba(31,138,76,.14);
+      --error:     #c0392b;
+      --border:    rgba(30,30,30,0.14);
+      --hairline:  rgba(30,30,30,0.10);
+      --overlay:   rgba(30,20,0,0.45);
+      --on-accent-soft: rgba(255,239,188,0.7);
+      --header-bg: #1E1E1E;
+      --header-text: #FFEFBC;
     }
 
     html { scroll-behavior: smooth; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: var(--dark); color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: var(--font); font-size: 15px; line-height: 1.5;
       min-height: 100dvh; -webkit-font-smoothing: antialiased;
     }
 
     /* HEADER */
     header {
-      background: var(--yellow); padding: 12px 20px;
+      background: var(--header-bg); padding: 12px 20px;
       display: flex; align-items: center; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
-    .logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0); }
+    .logo { height: 40px; width: auto; object-fit: contain; }
+    html[data-theme="noche"] .logo { filter: brightness(0); }            /* logo negro sobre header amarillo */
+    html[data-theme="dia"]   .logo { filter: brightness(0) invert(1); }  /* logo claro sobre header negro */
     .schedule-badge {
       font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
-      background: rgba(0,0,0,0.12); color: #1A1A1A; letter-spacing: 0.03em;
+      background: var(--on-accent-soft); color: var(--header-text); letter-spacing: 0.03em;
       display: flex; align-items: center; gap: 6px;
     }
     .schedule-dot {
@@ -81,8 +143,20 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       70%  { transform: scale(2.8); opacity: 0; }
       100% { opacity: 0; }
     }
-    .ig-link { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #1A1A1A; font-size: 13px; font-weight: 700; }
-    .ig-link svg { width: 18px; height: 18px; fill: #1A1A1A; }
+    .ig-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--header-text); font-size: 13px; font-weight: 700; }
+    .ig-link svg { width: 18px; height: 18px; fill: var(--header-text); }
+    .theme-toggle {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: var(--on-accent-soft); color: var(--header-text);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-toggle .ico-sol  { display: none; }
+    .theme-toggle .ico-luna { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-sol  { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-luna { display: none; }
 
     /* PAGE LAYOUT */
     .page-wrap { display: flex; max-width: 1100px; margin: 0 auto; }
@@ -95,7 +169,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
     .spinner {
       width: 28px; height: 28px;
-      border: 2.5px solid rgba(255,255,255,.1); border-top-color: var(--yellow);
+      border: 2.5px solid var(--hairline); border-top-color: var(--accent);
       border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -112,27 +186,27 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     /* ITEM CARD */
     .item {
       display: flex; align-items: center; gap: 12px;
-      background: var(--card); border-radius: 12px; padding: 12px;
+      background: var(--surface); border-radius: 12px; padding: 12px;
       margin-bottom: 8px; cursor: pointer;
       transition: background .15s, transform .15s cubic-bezier(.23,1,.32,1);
       opacity: 0; transform: translateY(8px);
       animation: fadeUp .4s cubic-bezier(.16,1,.3,1) forwards;
     }
     .item:last-child { margin-bottom: 0; }
-    .item:hover { background: #2c2c2c; transform: translateY(-1px); }
-    .item:active { transform: scale(0.99); background: #303030; }
+    .item:hover { background: var(--surface-2); transform: translateY(-1px); }
+    .item:active { transform: scale(0.99); background: var(--surface-2); }
     @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
 
     .item-foto {
       width: 90px; height: 90px; border-radius: 8px;
-      object-fit: cover; background: #2a2a2a;
+      object-fit: cover; background: var(--surface-2);
     }
     .item-info { flex: 1; min-width: 0; }
     .item-name { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.2; margin-bottom: 3px; }
     .item-desc {
-      font-size: 15px; color: var(--muted); line-height: 1.4;
+      font-size: 16px; color: var(--muted); line-height: 1.45;
       overflow: hidden; display: -webkit-box;
-      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     }
     .item-right {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -141,7 +215,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     .item-price {
       font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif;
       font-size: 18px; font-weight: 700;
-      background: #FCDA13; color: #1A1A1A;
+      background: var(--accent); color: var(--accent-ink);
       padding: 5px 16px; border-radius: 20px;
       white-space: nowrap;
     }
@@ -153,19 +227,19 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px;
     }
-    .item-badge.popular     { background: rgba(252,218,19,.15); color: var(--yellow); }
-    .item-badge.nuevo       { background: rgba(52,211,153,.15); color: #34d399; }
-    .item-badge.recomendado { background: rgba(250,184,192,.2);  color: var(--pink); }
+    .item-badge.popular     { background: var(--accent-tint); color: var(--accent); }
+    .item-badge.nuevo       { background: var(--green-tint); color: var(--green); }
+    .item-badge.recomendado { background: var(--pink-tint);  color: var(--pink); }
 
     /* BOTTOM BAR */
     .bottom-bar {
-      background: #111;
+      background: var(--bg-deep);
       text-align: center; padding: 12px 20px;
-      font-size: 11px; color: #444;
+      font-size: 11px; color: var(--faint);
       letter-spacing: 1.5px; text-transform: uppercase;
-      border-top: 1px solid rgba(255,255,255,0.04);
+      border-top: 1px solid var(--hairline);
     }
-    .bottom-bar em { color: var(--yellow); font-style: normal; }
+    .bottom-bar em { color: var(--accent); font-style: normal; }
 
     /* DETAIL OVERLAY */
     .detail-overlay {
@@ -177,7 +251,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       transition: background .25s;
     }
     .detail-overlay.open {
-      background: rgba(0,0,0,0.72);
+      background: var(--overlay);
       visibility: visible; pointer-events: auto;
     }
 
@@ -220,18 +294,18 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     }
     .detail-handle {
       width: 36px; height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.18);
+      background: var(--hairline);
       flex: 1; max-width: 36px; margin: 0 auto;
     }
     .detail-close {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(255,255,255,0.1); border: none;
+      background: var(--hairline); border: none;
       color: var(--text); font-size: 20px; line-height: 1;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background .15s;
     }
-    .detail-close:hover { background: rgba(255,255,255,0.18); }
+    .detail-close:hover { background: var(--border); }
     @media (min-width: 700px) { .detail-handle { display: none; } }
 
     /* SHEET FOTO */
@@ -241,7 +315,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     }
     .detail-img-placeholder {
       width: 100%; aspect-ratio: 4/3;
-      background: #2a2a2a;
+      background: var(--surface-2);
       display: flex; align-items: center; justify-content: center;
     }
 
@@ -254,9 +328,9 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px;
     }
-    .detail-badge.popular     { background: rgba(252,218,19,.15); color: var(--yellow); }
-    .detail-badge.nuevo       { background: rgba(52,211,153,.15); color: #34d399; }
-    .detail-badge.recomendado { background: rgba(250,184,192,.2);  color: var(--pink); }
+    .detail-badge.popular     { background: var(--accent-tint); color: var(--accent); }
+    .detail-badge.nuevo       { background: var(--green-tint); color: var(--green); }
+    .detail-badge.recomendado { background: var(--pink-tint);  color: var(--pink); }
 
     .detail-name {
       font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif;
@@ -269,7 +343,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     .detail-price-single {
       display: inline-block;
       font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 18px; font-weight: 700;
-      background: #FCDA13; color: #1A1A1A;
+      background: var(--accent); color: var(--accent-ink);
       padding: 6px 18px; border-radius: 20px;
       margin-bottom: 16px;
     }
@@ -287,48 +361,48 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     }
     .detail-variant-row:last-child { border-bottom: none; }
     .detail-variant-name { color: var(--text); font-weight: 600; }
-    .detail-variant-price { color: var(--yellow); font-weight: 800; }
+    .detail-variant-price { color: var(--accent); font-weight: 800; }
 
     .detail-desc {
-      font-size: 15px; color: #aaa;
+      font-size: 15px; color: var(--text-soft);
       line-height: 1.6; margin-bottom: 14px;
     }
 
     /* MODIFIER GROUPS */
     .mods-section { margin: 0 0 18px; }
     .mods-group-label {
-      font-size: 11px; font-weight: 700; color: #FCDA13;
+      font-size: 11px; font-weight: 700; color: var(--accent);
       text-transform: uppercase; letter-spacing: .08em;
       margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
     .mods-required-tag {
       font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
-      background: rgba(252,218,19,.12); color: #FCDA13; padding: 2px 6px; border-radius: 999px;
+      background: var(--accent-tint); color: var(--accent); padding: 2px 6px; border-radius: 999px;
     }
     .mods-count-tag {
-      font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);
-      background: rgba(255,255,255,0.07); padding: 2px 7px; border-radius: 999px; margin-left: auto;
+      font-size: 10px; font-weight: 600; color: var(--dim);
+      background: var(--hairline); padding: 2px 7px; border-radius: 999px; margin-left: auto;
     }
     .mods-group-wrap { margin-bottom: 16px; }
-    .mods-group-wrap.mods-error .mods-options { outline: 1.5px solid #e53935; border-radius: 8px; }
+    .mods-group-wrap.mods-error .mods-options { outline: 1.5px solid var(--error); border-radius: 8px; }
     .mods-options { display: flex; flex-wrap: wrap; gap: 8px; }
     .mod-option {
       display: flex; align-items: center; gap: 6px;
       padding: 9px 16px; cursor: pointer;
-      background: #2a2a2a; border: 1.5px solid #333;
+      background: var(--surface-2); border: 1.5px solid var(--surface-3);
       border-radius: 10px; transition: all .15s;
-      color: #fff; font-size: 14px; font-weight: 600;
+      color: var(--text); font-size: 14px; font-weight: 600;
       white-space: nowrap;
     }
     .mod-option:active { transform: scale(0.96); }
     .mod-option.selected {
-      border-color: #FCDA13;
-      background: rgba(252,218,19,.10);
-      color: #FCDA13;
+      border-color: var(--accent);
+      background: var(--accent-tint);
+      color: var(--accent);
     }
     .mod-option-name { font-size: 14px; line-height: 1.2; }
-    .mod-option-price { font-size: 12px; font-weight: 700; color: #888; }
-    .mod-option.selected .mod-option-price { color: rgba(252,218,19,0.7); }
+    .mod-option-price { font-size: 12px; font-weight: 700; color: var(--dim); }
+    .mod-option.selected .mod-option-price { color: var(--accent-tint-strong); }
     .mod-option.mod-disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
     /* MOZO TEXT */
@@ -341,10 +415,10 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
 
     /* CATEGORY BAR */
     .category-bar {
-      background: #111; position: sticky; z-index: 90;
+      background: var(--bg-deep); position: sticky; z-index: 90;
       display: flex; align-items: center; gap: 8px;
       padding: 0 12px; overflow: hidden;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--hairline);
     }
     .cat-pills {
       display: flex; gap: 6px; overflow-x: auto; padding: 10px 0;
@@ -354,29 +428,29 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     .cat-pill {
       flex-shrink: 0; padding: 6px 14px; border-radius: 999px;
       font-size: 14px; font-weight: 700; cursor: pointer;
-      background: #2a2a2a; color: #888; border: none;
+      background: var(--surface-2); color: var(--dim); border: none;
       transition: background .15s, color .15s; letter-spacing: .02em;
       white-space: nowrap;
     }
     .cat-pill:active { transform: scale(.97); }
-    .cat-pill.active { background: #FCDA13; color: #1A1A1A; }
+    .cat-pill.active { background: var(--accent); color: var(--accent-ink); }
     /* SEARCH BAR */
-    .search-bar { position: sticky; z-index: 89; background: #1A1A1A; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .search-bar-inner { display: flex; align-items: center; gap: 10px; background: #242424; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 14px; }
-    .search-bar-inner svg { flex-shrink: 0; color: #666; }
-    .search-bar-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 14px; font-family: inherit; }
-    .search-bar-input::placeholder { color: #555; }
+    .search-bar { position: sticky; z-index: 89; background: var(--bg); padding: 8px 14px; border-bottom: 1px solid var(--hairline); }
+    .search-bar-inner { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; }
+    .search-bar-inner svg { flex-shrink: 0; color: var(--dim); }
+    .search-bar-input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 14px; font-family: inherit; }
+    .search-bar-input::placeholder { color: var(--dim); }
     /* LIKE BUTTON */
     .detail-media-wrap { position: relative; }
     @keyframes likePop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .like-btn { width: 100%; padding: 8px 16px; border-radius: 20px; background: #2a2a2a; color: #fff; border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color .15s, color .15s; margin-top: 16px; letter-spacing: .01em; }
-    .like-btn.liked { border-color: #FCDA13; color: #FCDA13; }
+    .like-btn { width: 100%; padding: 8px 16px; border-radius: 20px; background: var(--surface-2); color: var(--text); border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color .15s, color .15s; margin-top: 16px; letter-spacing: .01em; }
+    .like-btn.liked { border-color: var(--accent); color: var(--accent); }
     .like-btn:active { opacity: .85; }
     .like-btn.pop { animation: likePop 150ms cubic-bezier(.32,.72,0,1); }
-    .like-btn svg { stroke: #fff; fill: none; transition: stroke .15s, fill .15s; flex-shrink: 0; }
-    .like-btn.liked svg { stroke: #FCDA13; fill: #FCDA13; }
-    .like-count-chip { margin-left: auto; font-size: 12px; color: #666; min-width: 0; }
-    .like-btn.liked .like-count-chip { color: rgba(252,218,19,0.7); }
+    .like-btn svg { stroke: var(--text); fill: none; transition: stroke .15s, fill .15s; flex-shrink: 0; }
+    .like-btn.liked svg { stroke: var(--accent); fill: var(--accent); }
+    .like-count-chip { margin-left: auto; font-size: 12px; color: var(--dim); min-width: 0; }
+    .like-btn.liked .like-count-chip { color: var(--accent-tint-strong); }
     /* SKELETON */
     @keyframes shimmer {
       0%   { background-position: -200% 0; }
@@ -384,23 +458,23 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     }
     .loading { padding: 16px 16px 0; }
     .skel-card {
-      display: flex; gap: 12px; background: #242424;
+      display: flex; gap: 12px; background: var(--surface);
       border-radius: 12px; padding: 14px; margin-bottom: 10px;
     }
     .skel-foto {
       width: 90px; height: 90px; border-radius: 8px; flex-shrink: 0;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite;
     }
     .skel-info { flex:1; display:flex; flex-direction:column; gap:8px; justify-content:center; }
     .skel-name {
       height: 16px; border-radius: 4px; width: 65%;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite;
     }
     .skel-desc {
       height: 12px; border-radius: 4px; width: 45%;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite .12s;
     }
     #carta-content { animation: fadeIn .35s ease; }
@@ -414,12 +488,18 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
     <div id="schedule-badge" class="schedule-badge"></div>
-    <?php if ($ig): ?>
-    <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-      @<?= clean($ig) ?>
-    </a>
-    <?php endif; ?>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" type="button">
+        <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <?php if ($ig): ?>
+      <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        @<?= clean($ig) ?>
+      </a>
+      <?php endif; ?>
+    </div>
   </header>
 
   <div class="category-bar" id="category-bar" style="top:64px">
@@ -475,6 +555,14 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     const ANALYTICS_API = '<?= APP_URL ?>/api/';
     const _prods = {};
     let _closeTimer = null;
+
+    /* THEME TOGGLE */
+    function toggleTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') === 'dia' ? 'dia' : 'noche';
+      var next = cur === 'dia' ? 'noche' : 'dia';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('carta_theme', next); } catch (e) {}
+    }
 
     /* SCHEDULE */
     const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
@@ -646,7 +734,6 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       const mediaEl = document.getElementById('detail-media');
       const src = fotoSrc(p.foto);
       const _liked = localStorage.getItem('like_' + id + '_' + CARTA_ID + '_menu') === '1';
-      const _hFill = _liked ? '#FCDA13' : 'none'; const _hStroke = _liked ? '#FCDA13' : '#ccc';
       const _photoHTML = src
         ? `<img class="detail-img" src="${src}" alt="${p.nombre.replace(/"/g,'')}" loading="lazy">`
         : `<div class="detail-img-placeholder"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16" stroke-width="2.5" stroke-linecap="round"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M6 18h12a2 2 0 0 0 2-2v0a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2z"/><path d="M5 6a7 7 0 0 1 14 0"/></svg></div>`;
