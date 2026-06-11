@@ -466,14 +466,106 @@ a{color:inherit;text-decoration:none}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── "Ver pedido" sticky bar (phone only, hidden on desktop) */
+#ver-pedido-bar{
+  display:none; /* shown only at ≤699px */
+}
+/* "Back to products" button — hidden on desktop */
+#cart-mobile-back{
+  display:none;
+}
+
 /* ── Responsive: narrow (< 700px) ─────────────────────── */
 @media(max-width:699px){
+  /* Topbar compact */
+  #topbar{
+    flex-wrap:nowrap;
+    gap:8px;padding:0 10px;
+  }
+  #topbar .brand-logo{height:22px}
+  #topbar .brand-text{font-size:13px}
+  #topbar .brand-pos{font-size:14px}
+  #topbar .sep{display:none}
+  #ubi-select{font-size:13px;padding:5px 28px 5px 8px;max-width:130px}
+  #caja-estado{font-size:11px;padding:3px 8px}
+  #cajero-name{display:none}
+
+  /* Screen-sell: single-panel view */
   :root{--cart-w:100%}
-  #panel-prods{display:none}
-  #panel-cart{width:100%;border-top:1px solid var(--border)}
   #screen-sell.active{flex-direction:column}
-  #screen-sell.active.show-prods #panel-prods{display:flex}
-  #screen-sell.active.show-prods #panel-cart{display:none}
+
+  /* Default: show products, hide cart */
+  #panel-prods{display:flex;flex:1;border-right:none}
+  #panel-cart{display:none;width:100%}
+
+  /* mobile-cart class: show cart, hide products */
+  #screen-sell.mobile-cart #panel-prods{display:none}
+  #screen-sell.mobile-cart #panel-cart{display:flex;flex:1}
+
+  /* "Ver pedido" sticky bar above bottombar */
+  #ver-pedido-bar{
+    display:flex;
+    position:fixed;bottom:var(--btmbar-h);left:0;right:0;z-index:95;
+    height:52px;
+    background:var(--green);color:#fff;
+    align-items:center;justify-content:center;
+    font-size:15px;font-weight:800;
+    gap:10px;
+    border-top:2px solid var(--green-dk);
+    -webkit-tap-highlight-color:transparent;
+    cursor:pointer;
+    transition:background .12s;
+  }
+  #ver-pedido-bar:active{background:var(--green-dk)}
+  #ver-pedido-bar.empty{
+    background:var(--surface2);color:var(--muted);
+    border-top-color:var(--border);
+    pointer-events:none;
+  }
+  #ver-pedido-bar .vpb-count{
+    background:rgba(0,0,0,.25);border-radius:12px;
+    padding:2px 9px;font-size:13px;font-weight:800;
+  }
+  /* Cart "back" header button */
+  #cart-mobile-back{
+    display:flex;align-items:center;gap:6px;
+    padding:10px 14px;border-bottom:1px solid var(--border);
+    font-size:14px;font-weight:700;color:var(--text2);
+    background:none;border-left:none;border-right:none;border-top:none;
+    cursor:pointer;-webkit-tap-highlight-color:transparent;
+    width:100%;text-align:left;
+  }
+  #cart-mobile-back:active{background:var(--surface2)}
+
+  /* Show cart back-button on phone */
+  #cart-mobile-back{display:flex}
+
+  /* Adjust app bottom to make room for ver-pedido-bar */
+  #app{bottom:calc(var(--btmbar-h) + 52px)}
+
+  /* Toast & snackbar above ver-pedido-bar */
+  #toast{bottom:calc(var(--btmbar-h) + 52px + 10px)}
+  #print-snack{bottom:calc(var(--btmbar-h) + 52px + 10px)}
+
+  /* Full-screen modals */
+  .modal{
+    width:96vw;max-width:none;max-height:92vh;
+    overflow-y:auto;
+  }
+  /* Picker list taller on phone */
+  .picker-list{max-height:45vh}
+
+  /* Product grid: ~3 columns on phone */
+  #prod-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+  #fav-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+
+  /* Touch targets */
+  .qty-btn{width:36px;height:36px;flex:0 0 36px}
+  .metodo-btn{padding:12px 10px;font-size:13px}
+  #btn-cobrar{padding:18px}
+  .nav-btn{font-size:10px;gap:3px}
+  .cat-tab{padding:8px 14px}
+  .mod-chip{padding:9px 14px}
 }
 
 /* ── Favorites board ───────────────────────────────────── */
@@ -651,6 +743,9 @@ a{color:inherit;text-decoration:none}
 
     <!-- Panel derecho: carrito -->
     <div id="panel-cart">
+      <button id="cart-mobile-back" onclick="setMobileView('prods')">
+        ← Seguir agregando
+      </button>
       <div id="cart-header">
         <span>Pedido</span>
         <span id="cart-count">0</span>
@@ -700,6 +795,11 @@ a{color:inherit;text-decoration:none}
   </div>
 
 </div><!-- /app -->
+
+<!-- ── Ver pedido bar (phone only) ────────────────────── -->
+<div id="ver-pedido-bar" class="empty" role="button" tabindex="0" aria-label="Ver pedido">
+  <span id="vpb-label">Sin productos</span>
+</div>
 
 <!-- ── Bottombar ──────────────────────────────────────── -->
 <div id="bottombar">
@@ -804,6 +904,31 @@ function toast(msg, type) {
   _toastTimer = setTimeout(function() { el.className = ''; }, 3000);
 }
 
+// ── Mobile view toggle (products ↔ cart) ───────────────
+function setMobileView(view) {
+  var ss = document.getElementById('screen-sell');
+  if (!ss) return;
+  if (view === 'cart') {
+    ss.classList.add('mobile-cart');
+  } else {
+    ss.classList.remove('mobile-cart');
+  }
+}
+
+function updateVerPedidoBar() {
+  var bar = document.getElementById('ver-pedido-bar');
+  var lbl = document.getElementById('vpb-label');
+  if (!bar || !lbl) return;
+  var count = state.cart.reduce(function(a, l) { return a + l.qty; }, 0);
+  if (!count) {
+    bar.className = 'empty';
+    lbl.textContent = 'Sin productos';
+  } else {
+    bar.className = '';
+    lbl.innerHTML = 'Ver pedido &nbsp;<span class="vpb-count">' + count + '</span>&nbsp; · &nbsp;' + esc(fmt(cartTotal())) + ' →';
+  }
+}
+
 // ── Screen management ──────────────────────────────────
 function showScreen(name) {
   ['screen-pick','screen-open','screen-sell'].forEach(function(id) {
@@ -816,6 +941,8 @@ function showScreen(name) {
     target.classList.add('active');
     target.style.display = 'flex';
   }
+  // Reset to products view when entering sell screen on phone
+  if (name === 'sell') setMobileView('prods');
 }
 
 // ── Init ───────────────────────────────────────────────
@@ -872,6 +999,18 @@ function init() {
     updateFavEditBtn();
     renderFavBoard();
   });
+
+  // "Ver pedido" bar — tap to switch to cart view on phone
+  var vpbBar = document.getElementById('ver-pedido-bar');
+  if (vpbBar) {
+    vpbBar.addEventListener('click', function() {
+      if (!state.cart.length) return;
+      setMobileView('cart');
+    });
+    vpbBar.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vpbBar.click(); }
+    });
+  }
 }
 
 function setNavActive(id) {
@@ -1319,6 +1458,8 @@ function renderCart() {
     linesEl.appendChild(emptyEl);
     emptyEl.style.display = 'flex';
     renderCobrarBtn();
+    updateVerPedidoBar();
+    setMobileView('prods');
     return;
   }
   emptyEl.style.display = 'none';
@@ -1382,6 +1523,7 @@ function renderCart() {
   });
 
   renderCobrarBtn();
+  updateVerPedidoBar();
 }
 
 function attachSwipe(row) {
