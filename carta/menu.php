@@ -305,7 +305,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background .15s;
     }
-    .detail-close:hover { background: var(--hairline); }
+    .detail-close:hover { background: var(--border); }
     @media (min-width: 700px) { .detail-handle { display: none; } }
 
     /* SHEET FOTO */
@@ -380,7 +380,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       background: var(--accent-tint); color: var(--accent); padding: 2px 6px; border-radius: 999px;
     }
     .mods-count-tag {
-      font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);
+      font-size: 10px; font-weight: 600; color: var(--dim);
       background: var(--hairline); padding: 2px 7px; border-radius: 999px; margin-left: auto;
     }
     .mods-group-wrap { margin-bottom: 16px; }
@@ -734,7 +734,6 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       const mediaEl = document.getElementById('detail-media');
       const src = fotoSrc(p.foto);
       const _liked = localStorage.getItem('like_' + id + '_' + CARTA_ID + '_menu') === '1';
-      const _hFill = _liked ? '#FCDA13' : 'none'; const _hStroke = _liked ? '#FCDA13' : '#ccc';
       const _photoHTML = src
         ? `<img class="detail-img" src="${src}" alt="${p.nombre.replace(/"/g,'')}" loading="lazy">`
         : `<div class="detail-img-placeholder"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16" stroke-width="2.5" stroke-linecap="round"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M6 18h12a2 2 0 0 0 2-2v0a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2z"/><path d="M5 6a7 7 0 0 1 14 0"/></svg></div>`;
