@@ -49,23 +49,23 @@ foreach ($rows as $r) {
   html, body { background:var(--bg); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body { width:420mm; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; }
   .banner-header { background:var(--header-bg); color:var(--header-text); text-align:center; padding:18mm 14mm; }
-  .banner-header img { height:46mm; width:auto; object-fit:contain; }
+  .banner-header img { height:55mm; width:auto; object-fit:contain; }
   html[data-theme="noche"] .banner-header img { filter:brightness(0); }
   html[data-theme="dia"]   .banner-header img { filter:brightness(0) invert(1); }
   .banner-header .brandtxt { font-weight:900; font-size:24mm; letter-spacing:1mm; line-height:.95; }
   .banner-header .sub { font-size:7mm; font-weight:800; letter-spacing:4mm; margin-top:4mm; }
   .banner-body { padding:14mm 16mm 18mm; }
   .sec { margin-bottom:14mm; break-inside:avoid; }
-  .sec-title { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:16mm; letter-spacing:2.5mm; text-transform:uppercase; color:var(--section); font-weight:700; padding-bottom:4mm; margin-bottom:8mm; border-bottom:1.4mm solid var(--divider); }
+  .sec-title { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:24mm; letter-spacing:2.5mm; text-transform:uppercase; color:var(--section); font-weight:700; padding-bottom:4mm; margin-bottom:8mm; border-bottom:1.4mm solid var(--divider); }
   .row { display:flex; gap:10mm; align-items:center; padding:6mm 0; break-inside:avoid; }
   .row + .row { border-top:.5mm solid var(--divider); }
   .row-foto { width:60mm; height:60mm; border-radius:7mm; object-fit:cover; flex-shrink:0; background:var(--surface); }
   .row-foto-ph { width:60mm; height:60mm; border-radius:7mm; flex-shrink:0; background:var(--surface); }
   .row-info { flex:1; min-width:0; }
   .row-top { display:flex; align-items:baseline; justify-content:space-between; gap:8mm; }
-  .row-name { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:13mm; text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
-  .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:14mm; font-weight:700; color:var(--accent); white-space:nowrap; }
-  .row-desc { font-size:6.5mm; color:var(--muted); line-height:1.3; margin-top:2.5mm; }
+  .row-name { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:18mm; text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
+  .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:16mm; font-weight:700; color:var(--accent); white-space:nowrap; }
+  .row-desc { font-size:15mm; color:var(--muted); line-height:1.3; margin-top:2.5mm; }
   .printbar { position:fixed; top:10px; right:10px; z-index:10; display:flex; gap:8px; font-family:-apple-system,sans-serif; }
   .printbar button { padding:10px 16px; border:none; border-radius:10px; background:#1A1A1A; color:#fff; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); }
   @media print { .printbar { display:none !important; } }
@@ -77,7 +77,6 @@ foreach ($rows as $r) {
   <div class="banner-header">
     <?php if ($logoUrl): ?><img src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo"><?php else: ?>
       <div class="brandtxt">EL GRINGO</div><?php endif; ?>
-    <div class="sub">BURGER JOINT · CARTA</div>
   </div>
 
   <div class="banner-body">
