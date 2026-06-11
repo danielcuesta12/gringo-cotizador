@@ -9,7 +9,7 @@ function pout($d){ echo json_encode($d); exit; }
 
 $action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-$writes = ['abrir_turno','cerrar_turno','registrar_venta'];
+$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear'];
 if (in_array($action, $writes, true)) { if (!$isPost) pout(['ok'=>false,'error'=>'Método']); verifyCsrf(); }
 $uid = (int)(currentUser()['id'] ?? 0);
 
@@ -75,30 +75,95 @@ case 'registrar_venta':
     $t = Database::fetch("SELECT id FROM pos_turnos WHERE id=? AND usuario_id=? AND estado='abierto'", [$tid,$uid]);
     if (!$t) pout(['ok'=>false,'error'=>'Caja cerrada']);
     $clean = [];
+    $subtotal = 0.0;
     foreach ($items as $it) {
-        $clean[] = [
-            'qty'    => max(1,(int)($it['qty'] ?? 1)),
-            'nombre' => clean($it['nombre'] ?? ''),
-            'precio' => (float)($it['precio'] ?? 0),
-            'modificadores' => array_values(array_map(fn($m)=>['nombre'=>clean($m['nombre'] ?? '')], (array)($it['modificadores'] ?? []))),
-        ];
+        $qty   = max(1, (int)($it['qty'] ?? 1));
+        $base  = (float)($it['precio'] ?? 0);
+        $mods  = [];
+        $modsSum = 0.0;
+        foreach ((array)($it['modificadores'] ?? []) as $m) {
+            $mp = (float)($m['precio'] ?? 0);
+            $mods[] = ['nombre' => clean($m['nombre'] ?? ''), 'precio' => $mp];
+            $modsSum += $mp;
+        }
+        $nota = clean($it['nota'] ?? '');
+        if ($nota !== '') $mods[] = ['nombre' => 'Nota: ' . $nota, 'precio' => 0];
+        $lineUnit = $base + $modsSum;
+        $lineTot  = $lineUnit * $qty;
+        $dt = in_array($it['desc_tipo'] ?? '', ['porcentaje','monto'], true) ? $it['desc_tipo'] : null;
+        $dv = (float)($it['desc_valor'] ?? 0);
+        if ($dt === 'porcentaje') $lineTot -= $lineTot * min(100, max(0, $dv)) / 100;
+        elseif ($dt === 'monto')  $lineTot -= min($lineTot, max(0, $dv));
+        $subtotal += $lineTot;
+        $clean[] = ['qty'=>$qty, 'nombre'=>clean($it['nombre'] ?? ''), 'precio'=>$base,
+                    'modificadores'=>$mods, 'nota'=>$nota, 'desc_tipo'=>$dt, 'desc_valor'=>$dv];
     }
-    $nombre = clean($_POST['cliente_nombre'] ?? '') ?: 'Mostrador';
+    $gdt = in_array($_POST['descuento_tipo'] ?? '', ['porcentaje','monto'], true) ? $_POST['descuento_tipo'] : null;
+    $gdv = cleanFloat($_POST['descuento_valor'] ?? 0);
+    $gMonto = 0.0;
+    if ($gdt === 'porcentaje') $gMonto = $subtotal * min(100, max(0, $gdv)) / 100;
+    elseif ($gdt === 'monto')  $gMonto = min($subtotal, max(0, $gdv));
+    $total = max(0, $subtotal - $gMonto);
+    $cTipo = in_array($_POST['cliente_tipo'] ?? '', ['nombre','dni','ruc'], true) ? $_POST['cliente_tipo'] : null;
+    $cNom  = clean($_POST['cliente_nombre'] ?? '');
+    $cDoc  = preg_replace('/[^0-9A-Za-z]/', '', (string)($_POST['cliente_documento'] ?? ''));
+    $cRaz  = clean($_POST['cliente_razon_social'] ?? '');
     $compro = clean($_POST['comprobante_tipo'] ?? 'ticket');
     if (!in_array($compro, ['ticket','boleta','factura'], true)) $compro = 'ticket';
-    // Total autoritativo recalculado en el servidor desde los ítems (en F1 sin descuento).
-    $total = 0.0;
-    foreach ($clean as $it) { $total += $it['qty'] * $it['precio']; }
-    // Acumular en el bucket del método (efectivo/tarjeta/qr/otros). $bucket es de una whitelist fija (no input).
+    $notas = clean($_POST['notas_pos'] ?? '');
+    $nombre = $cNom ?: 'Mostrador';
     $tipoRow = Database::fetch("SELECT tipo FROM pos_metodos_pago WHERE nombre = ? LIMIT 1", [$metodo]);
     $tipo    = $tipoRow['tipo'] ?? 'otros';
     $bucket  = ['efectivo'=>'total_efectivo','tarjeta'=>'total_tarjeta','qr'=>'total_qr'][$tipo] ?? 'total_otros';
     $pid = Database::insert(
-        "INSERT INTO pedidos (ubicacion_id, nombre, tipo_entrega, items_json, total, estado, metodo_pago, origen, turno_id, comprobante_tipo, aceptado_at, horario)
-         VALUES (?,?, 'recojo', ?, ?, 'en_preparacion', ?, 'pos', ?, ?, NOW(), 'En salón')",
-        [$ubi, $nombre, json_encode($clean, JSON_UNESCAPED_UNICODE), $total, $metodo, $tid, $compro]);
+        "INSERT INTO pedidos (ubicacion_id, nombre, tipo_entrega, items_json, total, estado, metodo_pago, origen, turno_id,
+            comprobante_tipo, descuento_tipo, descuento_valor, descuento_monto,
+            cliente_tipo, cliente_nombre, cliente_documento, cliente_razon_social, notas_pos, aceptado_at, horario)
+         VALUES (?,?, 'recojo', ?, ?, 'en_preparacion', ?, 'pos', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'En salón')",
+        [$ubi, $nombre, json_encode($clean, JSON_UNESCAPED_UNICODE), $total, $metodo, $tid,
+         $compro, $gdt, $gdv, $gMonto, $cTipo, ($cNom ?: null), ($cDoc ?: null), ($cRaz ?: null), ($notas ?: null)]);
     Database::execute("UPDATE pos_turnos SET total_ventas=total_ventas+?, total_pedidos=total_pedidos+1, $bucket=$bucket+? WHERE id=?", [$total, $total, $tid]);
-    pout(['ok'=>true,'id'=>$pid]);
+    pout(['ok'=>true,'id'=>$pid,'total'=>$total]);
+
+case 'producto_mods':
+    $pid = cleanInt($_GET['producto_id'] ?? 0);
+    $grupos = [];
+    try {
+        $grupos = Database::fetchAll(
+            "SELECT g.id, g.nombre, g.tipo, g.max_opciones, g.requerido
+             FROM grupos_modificadores g
+             JOIN product_modifier_groups pmg ON pmg.grupo_id = g.id
+             WHERE pmg.product_id = ? AND g.activo = 1
+             ORDER BY pmg.orden, g.orden, g.id", [$pid]);
+        foreach ($grupos as &$g) {
+            $g['modificadores'] = Database::fetchAll(
+                "SELECT id, nombre, precio_adicional FROM modificadores WHERE grupo_id = ? AND activo = 1 ORDER BY orden, id", [(int)$g['id']]);
+        }
+        unset($g);
+    } catch (Exception $e) { $grupos = []; }
+    pout(['ok'=>true,'grupos'=>$grupos]);
+
+case 'favoritos':
+    $ubi = cleanInt($_GET['ubicacion_id'] ?? 0);
+    pout(['ok'=>true,'data'=>Database::fetchAll(
+        "SELECT f.id, f.producto_id, f.posicion, p.name AS nombre, p.image AS foto
+         FROM pos_favoritos f JOIN products p ON p.id = f.producto_id AND p.active = 1
+         WHERE f.ubicacion_id = ? ORDER BY f.posicion, f.id", [$ubi])]);
+
+case 'fav_set':
+    $ubi = cleanInt($_POST['ubicacion_id'] ?? 0);
+    $prod = cleanInt($_POST['producto_id'] ?? 0);
+    $pos = cleanInt($_POST['posicion'] ?? 0);
+    if (!$ubi || !$prod) pout(['ok'=>false,'error'=>'Datos']);
+    Database::execute("DELETE FROM pos_favoritos WHERE ubicacion_id=? AND posicion=?", [$ubi,$pos]);
+    $id = Database::insert("INSERT INTO pos_favoritos (ubicacion_id,producto_id,posicion) VALUES (?,?,?)", [$ubi,$prod,$pos]);
+    pout(['ok'=>true,'id'=>$id]);
+
+case 'fav_clear':
+    $ubi = cleanInt($_POST['ubicacion_id'] ?? 0);
+    $pos = cleanInt($_POST['posicion'] ?? 0);
+    Database::execute("DELETE FROM pos_favoritos WHERE ubicacion_id=? AND posicion=?", [$ubi,$pos]);
+    pout(['ok'=>true]);
 
 default:
     pout(['ok'=>false,'error'=>'Acción no válida']);
