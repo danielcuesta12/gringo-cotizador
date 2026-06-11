@@ -532,17 +532,16 @@ function toast(msg, type) {
 
 // ── Screen management ──────────────────────────────────
 function showScreen(name) {
+  // Ocultar explícitamente todas (no resetear a '': screen-pick tiene display:flex inline y volvería a verse)
   ['screen-pick','screen-open','screen-sell'].forEach(function(id) {
     var el = document.getElementById(id);
-    el.style.display = '';
     el.classList.remove('active');
+    el.style.display = 'none';
   });
   var target = document.getElementById('screen-' + name);
   if (target) {
     target.classList.add('active');
-    if (name === 'pick') target.style.display = 'flex';
-    if (name === 'open') target.style.display = 'flex';
-    if (name === 'sell') target.style.display = 'flex';
+    target.style.display = 'flex';
   }
 }
 
