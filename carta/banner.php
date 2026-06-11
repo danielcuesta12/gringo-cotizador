@@ -61,11 +61,10 @@ foreach ($rows as $r) {
   .row + .row { border-top:.5mm solid var(--divider); }
   .row-foto { width:60mm; height:60mm; border-radius:7mm; object-fit:cover; flex-shrink:0; background:var(--surface); }
   .row-foto-ph { width:60mm; height:60mm; border-radius:7mm; flex-shrink:0; background:var(--surface); }
-  .row-info { flex:1; min-width:0; }
-  .row-top { display:flex; align-items:baseline; justify-content:space-between; gap:8mm; }
+  .row-main { flex:1; min-width:0; }
   .row-name { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:18mm; text-transform:uppercase; letter-spacing:.5mm; line-height:1; font-weight:700; }
-  .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:16mm; font-weight:700; color:var(--accent); white-space:nowrap; }
-  .row-desc { font-size:15mm; color:var(--muted); line-height:1.3; margin-top:2.5mm; }
+  .row-desc { font-size:14mm; color:var(--muted); line-height:1.3; margin-top:2.5mm; }
+  .row-price { font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:16mm; font-weight:700; color:var(--accent); white-space:nowrap; flex-shrink:0; text-align:right; padding-left:8mm; }
   .printbar { position:fixed; top:10px; right:10px; z-index:10; display:flex; gap:8px; font-family:-apple-system,sans-serif; }
   .printbar button { padding:10px 16px; border:none; border-radius:10px; background:#1A1A1A; color:#fff; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); }
   @media print { .printbar { display:none !important; } }
@@ -93,15 +92,13 @@ foreach ($rows as $r) {
         <?php else: ?>
           <div class="row-foto-ph"></div>
         <?php endif; ?>
-        <div class="row-info">
-          <div class="row-top">
-            <div class="row-name"><?= clean($p['pname']) ?></div>
-            <div class="row-price"><?= formatMoney((float)$p['price']) ?></div>
-          </div>
+        <div class="row-main">
+          <div class="row-name"><?= clean($p['pname']) ?></div>
           <?php if (trim((string)$p['pdesc']) !== ''): ?>
             <div class="row-desc"><?= clean($p['pdesc']) ?></div>
           <?php endif; ?>
         </div>
+        <div class="row-price"><?= formatMoney((float)$p['price']) ?></div>
       </div>
       <?php endforeach; ?>
     </div>
