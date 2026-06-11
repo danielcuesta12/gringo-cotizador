@@ -439,6 +439,102 @@ a{color:inherit;text-decoration:none}
   #screen-sell.active.show-prods #panel-prods{display:flex}
   #screen-sell.active.show-prods #panel-cart{display:none}
 }
+
+/* ── Favorites board ───────────────────────────────────── */
+#fav-board-wrap{
+  display:none;flex:1;overflow-y:auto;padding:10px;
+  flex-direction:column;gap:0;
+}
+#fav-board-wrap.active{display:flex}
+#fav-board-toolbar{
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 2px 8px;gap:8px;
+}
+#fav-board-toolbar span{
+  font-size:12px;color:var(--muted);flex:1;
+}
+#btn-fav-edit{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  transition:all .12s;
+}
+#btn-fav-edit.active{background:rgba(255,223,0,.12);border-color:var(--yellow);color:var(--yellow)}
+#fav-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.fav-cell{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;cursor:pointer;position:relative;
+  transition:border-color .1s,transform .08s;
+  -webkit-tap-highlight-color:transparent;
+}
+.fav-cell:active{transform:scale(.95)}
+.fav-cell.filled{border-color:var(--border)}
+.fav-cell.filled:active{border-color:var(--yellow)}
+.fav-cell.empty{border-style:dashed;cursor:default;}
+.fav-cell.empty.editable{cursor:pointer}
+.fav-cell.empty.editable:hover{border-color:var(--muted)}
+.fav-cell .fav-plus{
+  font-size:22px;color:var(--border);line-height:1;
+}
+.fav-cell.empty.editable .fav-plus{color:var(--muted)}
+.fav-cell img{
+  width:100%;height:60%;object-fit:cover;
+}
+.fav-cell .fav-img-ph{
+  width:100%;height:60%;display:flex;align-items:center;justify-content:center;
+  background:var(--surface2);font-size:20px;
+}
+.fav-cell .fav-nombre{
+  font-size:10px;font-weight:600;color:var(--text);
+  text-align:center;padding:4px 4px 2px;line-height:1.2;
+  width:100%;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+/* Edit-mode overlay badge */
+.fav-cell.edit-mode.filled::after{
+  content:'✕';position:absolute;top:3px;right:4px;
+  font-size:11px;font-weight:800;color:#f87171;
+  background:rgba(200,16,46,.25);border-radius:4px;
+  padding:1px 4px;pointer-events:none;
+}
+
+/* ── Picker modal (product search inside modal) ────────── */
+.picker-search{
+  width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
+  font-size:14px;
+  background-image:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='7' stroke='%238a8078' stroke-width='2'/%3E%3Cpath d='M20 20l-3.5-3.5' stroke='%238a8078' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:10px center;
+}
+.picker-search:focus{outline:none;border-color:var(--yellow)}
+.picker-list{
+  max-height:260px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:4px;
+  margin-top:2px;
+}
+.picker-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  cursor:pointer;transition:border-color .1s,background .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.picker-item:hover,.picker-item:active{border-color:var(--yellow);background:rgba(255,223,0,.06)}
+.picker-item-img{
+  width:36px;height:36px;border-radius:6px;object-fit:cover;flex:0 0 36px;
+}
+.picker-item-ph{
+  width:36px;height:36px;border-radius:6px;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 36px;
+}
+.picker-item-info{flex:1;min-width:0}
+.picker-item-nombre{font-size:13px;font-weight:600;color:var(--text)}
+.picker-item-precio{font-size:12px;color:var(--yellow);font-weight:700}
+.picker-empty{font-size:13px;color:var(--muted);text-align:center;padding:20px 0}
 </style>
 </head>
 <body>
@@ -495,6 +591,14 @@ a{color:inherit;text-decoration:none}
         <div id="prod-grid">
           <div class="prod-empty">Cargando productos…</div>
         </div>
+      </div>
+      <!-- Favorites board (replaces prod-grid-wrap when Favoritos tab is active) -->
+      <div id="fav-board-wrap">
+        <div id="fav-board-toolbar">
+          <span id="fav-board-hint"></span>
+          <button id="btn-fav-edit">Editar</button>
+        </div>
+        <div id="fav-grid"></div>
       </div>
     </div>
 
@@ -597,7 +701,12 @@ var state = {
   activeMetodoId: 0,
   cajaOpen: false,
   descuento: null,
-  notas: ''
+  notas: '',
+  // Favorites board
+  favMap: {},       // posicion (int) → {producto_id, nombre, foto}
+  favEditMode: false,
+  FAV_COLS: 4,
+  FAV_ROWS: 6       // 4×6 = 24 cells, positions 0..23
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -704,6 +813,11 @@ function init() {
   document.getElementById('btn-nota-general').addEventListener('click', function() {
     abrirNotaGeneral();
   });
+  document.getElementById('btn-fav-edit').addEventListener('click', function() {
+    state.favEditMode = !state.favEditMode;
+    updateFavEditBtn();
+    renderFavBoard();
+  });
 }
 
 function setNavActive(id) {
@@ -719,6 +833,10 @@ function onUbiChange(ubiId) {
   state.cart = [];
   state.descuento = null;
   state.notas = '';
+  state.favMap = {};
+  state.favEditMode = false;
+  state.activeCat = 'Todos';
+  hideFavBoard();
   closeCajaPanel();
   if (!ubiId) {
     showScreen('pick');
@@ -818,17 +936,207 @@ function renderCatTabs() {
     var c = p.categoria || 'Sin categoría';
     if (cats.indexOf(c) === -1) cats.push(c);
   });
-  var html = cats.map(function(c) {
+  // Append Favoritos tab at the end
+  cats.push('__favoritos__');
+  var el = document.getElementById('cat-tabs');
+  el.innerHTML = cats.map(function(c) {
+    if (c === '__favoritos__') {
+      return '<button class="cat-tab' + (state.activeCat === '__favoritos__' ? ' active' : '') + '" data-cat="__favoritos__" style="display:flex;align-items:center;gap:5px">'
+        + '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>'
+        + 'Favoritos</button>';
+    }
     return '<button class="cat-tab' + (c === state.activeCat ? ' active' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
   }).join('');
-  var el = document.getElementById('cat-tabs');
-  el.innerHTML = html;
   el.querySelectorAll('.cat-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      state.activeCat = this.dataset.cat;
+      var cat = this.dataset.cat;
+      state.activeCat = cat;
       el.querySelectorAll('.cat-tab').forEach(function(b) { b.classList.remove('active'); });
       this.classList.add('active');
-      renderProductos();
+      if (cat === '__favoritos__') {
+        showFavBoard();
+      } else {
+        hideFavBoard();
+        renderProductos();
+      }
+    });
+  });
+}
+
+function showFavBoard() {
+  document.getElementById('prod-grid-wrap').style.display = 'none';
+  document.getElementById('prod-search-wrap').style.display = 'none';
+  var wrap = document.getElementById('fav-board-wrap');
+  wrap.classList.add('active');
+  state.favEditMode = false;
+  updateFavEditBtn();
+  loadFavoritos();
+}
+
+function hideFavBoard() {
+  document.getElementById('prod-grid-wrap').style.display = '';
+  document.getElementById('prod-search-wrap').style.display = '';
+  var wrap = document.getElementById('fav-board-wrap');
+  wrap.classList.remove('active');
+  state.favEditMode = false;
+}
+
+function updateFavEditBtn() {
+  var btn = document.getElementById('btn-fav-edit');
+  var hint = document.getElementById('fav-board-hint');
+  if (state.favEditMode) {
+    btn.textContent = 'Listo';
+    btn.classList.add('active');
+    hint.textContent = 'Toca celda para cambiar o quitar';
+  } else {
+    btn.textContent = 'Editar';
+    btn.classList.remove('active');
+    hint.textContent = '';
+  }
+}
+
+function loadFavoritos() {
+  if (!state.ubicacionId) return;
+  apiGet('favoritos', { ubicacion_id: state.ubicacionId }).then(function(res) {
+    state.favMap = {};
+    if (res.ok && res.data) {
+      res.data.forEach(function(fav) {
+        state.favMap[parseInt(fav.posicion, 10)] = {
+          producto_id: parseInt(fav.producto_id, 10),
+          nombre: fav.nombre,
+          foto: fav.foto || ''
+        };
+      });
+    }
+    renderFavBoard();
+  }).catch(function() { toast('Error cargando favoritos', 'err'); });
+}
+
+function renderFavBoard() {
+  var total = state.FAV_COLS * state.FAV_ROWS; // 24
+  var html = '';
+  for (var pos = 0; pos < total; pos++) {
+    var fav = state.favMap[pos];
+    if (fav) {
+      var imgHtml;
+      if (fav.foto) {
+        imgHtml = '<img src="' + esc(UPLOAD_URL + fav.foto) + '" alt="' + esc(fav.nombre) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+                + '<div class="fav-img-ph" style="display:none">&#127828;</div>';
+      } else {
+        imgHtml = '<div class="fav-img-ph">&#127828;</div>';
+      }
+      html += '<div class="fav-cell filled' + (state.favEditMode ? ' edit-mode' : '') + '" data-pos="' + pos + '">'
+            + imgHtml
+            + '<div class="fav-nombre">' + esc(fav.nombre) + '</div>'
+            + '</div>';
+    } else {
+      html += '<div class="fav-cell empty' + (state.favEditMode ? ' editable' : '') + '" data-pos="' + pos + '">'
+            + '<span class="fav-plus">+</span>'
+            + '</div>';
+    }
+  }
+  var grid = document.getElementById('fav-grid');
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.fav-cell').forEach(function(cell) {
+    cell.addEventListener('click', function() {
+      var pos = parseInt(this.dataset.pos, 10);
+      var fav = state.favMap[pos];
+      if (state.favEditMode) {
+        if (fav) {
+          // Confirm removal
+          abrirFavQuitarModal(pos, fav);
+        } else {
+          // Pick a product to assign
+          abrirPickerProducto(pos);
+        }
+      } else {
+        if (fav) {
+          // Sell the product
+          var prod = state.productos.find(function(p) { return p.id === fav.producto_id; });
+          var precio = prod ? parseFloat(prod.precio) : 0;
+          abrirItemModal({ id: fav.producto_id, nombre: fav.nombre, precio: precio }, undefined);
+        }
+        // Empty cell in non-edit mode: do nothing
+      }
+    });
+  });
+}
+
+function abrirFavQuitarModal(posicion, fav) {
+  var modal = document.getElementById('modal-content');
+  modal.innerHTML = '<h3>' + esc(fav.nombre) + '</h3>'
+    + '<p>¿Quitarlo de los favoritos?</p>'
+    + '<div class="modal-row">'
+    + '<button class="btn-modal-cancel" id="fq-cancel">Cancelar</button>'
+    + '<button class="btn-modal-ok" id="fq-quitar" style="background:var(--red);color:#fff">Quitar</button>'
+    + '</div>';
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById('fq-cancel').addEventListener('click', closeModal);
+  document.getElementById('fq-quitar').addEventListener('click', function() {
+    closeModal();
+    apiPost('fav_clear', { ubicacion_id: state.ubicacionId, posicion: posicion }).then(function(res) {
+      if (!res.ok) { toast('Error al quitar favorito', 'err'); return; }
+      loadFavoritos();
+    }).catch(function() { toast('Error de red', 'err'); });
+  });
+}
+
+function abrirPickerProducto(posicion) {
+  var modal = document.getElementById('modal-content');
+  modal.innerHTML = '<h3>Agregar a favoritos</h3>'
+    + '<input class="picker-search" type="text" id="picker-q" placeholder="Buscar producto…" autocomplete="off" autocorrect="off" spellcheck="false">'
+    + '<div class="picker-list" id="picker-list"></div>'
+    + '<div class="modal-row" style="margin-top:8px">'
+    + '<button class="btn-modal-cancel" id="picker-cancel">Cancelar</button>'
+    + '</div>';
+  document.getElementById('overlay').classList.add('active');
+  renderPickerList('', posicion);
+  var inp = document.getElementById('picker-q');
+  inp.focus();
+  inp.addEventListener('input', function() {
+    renderPickerList(this.value.trim().toLowerCase(), posicion);
+  });
+  document.getElementById('picker-cancel').addEventListener('click', closeModal);
+}
+
+function renderPickerList(q, posicion) {
+  var list = document.getElementById('picker-list');
+  if (!list) return;
+  var prods = q
+    ? state.productos.filter(function(p) { return p.nombre.toLowerCase().indexOf(q) !== -1; })
+    : state.productos;
+  if (!prods.length) {
+    list.innerHTML = '<div class="picker-empty">Sin resultados</div>';
+    return;
+  }
+  list.innerHTML = prods.slice(0, 40).map(function(p) {
+    var imgHtml;
+    if (p.foto) {
+      imgHtml = '<img class="picker-item-img" src="' + esc(UPLOAD_URL + p.foto) + '" alt="' + esc(p.nombre) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+              + '<div class="picker-item-ph" style="display:none">&#127828;</div>';
+    } else {
+      imgHtml = '<div class="picker-item-ph">&#127828;</div>';
+    }
+    return '<div class="picker-item" data-id="' + esc(p.id) + '">'
+          + imgHtml
+          + '<div class="picker-item-info">'
+          + '<div class="picker-item-nombre">' + esc(p.nombre) + '</div>'
+          + '<div class="picker-item-precio">' + fmt(p.precio) + '</div>'
+          + '</div></div>';
+  }).join('');
+  list.querySelectorAll('.picker-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var prodId = parseInt(this.dataset.id, 10);
+      closeModal();
+      apiPost('fav_set', {
+        ubicacion_id: state.ubicacionId,
+        producto_id: prodId,
+        posicion: posicion
+      }).then(function(res) {
+        if (!res.ok) { toast('Error al guardar favorito', 'err'); return; }
+        loadFavoritos();
+      }).catch(function() { toast('Error de red', 'err'); });
     });
   });
 }
@@ -1573,6 +1881,9 @@ function cerrarTurno(montoFinal) {
     state.cajaOpen = false;
     state.descuento = null;
     state.notas = '';
+    state.favMap = {};
+    state.favEditMode = false;
+    hideFavBoard();
     closeCajaPanel();
     disableNavCaja(true);
     updateCajaEstado(null);
