@@ -27,8 +27,20 @@ if ($salesMode === 'izipay') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="noche">
 <head>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('carta_theme');
+      var theme = (saved === 'dia' || saved === 'noche') ? saved : null;
+      if (!theme) { var h = new Date().getHours(); theme = (h >= 18 || h < 7) ? 'noche' : 'dia'; }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'noche');
+    }
+  })();
+</script>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="/img/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,42 +59,91 @@ if ($salesMode === 'izipay') {
 }
     @font-face {
       font-family: 'ArialNarrowBold';
-      src: url('/marcona/fonts/Arial_Narrow_Bold.ttf') format('truetype');
+      src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
       font-display: swap;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --yellow: #FCDA13;
-      --dark:   #1A1A1A;
-      --card:   #242424;
-      --card2:  #2c2c2c;
-      --text:   #FFFFFF;
-      --muted:  #999999;
-      --dim:    #666666;
-      --pink:   #FAB8C0;
-      --border: rgba(255,255,255,0.08);
-      --font:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    html[data-theme="noche"] {
+      --bg:        #1A1A1A;
+      --bg-deep:   #111111;
+      --surface:   #242424;
+      --surface-2: #2a2a2a;
+      --surface-3: #333333;
+      --sheet:     #1e1e1e;
+      --text:      #FFFFFF;
+      --text-soft: #aaaaaa;
+      --muted:     #999999;
+      --dim:       #666666;
+      --faint:     #444444;
+      --accent:    #FCDA13;
+      --accent-ink:#1A1A1A;
+      --accent-tint: rgba(252,218,19,.15);
+      --accent-tint-strong: rgba(252,218,19,.7);
+      --pink:      #FAB8C0;
+      --pink-tint: rgba(250,184,192,.2);
+      --green:     #34d399;
+      --green-tint: rgba(52,211,153,.15);
+      --error:     #e53935;
+      --border:    rgba(255,255,255,0.08);
+      --hairline:  rgba(255,255,255,0.06);
+      --overlay:   rgba(0,0,0,0.72);
+      --on-accent-soft: rgba(0,0,0,0.12);
+      --header-bg: var(--accent);
+      --header-text: var(--accent-ink);
+    }
+    html[data-theme="dia"] {
+      --bg:        #FFEFBC;
+      --bg-deep:   #f6e2a8;
+      --surface:   #ffffff;
+      --surface-2: #f1ede2;
+      --surface-3: #e4ddca;
+      --sheet:     #ffffff;
+      --text:      #1E1E1E;
+      --text-soft: #6f6750;
+      --muted:     #7a6f55;
+      --dim:       #8a7d63;
+      --faint:     #b3a888;
+      --accent:    #1E1E1E;
+      --accent-ink:#FFEFBC;
+      --accent-tint: rgba(30,30,30,.08);
+      --accent-tint-strong: rgba(30,30,30,.6);
+      --pink:      #b03a63;
+      --pink-tint: #FFBBC8;
+      --green:     #1f8a4c;
+      --green-tint: rgba(31,138,76,.14);
+      --error:     #c0392b;
+      --border:    rgba(30,30,30,0.14);
+      --hairline:  rgba(30,30,30,0.10);
+      --overlay:   rgba(30,20,0,0.45);
+      --on-accent-soft: rgba(255,239,188,0.7);
+      --header-bg: #1E1E1E;
+      --header-text: #FFEFBC;
     }
 
     html { scroll-behavior: smooth; }
     body {
-      background: var(--dark); color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: var(--font); font-size: 15px; line-height: 1.5;
       min-height: 100dvh; -webkit-font-smoothing: antialiased;
     }
 
     /* HEADER */
     header {
-      background: var(--yellow); padding: 12px 20px;
+      background: var(--header-bg); padding: 12px 20px;
       display: flex; align-items: center; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
-    .logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0); }
+    .logo { height: 40px; width: auto; object-fit: contain; }
+    html[data-theme="noche"] .logo { filter: brightness(0); }
+    html[data-theme="dia"]   .logo { filter: brightness(0) invert(1); }
     .schedule-badge {
       font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
-      background: rgba(0,0,0,0.12); color: #1A1A1A; letter-spacing: 0.03em;
+      background: var(--on-accent-soft); color: var(--header-text); letter-spacing: 0.03em;
       display: flex; align-items: center; gap: 6px;
     }
     .schedule-dot {
@@ -101,15 +162,15 @@ if ($salesMode === 'izipay') {
       100% { opacity: 0; }
     }
     .ig-link {
-      margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
-      color: #1A1A1A; text-decoration: none; font-size: 13px; font-weight: 700;
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--header-text); text-decoration: none; font-size: 13px; font-weight: 700;
     }
-    .ig-link svg { width: 18px; height: 18px; fill: #1A1A1A; }
+    .ig-link svg { width: 18px; height: 18px; fill: var(--header-text); }
 
     /* AVISO TIENDA CERRADA */
     #cerrado-toast {
       position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%) translateY(16px);
-      background: #1e1e1e; color: #fff; border: 1px solid #dc2626;
+      background: var(--sheet); color: var(--text); border: 1px solid #dc2626;
       padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
       z-index: 700; opacity: 0; pointer-events: none; max-width: 90%;
       display: flex; align-items: center; gap: 8px; transition: opacity .25s, transform .25s;
@@ -129,7 +190,7 @@ if ($salesMode === 'izipay') {
     .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
     .spinner {
       width: 28px; height: 28px;
-      border: 2.5px solid rgba(255,255,255,.1); border-top-color: var(--yellow);
+      border: 2.5px solid var(--hairline); border-top-color: var(--accent);
       border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -146,7 +207,7 @@ if ($salesMode === 'izipay') {
     /* PRODUCT ITEM */
     .item {
       display: flex; align-items: center; gap: 12px;
-      background: var(--card); border-radius: 12px; padding: 14px;
+      background: var(--surface); border-radius: 12px; padding: 14px;
       margin-bottom: 10px; min-height: 80px;
       opacity: 0; transform: translateY(8px);
       animation: slideUp .4s cubic-bezier(.16,1,.3,1) forwards;
@@ -156,12 +217,12 @@ if ($salesMode === 'izipay') {
 
     .item-foto {
       width: 72px; height: 80px; border-radius: 8px;
-      object-fit: cover; background: #2a2a2a;
+      object-fit: cover; background: var(--surface-2);
     }
     .item-info { flex: 1; min-width: 0; padding: 10px; }
     .item-name { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.2; margin-bottom: 3px; }
     .item-desc { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .item-price { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 19px; font-weight: 700; color: #FCDA13; margin-top: 5px; white-space: nowrap; }
+    .item-price { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 19px; font-weight: 700; color: var(--accent); margin-top: 5px; white-space: nowrap; }
     .item-right { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 10px; flex-shrink: 0; }
 
     .item-badge {
@@ -170,9 +231,9 @@ if ($salesMode === 'izipay') {
       font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px;
     }
-    .item-badge.popular     { background: rgba(252,218,19,.15); color: var(--yellow); }
-    .item-badge.nuevo       { background: rgba(52,211,153,.15); color: #34d399; }
-    .item-badge.recomendado { background: rgba(250,184,192,.2);  color: var(--pink); }
+    .item-badge.popular     { background: var(--accent-tint); color: var(--accent); }
+    .item-badge.nuevo       { background: var(--green-tint); color: var(--green); }
+    .item-badge.recomendado { background: var(--pink-tint);  color: var(--pink); }
 
     /* VARIANT ITEMS */
     .item-parent {
@@ -190,7 +251,7 @@ if ($salesMode === 'izipay') {
     .qty-ctrl { display: flex; align-items: center; flex-shrink: 0; }
     .qty-btn {
       width: 32px; height: 32px; border-radius: 50%; border: none;
-      background: #FCDA13; color: #1A1A1A;
+      background: var(--accent); color: var(--accent-ink);
       font-size: 20px; font-weight: 900; cursor: pointer;
       display: flex; align-items: center; justify-content: center; line-height: 1;
       transition: background .15s, transform .1s; flex-shrink: 0;
@@ -200,7 +261,7 @@ if ($salesMode === 'izipay') {
     .qty-ctrl:has(.qty-btn.has-items) .qty-btn[aria-label="Quitar"] { width: 28px; opacity: 1; font-size: 18px; }
     .qty-ctrl:has(.qty-btn.has-items) .qty-btn[aria-label="Agregar"] { width: 28px; height: 28px; font-size: 18px; }
     .qty-num {
-      font-size: 16px; font-weight: 700; color: #fff;
+      font-size: 16px; font-weight: 700; color: var(--text);
       width: 0; overflow: hidden; text-align: center; opacity: 0;
       transition: width .2s cubic-bezier(.32,.72,0,1), opacity .15s;
     }
@@ -208,16 +269,16 @@ if ($salesMode === 'izipay') {
 
     /* PROMO BAR */
     .promo-bar {
-      background: rgba(252,218,19,.06); border: 1px solid rgba(252,218,19,.15);
+      background: var(--accent-tint); border: 1px solid var(--border);
       border-radius: 10px; padding: 10px 14px;
       font-size: 12px; color: var(--muted); margin-bottom: 24px; line-height: 1.5;
     }
-    .promo-bar span { color: var(--yellow); font-weight: 700; }
+    .promo-bar span { color: var(--accent); font-weight: 700; }
 
 /* CARRITO MOBILE */
     .carrito-mobile {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-      background: #1e1e1e; border-top: 1px solid var(--border);
+      background: var(--sheet); border-top: 1px solid var(--border);
       border-radius: 18px 18px 0 0; padding: 0 16px;
       transform: translateY(100%);
       transition: transform .35s cubic-bezier(.32,.72,0,1);
@@ -229,12 +290,13 @@ if ($salesMode === 'izipay') {
       padding: 14px 4px; cursor: pointer; min-height: 60px;
     }
     .carrito-mobile-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+    .carrito-mobile-label svg { color: var(--accent); }
     .carrito-hint { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .carrito-mobile-total { font-size: 18px; font-weight: 800; color: var(--yellow); }
+    .carrito-mobile-total { font-size: 18px; font-weight: 800; color: var(--accent); }
     .carrito-mobile-items { max-height: 0; overflow: hidden; transition: max-height .35s cubic-bezier(.32,.72,0,1); }
     .carrito-mobile-items.open { max-height: 320px; overflow-y: auto; padding-bottom: 16px; }
     .carrito-badge {
-      background: var(--yellow); color: #1A1A1A;
+      background: var(--accent); color: var(--accent-ink);
       font-size: 11px; font-weight: 800;
       border-radius: 999px; padding: 2px 8px; min-width: 22px; text-align: center;
     }
@@ -243,7 +305,7 @@ if ($salesMode === 'izipay') {
     .carrito-item-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
     .carrito-item-row:last-child { border-bottom: none; }
     .carrito-item-name  { font-size: 13px; color: var(--muted); font-weight: 500; flex: 1; }
-    .carrito-item-price { font-size: 13px; color: var(--yellow); font-weight: 700; }
+    .carrito-item-price { font-size: 13px; color: var(--accent); font-weight: 700; }
 
     /* WA + VACIAR BUTTONS */
     .btn-wa {
@@ -257,18 +319,19 @@ if ($salesMode === 'izipay') {
     .btn-pay {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 13px 16px; border-radius: 10px; border: none;
-      background: #1A1A1A; color: #fff; font-size: 14px; font-weight: 700;
+      background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700;
       cursor: pointer; margin-top: 12px; transition: background .15s, transform .1s;
     }
-    .btn-pay:hover  { background: #000; }
+    html[data-theme="dia"] .btn-pay { background: #1E1E1E; color: #ffffff; }
+    .btn-pay:hover  { background: var(--bg-deep); }
     .btn-pay:active { transform: scale(.98); }
-    .btn-pay svg    { width: 18px; height: 18px; fill: none; stroke: #fff; }
+    .btn-pay svg    { width: 18px; height: 18px; fill: none; stroke: var(--text); }
     .btn-vaciar {
       width: 100%; padding: 9px; border-radius: 8px; border: none;
       background: transparent; color: var(--dim); font-size: 12px;
       cursor: pointer; margin-top: 6px; transition: color .15s;
     }
-    .btn-vaciar:hover { color: #e53935; }
+    .btn-vaciar:hover { color: var(--error); }
 
     /* CARRITO DESKTOP */
     .carrito-desktop { display: none; }
@@ -276,7 +339,7 @@ if ($salesMode === 'izipay') {
       .carrito-desktop { display: block; width: 220px; flex-shrink: 0; }
       .carrito-desktop-inner {
         position: sticky; top: 80px;
-        background: #1e1e1e; border-radius: 16px; padding: 18px 16px; margin-top: 24px;
+        background: var(--sheet); border-radius: 16px; padding: 18px 16px; margin-top: 24px;
         border: 1px solid var(--border);
         max-height: calc(100dvh - 100px); overflow-y: auto;
         display: flex; flex-direction: column;
@@ -289,7 +352,7 @@ if ($salesMode === 'izipay') {
       .carrito-desktop-items { flex: 1; }
       .carrito-desktop-total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
       .carrito-desktop-total-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-      .carrito-desktop-total-val   { color: var(--yellow); font-size: 20px; font-weight: 800; }
+      .carrito-desktop-total-val   { color: var(--accent); font-size: 20px; font-weight: 800; }
     }
 
     /* FOOTER */
@@ -319,9 +382,9 @@ if ($salesMode === 'izipay') {
       visibility: hidden; pointer-events: none;
       background: rgba(0,0,0,0); transition: background .25s;
     }
-    .detail-overlay.open { background: rgba(0,0,0,0.72); visibility: visible; pointer-events: auto; }
+    .detail-overlay.open { background: var(--overlay); visibility: visible; pointer-events: auto; }
     .detail-sheet {
-      background: #1e1e1e; border-radius: 20px 20px 0 0;
+      background: var(--sheet); border-radius: 20px 20px 0 0;
       width: 100%; max-width: 600px; max-height: 90dvh;
       overflow-y: auto; -webkit-overflow-scrolling: touch;
       transform: translateY(100%);
@@ -339,27 +402,27 @@ if ($salesMode === 'izipay') {
       .detail-overlay.open .detail-sheet { transform: scale(1) translateY(0); opacity: 1; }
     }
     .detail-top {
-      position: sticky; top: 0; z-index: 10; background: #1e1e1e;
+      position: sticky; top: 0; z-index: 10; background: var(--sheet);
       display: flex; align-items: center; justify-content: center;
       padding: 10px 14px 6px;
     }
     .detail-handle {
       width: 36px; height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.18); flex: 1; max-width: 36px; margin: 0 auto;
+      background: var(--hairline); flex: 1; max-width: 36px; margin: 0 auto;
     }
     .detail-close {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(255,255,255,0.1); border: none; color: #fff;
+      background: var(--border); border: none; color: var(--text);
       font-size: 20px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background .15s;
     }
-    .detail-close:hover { background: rgba(255,255,255,0.18); }
+    .detail-close:hover { background: var(--hairline); }
     @media (min-width: 700px) { .detail-handle { display: none; } }
     .detail-img { width: 100%; aspect-ratio: 4/3; height: auto; object-fit: cover; display: block; }
     .detail-img-placeholder {
-      width: 100%; aspect-ratio: 4/3; background: #2a2a2a;
+      width: 100%; aspect-ratio: 4/3; background: var(--surface-2);
       display: flex; align-items: center; justify-content: center;
     }
     .detail-body { padding: 18px 20px 12px; }
@@ -368,70 +431,70 @@ if ($salesMode === 'izipay') {
       border-radius: 999px; font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px;
     }
-    .detail-modal-badge.popular     { background: rgba(252,218,19,.15); color: #FCDA13; }
-    .detail-modal-badge.nuevo       { background: rgba(52,211,153,.15); color: #34d399; }
-    .detail-modal-badge.recomendado { background: rgba(250,184,192,.2);  color: #FAB8C0; }
+    .detail-modal-badge.popular     { background: var(--accent-tint); color: var(--accent); }
+    .detail-modal-badge.nuevo       { background: var(--green-tint); color: var(--green); }
+    .detail-modal-badge.recomendado { background: var(--pink-tint);  color: var(--pink); }
     .detail-modal-name {
       font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 26px;
       text-transform: uppercase; letter-spacing: 1.5px;
-      line-height: 1.1; color: #fff; margin-bottom: 14px;
+      line-height: 1.1; color: var(--text); margin-bottom: 14px;
     }
-    .detail-modal-price-single { display: inline-block; font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 18px; font-weight: 700; background: #FCDA13; color: #1A1A1A; padding: 6px 18px; border-radius: 20px; margin-bottom: 16px; }
-    .detail-modal-variants { margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+    .detail-modal-price-single { display: inline-block; font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 18px; font-weight: 700; background: var(--accent); color: var(--accent-ink); padding: 6px 18px; border-radius: 20px; margin-bottom: 16px; }
+    .detail-modal-variants { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
     .detail-modal-variant-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 11px 14px; border-bottom: 1px solid var(--border);
       font-size: 14px; cursor: pointer; transition: background .12s;
     }
     .detail-modal-variant-row:last-child { border-bottom: none; }
-    .detail-modal-variant-row:hover { background: rgba(255,255,255,0.04); }
-    .detail-modal-variant-row.selected { background: rgba(252,218,19,0.07); }
-    .detail-modal-variant-name { color: #fff; font-weight: 600; }
-    .detail-modal-variant-price { color: #FCDA13; font-weight: 800; }
+    .detail-modal-variant-row:hover { background: var(--hairline); }
+    .detail-modal-variant-row.selected { background: var(--accent-tint); }
+    .detail-modal-variant-name { color: var(--text); font-weight: 600; }
+    .detail-modal-variant-price { color: var(--accent); font-weight: 800; }
     .mods-section { margin: 0 0 18px; }
     .mods-group-label {
-      font-size: 11px; font-weight: 700; color: #FCDA13;
+      font-size: 11px; font-weight: 700; color: var(--accent);
       text-transform: uppercase; letter-spacing: .08em;
       margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
     .mods-required-tag {
       font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
-      background: rgba(252,218,19,.12); color: #FCDA13; padding: 2px 6px; border-radius: 999px;
+      background: var(--accent-tint); color: var(--accent); padding: 2px 6px; border-radius: 999px;
     }
     .mods-count-tag {
-      font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);
-      background: rgba(255,255,255,0.07); padding: 2px 7px; border-radius: 999px; margin-left: auto;
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      background: var(--hairline); padding: 2px 7px; border-radius: 999px; margin-left: auto;
     }
     .mods-group-wrap { margin-bottom: 16px; }
-    .mods-group-wrap.mods-error .mods-options { outline: 1.5px solid #e53935; border-radius: 8px; }
+    .mods-group-wrap.mods-error .mods-options { outline: 1.5px solid var(--error); border-radius: 8px; }
     .mods-options { display: flex; flex-wrap: wrap; gap: 8px; }
     .mod-option {
       display: flex; align-items: center; gap: 6px;
       padding: 9px 16px; cursor: pointer;
-      background: #2a2a2a; border: 1.5px solid #333;
+      background: var(--surface-2); border: 1.5px solid var(--surface-3);
       border-radius: 10px; transition: all .15s;
-      color: #fff; font-size: 14px; font-weight: 600;
+      color: var(--text); font-size: 14px; font-weight: 600;
       white-space: nowrap;
     }
     .mod-option:active { transform: scale(0.96); }
     .mod-option.selected {
-      border-color: #FCDA13;
-      background: rgba(252,218,19,.10);
-      color: #FCDA13;
+      border-color: var(--accent);
+      background: var(--accent-tint);
+      color: var(--accent);
     }
     .mod-option-name { font-size: 14px; line-height: 1.2; }
-    .mod-option-price { font-size: 12px; font-weight: 700; color: #888; }
-    .mod-option.selected .mod-option-price { color: rgba(252,218,19,0.7); }
+    .mod-option-price { font-size: 12px; font-weight: 700; color: var(--dim); }
+    .mod-option.selected .mod-option-price { color: var(--accent-tint-strong); }
     .mod-option.mod-disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
-    .detail-modal-desc { font-size: 15px; color: #aaa; line-height: 1.6; margin-bottom: 14px; }
+    .detail-modal-desc { font-size: 15px; color: var(--text-soft); line-height: 1.6; margin-bottom: 14px; }
     .detail-modal-footer {
-      position: sticky; bottom: 0; background: #1e1e1e;
+      position: sticky; bottom: 0; background: var(--sheet);
       padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
-      border-top: 1px solid rgba(255,255,255,0.07);
+      border-top: 1px solid var(--hairline);
     }
     .btn-add-cart {
       width: 100%; padding: 14px; border-radius: 12px;
-      background: #FCDA13; color: #1A1A1A; border: none;
+      background: var(--accent); color: var(--accent-ink); border: none;
       font-size: 16px; font-weight: 800; cursor: pointer;
       transition: opacity .15s, transform .1s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -442,10 +505,10 @@ if ($salesMode === 'izipay') {
 
     /* CATEGORY BAR */
     .category-bar {
-      background: #111; position: sticky; z-index: 90;
+      background: var(--bg-deep); position: sticky; z-index: 90;
       display: flex; align-items: center; gap: 8px;
       padding: 0 12px; overflow: hidden;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid var(--hairline);
     }
     .cat-pills {
       display: flex; gap: 6px; overflow-x: auto; padding: 10px 0;
@@ -455,29 +518,29 @@ if ($salesMode === 'izipay') {
     .cat-pill {
       flex-shrink: 0; padding: 6px 14px; border-radius: 999px;
       font-size: 14px; font-weight: 700; cursor: pointer;
-      background: #2a2a2a; color: #888; border: none;
+      background: var(--surface-2); color: var(--dim); border: none;
       transition: background .15s, color .15s; letter-spacing: .02em;
       white-space: nowrap;
     }
     .cat-pill:active { transform: scale(.97); }
-    .cat-pill.active { background: #FCDA13; color: #1A1A1A; }
+    .cat-pill.active { background: var(--accent); color: var(--accent-ink); }
     /* SEARCH BAR */
-    .search-bar { position: sticky; z-index: 89; background: #1A1A1A; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .search-bar-inner { display: flex; align-items: center; gap: 10px; background: #242424; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 14px; }
-    .search-bar-inner svg { flex-shrink: 0; color: #666; }
-    .search-bar-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 14px; font-family: inherit; }
-    .search-bar-input::placeholder { color: #555; }
+    .search-bar { position: sticky; z-index: 89; background: var(--bg); padding: 8px 14px; border-bottom: 1px solid var(--hairline); }
+    .search-bar-inner { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; }
+    .search-bar-inner svg { flex-shrink: 0; color: var(--dim); }
+    .search-bar-input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 14px; font-family: inherit; }
+    .search-bar-input::placeholder { color: var(--faint); }
     /* LIKE BUTTON */
     .detail-media-wrap { position: relative; }
     @keyframes likePop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .like-btn { width: 100%; padding: 8px 16px; border-radius: 20px; background: #2a2a2a; color: #fff; border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color .15s, color .15s; margin-top: 16px; letter-spacing: .01em; }
-    .like-btn.liked { border-color: #FCDA13; color: #FCDA13; }
+    .like-btn { width: 100%; padding: 8px 16px; border-radius: 20px; background: var(--surface-2); color: var(--text); border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color .15s, color .15s; margin-top: 16px; letter-spacing: .01em; }
+    .like-btn.liked { border-color: var(--accent); color: var(--accent); }
     .like-btn:active { opacity: .85; }
     .like-btn.pop { animation: likePop 150ms cubic-bezier(.32,.72,0,1); }
-    .like-btn svg { stroke: #fff; fill: none; transition: stroke .15s, fill .15s; flex-shrink: 0; }
-    .like-btn.liked svg { stroke: #FCDA13; fill: #FCDA13; }
-    .like-count-chip { margin-left: auto; font-size: 12px; color: #666; min-width: 0; }
-    .like-btn.liked .like-count-chip { color: rgba(252,218,19,0.7); }
+    .like-btn svg { stroke: var(--text); fill: none; transition: stroke .15s, fill .15s; flex-shrink: 0; }
+    .like-btn.liked svg { stroke: var(--accent); fill: var(--accent); }
+    .like-count-chip { margin-left: auto; font-size: 12px; color: var(--dim); min-width: 0; }
+    .like-btn.liked .like-count-chip { color: var(--accent-tint-strong); }
     /* SKELETON */
     @keyframes shimmer {
       0%   { background-position: -200% 0; }
@@ -485,23 +548,23 @@ if ($salesMode === 'izipay') {
     }
     .loading { padding: 16px 16px 0; }
     .skel-card {
-      display: flex; gap: 12px; background: #242424;
+      display: flex; gap: 12px; background: var(--surface);
       border-radius: 12px; padding: 14px; margin-bottom: 10px;
     }
     .skel-foto {
       width: 72px; height: 80px; border-radius: 8px; flex-shrink: 0;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite;
     }
     .skel-info { flex:1; display:flex; flex-direction:column; gap:8px; justify-content:center; }
     .skel-name {
       height: 16px; border-radius: 4px; width: 65%;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite;
     }
     .skel-desc {
       height: 12px; border-radius: 4px; width: 45%;
-      background: linear-gradient(90deg,#2a2a2a 25%,#333 50%,#2a2a2a 75%);
+      background: linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
       background-size: 200% 100%; animation: shimmer 1.4s infinite .12s;
     }
     #carta-content { animation: fadeIn .35s ease; }
@@ -510,13 +573,25 @@ if ($salesMode === 'izipay') {
     .item-foto-wrap { position: relative; flex-shrink: 0; }
     .foto-qty-badge {
       position: absolute; top: -6px; right: -6px;
-      background: #FCDA13; color: #1A1A1A;
+      background: var(--accent); color: var(--accent-ink);
       font-size: 11px; font-weight: 800;
       width: 20px; height: 20px; border-radius: 50%;
       display: none; align-items: center; justify-content: center;
       pointer-events: none;
     }
-    .item.in-cart { border-left: 3px solid #FCDA13; }
+    .item.in-cart { border-left: 3px solid var(--accent); }
+    .theme-toggle {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: var(--on-accent-soft); color: var(--header-text);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-toggle .ico-sol  { display: none; }
+    .theme-toggle .ico-luna { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-sol  { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-luna { display: none; }
   </style>
 <?php if ($izEnabled): ?>
   <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
@@ -549,12 +624,18 @@ if ($salesMode === 'izipay') {
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
     <div id="schedule-badge" class="schedule-badge"></div>
-    <?php if ($ig): ?>
-    <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-      @<?= clean($ig) ?>
-    </a>
-    <?php endif; ?>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" type="button">
+        <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <?php if ($ig): ?>
+      <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        @<?= clean($ig) ?>
+      </a>
+      <?php endif; ?>
+    </div>
   </header>
 
   <div class="category-bar" id="category-bar" style="top:64px">
@@ -610,7 +691,7 @@ if ($salesMode === 'izipay') {
     <div class="carrito-mobile-top" onclick="toggleCarritoMobile()">
       <div>
         <div class="carrito-mobile-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FCDA13" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
           Tu pedido
           <span class="carrito-badge" id="mobile-badge">0</span>
         </div>
@@ -1791,6 +1872,12 @@ function cambiar(id, nombre, precio, delta) {
   function reintentarPago(){ document.getElementById('modal-error-pago').style.display='none'; document.getElementById('modal-izipay').style.display='flex'; }
   function cancelarPago()  { document.getElementById('modal-error-pago').style.display='none'; }
 <?php endif; ?>
+    function toggleTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') === 'dia' ? 'dia' : 'noche';
+      var next = cur === 'dia' ? 'noche' : 'dia';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('carta_theme', next); } catch (e) {}
+    }
   </script>
 
 <?php if ($salesMode === 'izipay'): ?>
