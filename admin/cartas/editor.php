@@ -89,16 +89,19 @@ include __DIR__ . '/../layout-top.php';
         <button type="button" class="btn btn-ghost btn-sm" onclick="aplicarPreset('noche')">🌙 Noche</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="aplicarPreset('dia')">☀️ Crema</button>
       </div>
+      <datalist id="brandcolors">
+        <option value="#FFEFBC"></option><option value="#FFBBC8"></option><option value="#FFDF00"></option><option value="#1E1E1E"></option><option value="#FFFFFF"></option>
+      </datalist>
       <div class="ed-colorgrid">
-        <label class="ed-color"><span>Fondo</span><input type="color" id="c-bg" value="#161412" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Tarjeta / foto</span><input type="color" id="c-surface" value="#211e1b" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Texto</span><input type="color" id="c-text" value="#ffffff" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Texto tenue</span><input type="color" id="c-muted" value="#9a9089" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Acento (precio)</span><input type="color" id="c-accent" value="#FFDF00" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Título sección</span><input type="color" id="c-section" value="#FFEFBC" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Línea divisoria</span><input type="color" id="c-divider" value="#4a4640" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Fondo header</span><input type="color" id="c-headerbg" value="#FFDF00" oninput="saveMeta()"></label>
-        <label class="ed-color"><span>Texto header</span><input type="color" id="c-headertext" value="#1A1A1A" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Fondo</span><input type="color" list="brandcolors" id="c-bg" value="#161412" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Tarjeta / foto</span><input type="color" list="brandcolors" id="c-surface" value="#211e1b" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto</span><input type="color" list="brandcolors" id="c-text" value="#ffffff" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto tenue</span><input type="color" list="brandcolors" id="c-muted" value="#9a9089" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Acento (precio)</span><input type="color" list="brandcolors" id="c-accent" value="#FFDF00" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Título sección</span><input type="color" list="brandcolors" id="c-section" value="#FFEFBC" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Línea divisoria</span><input type="color" list="brandcolors" id="c-divider" value="#4a4640" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Fondo header</span><input type="color" list="brandcolors" id="c-headerbg" value="#FFDF00" oninput="saveMeta()"></label>
+        <label class="ed-color"><span>Texto header</span><input type="color" list="brandcolors" id="c-headertext" value="#1A1A1A" oninput="saveMeta()"></label>
       </div>
     </div>
 
@@ -197,15 +200,20 @@ include __DIR__ . '/../layout-top.php';
   function fitPreview(){
     var ifr=document.getElementById('preview'), wrap=document.getElementById('pv-wrap');
     if(!ifr||!wrap) return;
+    var pane = wrap.parentElement;
     var anchoMm = parseInt(document.getElementById('s-ancho').value) || 420;
     var anchoPx = anchoMm * 96 / 25.4;
-    var scale = wrap.clientWidth / anchoPx;
     var ch = 1200;
     try { var d=ifr.contentDocument||ifr.contentWindow.document; if(d&&d.body) ch=Math.max(d.body.scrollHeight, d.documentElement.scrollHeight); } catch(e){}
+    var availW = pane.clientWidth;
+    var maxH = Math.max(360, window.innerHeight - 140);   // que entre en la pantalla
+    var scale = Math.min(availW / anchoPx, maxH / ch);     // fit-to-box: cabe en ancho Y alto
     ifr.style.width  = anchoPx + 'px';
     ifr.style.height = ch + 'px';
     ifr.style.transform = 'scale(' + scale + ')';
+    wrap.style.width  = (anchoPx * scale) + 'px';
     wrap.style.height = (ch * scale) + 'px';
+    wrap.style.margin = '0 auto';
   }
   var _rsTimer=null;
   window.addEventListener('resize', function(){ clearTimeout(_rsTimer); _rsTimer=setTimeout(fitPreview, 150); });
