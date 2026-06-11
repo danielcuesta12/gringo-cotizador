@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS `pos_turnos` (
   `estado`         ENUM('abierto','cerrado') NOT NULL DEFAULT 'abierto',
   PRIMARY KEY (`id`),
   INDEX `idx_turno_estado` (`estado`),
-  INDEX `idx_turno_ubi` (`ubicacion_id`)
+  INDEX `idx_turno_ubi` (`ubicacion_id`),
+  INDEX `idx_turno_usuario` (`usuario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `pos_metodos_pago` (
@@ -49,6 +50,7 @@ INSERT IGNORE INTO `pos_metodos_pago` (`id`,`nombre`,`tipo`,`orden`) VALUES
 ALTER TABLE `pedidos` MODIFY COLUMN `metodo_pago` VARCHAR(60) NOT NULL DEFAULT 'whatsapp';
 ALTER TABLE `pedidos`
   ADD COLUMN `turno_id` INT UNSIGNED NULL,
+  ADD INDEX `idx_pedidos_turno` (`turno_id`),
   ADD COLUMN `descuento_tipo` ENUM('porcentaje','monto') NULL,
   ADD COLUMN `descuento_valor` DECIMAL(10,2) NOT NULL DEFAULT 0,
   ADD COLUMN `descuento_monto` DECIMAL(10,2) NOT NULL DEFAULT 0,

@@ -84,12 +84,20 @@ case 'registrar_venta':
         ];
     }
     $nombre = clean($_POST['cliente_nombre'] ?? '') ?: 'Mostrador';
-    $compro = in_array($_POST['comprobante_tipo'] ?? 'ticket', ['ticket','boleta','factura'], true) ? $_POST['comprobante_tipo'] : 'ticket';
+    $compro = clean($_POST['comprobante_tipo'] ?? 'ticket');
+    if (!in_array($compro, ['ticket','boleta','factura'], true)) $compro = 'ticket';
+    // Total autoritativo recalculado en el servidor desde los ítems (en F1 sin descuento).
+    $total = 0.0;
+    foreach ($clean as $it) { $total += $it['qty'] * $it['precio']; }
+    // Acumular en el bucket del método (efectivo/tarjeta/qr/otros). $bucket es de una whitelist fija (no input).
+    $tipoRow = Database::fetch("SELECT tipo FROM pos_metodos_pago WHERE nombre = ? LIMIT 1", [$metodo]);
+    $tipo    = $tipoRow['tipo'] ?? 'otros';
+    $bucket  = ['efectivo'=>'total_efectivo','tarjeta'=>'total_tarjeta','qr'=>'total_qr'][$tipo] ?? 'total_otros';
     $pid = Database::insert(
         "INSERT INTO pedidos (ubicacion_id, nombre, tipo_entrega, items_json, total, estado, metodo_pago, origen, turno_id, comprobante_tipo, aceptado_at, horario)
          VALUES (?,?, 'recojo', ?, ?, 'en_preparacion', ?, 'pos', ?, ?, NOW(), 'En salón')",
         [$ubi, $nombre, json_encode($clean, JSON_UNESCAPED_UNICODE), $total, $metodo, $tid, $compro]);
-    Database::execute("UPDATE pos_turnos SET total_ventas=total_ventas+?, total_pedidos=total_pedidos+1 WHERE id=?", [$total, $tid]);
+    Database::execute("UPDATE pos_turnos SET total_ventas=total_ventas+?, total_pedidos=total_pedidos+1, $bucket=$bucket+? WHERE id=?", [$total, $total, $tid]);
     pout(['ok'=>true,'id'=>$pid]);
 
 default:
