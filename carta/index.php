@@ -29,6 +29,18 @@ if ($salesMode === 'izipay') {
 <!DOCTYPE html>
 <html lang="es" data-theme="noche">
 <head>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('carta_theme');
+      var theme = (saved === 'dia' || saved === 'noche') ? saved : null;
+      if (!theme) { var h = new Date().getHours(); theme = (h >= 18 || h < 7) ? 'noche' : 'dia'; }
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'noche');
+    }
+  })();
+</script>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="/img/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -125,7 +137,9 @@ if ($salesMode === 'izipay') {
       display: flex; align-items: center; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
-    .logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0); }
+    .logo { height: 40px; width: auto; object-fit: contain; }
+    html[data-theme="noche"] .logo { filter: brightness(0); }
+    html[data-theme="dia"]   .logo { filter: brightness(0) invert(1); }
     .schedule-badge {
       font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
@@ -564,6 +578,18 @@ if ($salesMode === 'izipay') {
       pointer-events: none;
     }
     .item.in-cart { border-left: 3px solid var(--accent); }
+    .theme-toggle {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: var(--on-accent-soft); color: var(--header-text);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s;
+    }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-toggle .ico-sol  { display: none; }
+    .theme-toggle .ico-luna { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-sol  { display: block; }
+    html[data-theme="dia"] .theme-toggle .ico-luna { display: none; }
   </style>
 <?php if ($izEnabled): ?>
   <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
@@ -596,12 +622,18 @@ if ($salesMode === 'izipay') {
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
     <div id="schedule-badge" class="schedule-badge"></div>
-    <?php if ($ig): ?>
-    <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-      @<?= clean($ig) ?>
-    </a>
-    <?php endif; ?>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" type="button">
+        <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <?php if ($ig): ?>
+      <a class="ig-link" href="https://www.instagram.com/<?= clean($ig) ?>/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        @<?= clean($ig) ?>
+      </a>
+      <?php endif; ?>
+    </div>
   </header>
 
   <div class="category-bar" id="category-bar" style="top:64px">
@@ -1838,6 +1870,12 @@ function cambiar(id, nombre, precio, delta) {
   function reintentarPago(){ document.getElementById('modal-error-pago').style.display='none'; document.getElementById('modal-izipay').style.display='flex'; }
   function cancelarPago()  { document.getElementById('modal-error-pago').style.display='none'; }
 <?php endif; ?>
+    function toggleTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') === 'dia' ? 'dia' : 'noche';
+      var next = cur === 'dia' ? 'noche' : 'dia';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('carta_theme', next); } catch (e) {}
+    }
   </script>
 
 <?php if ($salesMode === 'izipay'): ?>
