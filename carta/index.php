@@ -162,7 +162,7 @@ if ($salesMode === 'izipay') {
       100% { opacity: 0; }
     }
     .ig-link {
-      margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
       color: var(--header-text); text-decoration: none; font-size: 13px; font-weight: 700;
     }
     .ig-link svg { width: 18px; height: 18px; fill: var(--header-text); }
@@ -269,7 +269,7 @@ if ($salesMode === 'izipay') {
 
     /* PROMO BAR */
     .promo-bar {
-      background: var(--accent-tint); border: 1px solid var(--accent-tint);
+      background: var(--accent-tint); border: 1px solid var(--border);
       border-radius: 10px; padding: 10px 14px;
       font-size: 12px; color: var(--muted); margin-bottom: 24px; line-height: 1.5;
     }
@@ -290,6 +290,7 @@ if ($salesMode === 'izipay') {
       padding: 14px 4px; cursor: pointer; min-height: 60px;
     }
     .carrito-mobile-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+    .carrito-mobile-label svg { color: var(--accent); }
     .carrito-hint { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); margin-top: 3px; }
     .carrito-mobile-total { font-size: 18px; font-weight: 800; color: var(--accent); }
     .carrito-mobile-items { max-height: 0; overflow: hidden; transition: max-height .35s cubic-bezier(.32,.72,0,1); }
@@ -321,6 +322,7 @@ if ($salesMode === 'izipay') {
       background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700;
       cursor: pointer; margin-top: 12px; transition: background .15s, transform .1s;
     }
+    html[data-theme="dia"] .btn-pay { background: #1E1E1E; color: #ffffff; }
     .btn-pay:hover  { background: var(--bg-deep); }
     .btn-pay:active { transform: scale(.98); }
     .btn-pay svg    { width: 18px; height: 18px; fill: none; stroke: var(--text); }
@@ -689,7 +691,7 @@ if ($salesMode === 'izipay') {
     <div class="carrito-mobile-top" onclick="toggleCarritoMobile()">
       <div>
         <div class="carrito-mobile-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FCDA13" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
           Tu pedido
           <span class="carrito-badge" id="mobile-badge">0</span>
         </div>
