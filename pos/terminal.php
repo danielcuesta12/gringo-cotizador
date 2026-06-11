@@ -422,6 +422,28 @@ a{color:inherit;text-decoration:none}
 #toast.ok{border-color:rgba(22,163,74,.4);color:#4ade80}
 #toast.err{border-color:rgba(200,16,46,.4);color:#f87171}
 
+/* ── Print snackbar ────────────────────────────────────── */
+#print-snack{
+  display:none;position:fixed;bottom:calc(var(--btmbar-h) + 16px);left:50%;
+  transform:translateX(-50%);z-index:301;
+  background:var(--surface);border:1px solid rgba(22,163,74,.4);border-radius:var(--radius);
+  padding:10px 14px;display:none;align-items:center;gap:10px;
+  font-size:13px;font-weight:600;color:#4ade80;white-space:nowrap;max-width:90vw;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+#print-snack.show{display:flex}
+#print-snack-btn{
+  padding:6px 14px;border-radius:var(--radius-sm);background:var(--green);
+  color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;
+  flex:0 0 auto;transition:background .12s;
+}
+#print-snack-btn:hover{background:var(--green-dk)}
+#print-snack-close{
+  font-size:16px;color:var(--muted);cursor:pointer;padding:0 2px;
+  transition:color .1s;flex:0 0 auto;
+}
+#print-snack-close:hover{color:var(--text)}
+
 /* ── Spinner ───────────────────────────────────────────── */
 .spin{
   display:inline-block;width:18px;height:18px;
@@ -682,9 +704,17 @@ a{color:inherit;text-decoration:none}
 <!-- ── Toast ──────────────────────────────────────────── -->
 <div id="toast"></div>
 
+<!-- ── Print snackbar ─────────────────────────────────── -->
+<div id="print-snack">
+  <span id="print-snack-msg">Venta registrada</span>
+  <button id="print-snack-btn">Imprimir ticket</button>
+  <span id="print-snack-close" title="Cerrar">✕</span>
+</div>
+
 <script>
 var CSRF = <?= json_encode(csrfToken()) ?>;
 var API  = '<?= APP_URL ?>/api/pos.php';
+var TICKET_BASE = '<?= APP_URL ?>/pos/ticket.php';
 var UPLOAD_URL = <?= json_encode(UPLOAD_URL) ?>;
 var UBIS  = <?= json_encode($ubis) ?>;
 var CAJERO = <?= json_encode($cajero['name'] ?? 'Cajero') ?>;
@@ -1799,7 +1829,7 @@ function confirmarVenta(metodo, extraData) {
     state.notas = '';
     renderCart();
     refreshTurno();
-    toast('Venta #' + res.id + ' registrada', 'ok');
+    showPrintSnack(res.id);
   }).catch(function() {
     btn.disabled = false;
     renderCobrarBtn();
@@ -1894,6 +1924,28 @@ function cerrarTurno(montoFinal) {
     showScreen('open');
     setNavActive('nav-vender');
   }).catch(function() { toast('Error de red', 'err'); });
+}
+
+// ── Print snackbar ─────────────────────────────────────
+var _printSnackTimer = null;
+function showPrintSnack(ventaId) {
+  var snack = document.getElementById('print-snack');
+  var msg   = document.getElementById('print-snack-msg');
+  var btn   = document.getElementById('print-snack-btn');
+  var close = document.getElementById('print-snack-close');
+  msg.textContent = 'Venta #' + ventaId + ' registrada';
+  snack.classList.add('show');
+  if (_printSnackTimer) clearTimeout(_printSnackTimer);
+  _printSnackTimer = setTimeout(function() { snack.classList.remove('show'); }, 8000);
+  btn.onclick = function() {
+    window.open(TICKET_BASE + '?id=' + ventaId, '_blank');
+    snack.classList.remove('show');
+    if (_printSnackTimer) clearTimeout(_printSnackTimer);
+  };
+  close.onclick = function() {
+    snack.classList.remove('show');
+    if (_printSnackTimer) clearTimeout(_printSnackTimer);
+  };
 }
 
 // ── Boot ───────────────────────────────────────────────
