@@ -30,7 +30,7 @@ No se tocan `api/carta.php`, el admin, ni `carta/index.php` en esta fase.
 
 **Contexto:** Hoy `menu.php` declara `@font-face` apuntando a `/marcona/fonts/Kimmy.woff2` (404 en prod) y `/marcona/fonts/Arial_Narrow_Bold.ttf` (200 en prod). `Kimmy` ya no carga (cae a fallback). `ArialNarrowBold` se usa en títulos de sección, nombres y precios.
 
-**Decisión `Kimmy` (requiere confirmación del usuario antes de ejecutar):** como el archivo no existe ni local ni en prod, se reemplaza su uso por **`Gilroy-Bold`** (ya presente en `assets/fonts/`, display bold de marca). En la Fase 1 `Kimmy` no se usa en `menu.php` salvo la declaración `@font-face`, así que basta con eliminar esa declaración. (El uso real de `Kimmy` está en `carta/index.php`, que se aborda en la Fase 2.)
+**Decisión `Kimmy` (resuelta):** se conserva `Kimmy`. El usuario provee el archivo `Kimmy.woff2`, que se coloca en `assets/fonts/Kimmy.woff2`, y el `@font-face` apunta ahí (local), no a `/marcona/`. En `menu.php` `Kimmy` solo aparece como declaración (su uso real está en `carta/index.php`, Fase 2), así que la Fase 1 no se bloquea si el archivo aún no está — pero debe agregarse para que Fase 2 lo herede.
 
 - [ ] **Step 1: Traer ArialNarrowBold a Lima desde producción**
 
@@ -42,22 +42,22 @@ Expected: archivo creado, tamaño > 0 bytes (≈ varias decenas de KB).
 
 - [ ] **Step 2: Reescribir el bloque `@font-face` de menu.php**
 
-Reemplazar `carta/menu.php` líneas 23-33 (las dos declaraciones `@font-face` actuales) por:
+Colocar el archivo `Kimmy.woff2` (provisto por el usuario) en `assets/fonts/Kimmy.woff2`. Luego reemplazar `carta/menu.php` líneas 23-33 (las dos declaraciones `@font-face` actuales) por:
 
 ```css
+    @font-face {
+      font-family: 'Kimmy';
+      src: url('<?= APP_URL ?>/assets/fonts/Kimmy.woff2') format('woff2');
+      font-display: swap;
+    }
     @font-face {
       font-family: 'ArialNarrowBold';
       src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
       font-display: swap;
     }
-    @font-face {
-      font-family: 'GilroyBold';
-      src: url('<?= APP_URL ?>/assets/fonts/Gilroy-Bold.ttf') format('truetype');
-      font-display: swap;
-    }
 ```
 
-(Se elimina la declaración de `Kimmy`; se añade `GilroyBold` disponible por si se quiere usar como display.)
+(Ambas fuentes ahora locales en Lima, sin depender de `/marcona/`.)
 
 - [ ] **Step 3: Verificar lint**
 
@@ -67,8 +67,8 @@ Expected: `No syntax errors detected`.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add assets/fonts/Arial_Narrow_Bold.ttf carta/menu.php
-git commit -m "feat(carta): fuentes servidas desde Lima (ArialNarrowBold local, drop Kimmy roto)"
+git add assets/fonts/Arial_Narrow_Bold.ttf assets/fonts/Kimmy.woff2 carta/menu.php
+git commit -m "feat(carta): fuentes Kimmy + ArialNarrowBold servidas desde Lima (sin depender de /marcona)"
 ```
 
 ---
