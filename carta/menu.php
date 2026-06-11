@@ -64,6 +64,35 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       --header-text: var(--accent-ink);
     }
 
+    html[data-theme="dia"] {
+      --bg:        #FFEFBC;
+      --bg-deep:   #f6e2a8;
+      --surface:   #ffffff;
+      --surface-2: #f1ede2;
+      --surface-3: #e4ddca;
+      --sheet:     #ffffff;
+      --text:      #1E1E1E;
+      --text-soft: #6f6750;
+      --muted:     #7a6f55;
+      --dim:       #8a7d63;
+      --faint:     #b3a888;
+      --accent:    #1E1E1E;
+      --accent-ink:#FFEFBC;
+      --accent-tint: rgba(30,30,30,.08);
+      --accent-tint-strong: rgba(30,30,30,.6);
+      --pink:      #b03a63;
+      --pink-tint: #FFBBC8;
+      --green:     #1f8a4c;
+      --green-tint: rgba(31,138,76,.14);
+      --error:     #c0392b;
+      --border:    rgba(30,30,30,0.14);
+      --hairline:  rgba(30,30,30,0.10);
+      --overlay:   rgba(30,20,0,0.45);
+      --on-accent-soft: rgba(255,239,188,0.7);
+      --header-bg: #1E1E1E;
+      --header-text: #FFEFBC;
+    }
+
     html { scroll-behavior: smooth; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -78,7 +107,9 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       display: flex; align-items: center; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
-    .logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0); }
+    .logo { height: 40px; width: auto; object-fit: contain; }
+    html[data-theme="noche"] .logo { filter: brightness(0); }            /* logo negro sobre header amarillo */
+    html[data-theme="dia"]   .logo { filter: brightness(0) invert(1); }  /* logo claro sobre header negro */
     .schedule-badge {
       font-size: 11px; font-weight: 700;
       padding: 4px 10px; border-radius: 999px;
