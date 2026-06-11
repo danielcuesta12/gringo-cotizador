@@ -16,6 +16,12 @@ $bgUrl     = $bgRel ? UPLOAD_URL . $bgRel : '';
 $transpar  = getSetting('landing_cards_transparent', '0') === '1';
 $ov        = max(0, min(100, (int) getSetting('landing_bg_overlay', '28'))) / 100;  // intensidad del oscurecido
 
+$bgColor   = getSetting('landing_bg_color',   '#FCDA13');  // fondo de página (si no hay foto)
+$cardColor = getSetting('landing_card_color', '#181613');  // fondo de las tarjetas
+$textColor = getSetting('landing_text_color', '#FFFFFF');  // texto de las tarjetas
+$tcRgb     = sscanf($textColor, "#%02x%02x%02x");
+$mutedRgba = $tcRgb ? sprintf('rgba(%d,%d,%d,.55)', $tcRgb[0], $tcRgb[1], $tcRgb[2]) : 'rgba(255,255,255,.55)';
+
 $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'=>'rgba(37,211,102,.15)'];
 ?>
 <!DOCTYPE html>
@@ -27,7 +33,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <title>El Gringo Burger Joint</title>
 <style>
-  :root{ --bg:#FCDA13; --card:#181613; --line:rgba(0,0,0,.14); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:#fff; --muted:rgba(255,255,255,.55); }
+  :root{ --bg:<?= htmlspecialchars($bgColor) ?>; --card:<?= htmlspecialchars($cardColor) ?>; --line:rgba(0,0,0,.14); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:<?= htmlspecialchars($textColor) ?>; --muted:<?= $mutedRgba ?>; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:36px 20px 28px;-webkit-font-smoothing:antialiased}
   .wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
@@ -47,7 +53,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-arrow{color:var(--muted);flex-shrink:0;display:flex}
   .lnk-arrow svg{width:18px;height:18px}
   /* estilos */
-  .lnk.primary{background:#000;border-color:#000}
+  .lnk.primary{background:var(--card);border-color:var(--card)}
   .lnk.primary .lnk-ico{background:var(--brand);color:#1a1a1a}
   .lnk.wa   .lnk-ico{background:rgba(37,211,102,.15);color:var(--green)}
   .lnk.pink .lnk-ico{background:rgba(250,184,192,.16);color:var(--pink)}

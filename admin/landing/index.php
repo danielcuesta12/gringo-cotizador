@@ -26,6 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
     setSetting('landing_cards_transparent', isset($_POST['cards_transparent']) ? '1' : '0');
     setSetting('landing_bg_overlay', (string) max(0, min(100, cleanInt($_POST['bg_overlay'] ?? 28))));
 
+    $hex = fn($v, $def) => preg_match('/^#[0-9A-Fa-f]{6}$/', (string)$v) ? strtoupper($v) : $def;
+    setSetting('landing_bg_color',   $hex($_POST['bg_color']   ?? '', '#FCDA13'));
+    setSetting('landing_card_color', $hex($_POST['card_color'] ?? '', '#181613'));
+    setSetting('landing_text_color', $hex($_POST['text_color'] ?? '', '#FFFFFF'));
+
     if (!empty($_FILES['landing_bg']['name'])) {
         $uploaded = uploadImage($_FILES['landing_bg'], 'landing');
         if ($uploaded) {
@@ -52,6 +57,10 @@ $bgRel         = getSetting('landing_bg_image', '');
 $bgUrl         = $bgRel ? UPLOAD_URL . $bgRel : '';
 $cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
 $bgOverlay     = (int) getSetting('landing_bg_overlay', '28');
+$bgColor       = getSetting('landing_bg_color',   '#FCDA13');
+$cardColor     = getSetting('landing_card_color', '#181613');
+$textColor     = getSetting('landing_text_color', '#FFFFFF');
+$palette       = ['#FFEFBC'=>'Crema', '#FFBBC8'=>'Rosa', '#FFDF00'=>'Amarillo', '#1E1E1E'=>'Negro'];
 
 $links = Database::fetchAll("SELECT * FROM landing_links ORDER BY sort_order, id");
 $styleLabel = ['primary'=>'Amarillo','wa'=>'WhatsApp','dark'=>'Oscuro','pink'=>'Rosa','neutral'=>'Neutro'];
@@ -114,7 +123,38 @@ include __DIR__ . '/../layout-top.php';
         <p style="font-size:12px;color:var(--text-muted);margin-top:6px">0% = foto a todo color · 100% = muy oscura. Solo aplica si hay foto de fondo.</p>
       </div>
     </div>
-    <div style="margin-top:16px">
+    <hr style="border:none;border-top:1px solid var(--border);margin:22px 0 18px">
+    <label class="form-label" style="margin-bottom:2px">Colores</label>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">El fondo solo se ve si no hay foto cargada. Las tarjetas usan su color cuando no están en modo translúcido.</p>
+    <?php
+      $colorField = function(string $name, string $label, string $current) use ($palette) {
+        $cid = 'cf_' . $name; $tid = 'tf_' . $name; ?>
+      <div style="flex:1;min-width:220px">
+        <label class="form-label" style="font-weight:500"><?= $label ?></label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="color" id="<?= $cid ?>" name="<?= $name ?>" value="<?= htmlspecialchars($current) ?>"
+                 oninput="document.getElementById('<?= $tid ?>').value=this.value.toUpperCase()"
+                 style="width:44px;height:38px;border:1px solid var(--border);border-radius:8px;padding:2px;cursor:pointer;background:#fff;flex-shrink:0">
+          <input type="text" id="<?= $tid ?>" value="<?= htmlspecialchars($current) ?>" maxlength="7"
+                 oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value))document.getElementById('<?= $cid ?>').value=this.value"
+                 class="form-input" style="width:100px;font-family:monospace;text-transform:uppercase">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <?php foreach ($palette as $hexv => $pn): ?>
+            <button type="button" title="<?= $pn ?> <?= $hexv ?>"
+                    onclick="document.getElementById('<?= $cid ?>').value='<?= $hexv ?>';document.getElementById('<?= $tid ?>').value='<?= $hexv ?>'"
+                    style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.15);background:<?= $hexv ?>;cursor:pointer;padding:0"></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php }; ?>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+      <?php $colorField('bg_color',   'Fondo de página', $bgColor); ?>
+      <?php $colorField('card_color', 'Tarjetas',        $cardColor); ?>
+      <?php $colorField('text_color', 'Texto',           $textColor); ?>
+    </div>
+
+    <div style="margin-top:20px">
       <button type="submit" class="btn btn-primary">Guardar apariencia</button>
     </div>
   </form>
