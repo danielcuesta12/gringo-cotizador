@@ -74,10 +74,17 @@ Re-tematizado, misma funcionalidad actual:
 
 ### Banner / PDF (42 cm)
 
-- Vista de impresión a **420 mm de ancho exacto**, una sola página continua (`@page { size: 420mm <alto>; margin: 0 }`), fotos grandes, mismo layout de fila a gran escala, legible de lejos.
-- Botón **"Descargar PDF"** en la carta que abre el banner **en el tema activo** y dispara `window.print()` → Guardar como PDF para la imprenta. Conmutando el toggle se obtiene crema, nocturno o ambos.
+- Vista de impresión `carta/banner.php?slug=XXX&theme=noche|dia` a **420 mm de ancho exacto**, una sola página continua (`@page { size: 420mm <alto>; margin: 0 }`), fotos grandes, mismo layout de fila a gran escala, legible de lejos.
+- **Flujo:** el banner dispara `window.print()` → el usuario elige "Guardar como PDF" → Chrome/Safari respetan el `@page` y producen el PDF a 42 cm exactos → se manda a la imprenta. Se descarta TCPDF (reproduce mal HTML/CSS y fotos); HTML+print da fidelidad total a cambio de un paso manual de guardado (normal para mandar a imprenta desde una compu).
+- **Es herramienta del dueño, no del cliente:** el botón "Ver/Descargar banner" va en **`Admin → Ubicaciones`** (por local), con su propio selector día/noche para sacar crema, nocturno o ambos. La carta pública NO expone descarga de PDF.
 - Por ubicación (usa los mismos datos por slug).
-- Dependencia: **fotos en buena resolución** (el usuario confirmó que ya las tiene).
+
+### Fotos (pipeline)
+
+- La carta consume la foto del producto: `products` → `location_products` → campo imagen (`pimg` → `UPLOAD_URL . pimg`). Se gestionan en **`Admin → Productos → editar → foto`**.
+- `uploadImage()` **no redimensiona ni comprime**: guarda tal cual, límite **2 MB**.
+- En el banner las fotos son cuadradas junto al texto (~10-12 cm), no a sangre completa → ~800-1500 px de lado bastan. Las fotos actuales muy probablemente sirven; si alguna se ve pixelada, se reemplaza por una mayor en el mismo sitio.
+- **No** se añade un campo de "alta resolución" aparte (no hace falta con este layout).
 
 ### Fuentes
 
@@ -126,6 +133,6 @@ Cada fase se valida en preview antes de continuar. Merge a `main` solo al final,
 
 ## Dependencias / riesgos
 
-- **Fotos de alta resolución** para el banner — confirmadas por el usuario.
+- **Fotos** del banner — son las mismas del producto (Admin → Productos), guardadas sin recomprimir (≤2 MB). El usuario confirma que las actuales sirven; reemplazo puntual si alguna se pixela.
 - `@page` a tamaño personalizado con alto continuo: el alto debe fijarse (calculado o suficientemente grande) para evitar paginación; validar en el navegador objetivo.
 - La carta de venta es grande (1851 líneas) y toca pago — re-tematizar con cuidado para no romper la lógica.
