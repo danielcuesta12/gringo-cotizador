@@ -7,7 +7,7 @@ requireLogin();
 header('Content-Type: application/json; charset=utf-8');
 function pout($d){ echo json_encode($d); exit; }
 
-$action = clean($_GET['action'] ?? '');
+$action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 $writes = ['abrir_turno','cerrar_turno','registrar_venta'];
 if (in_array($action, $writes, true)) { if (!$isPost) pout(['ok'=>false,'error'=>'Método']); verifyCsrf(); }
