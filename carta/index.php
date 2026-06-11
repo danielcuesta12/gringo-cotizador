@@ -47,7 +47,7 @@ if ($salesMode === 'izipay') {
 }
     @font-face {
       font-family: 'ArialNarrowBold';
-      src: url('/marcona/fonts/Arial_Narrow_Bold.ttf') format('truetype');
+      src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
       font-display: swap;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
