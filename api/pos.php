@@ -9,7 +9,7 @@ function pout($d){ echo json_encode($d); exit; }
 
 $action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear'];
+$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear','enviar_recibo'];
 if (in_array($action, $writes, true)) { if (!$isPost) pout(['ok'=>false,'error'=>'Método']); verifyCsrf(); }
 $uid = (int)(currentUser()['id'] ?? 0);
 
@@ -164,6 +164,59 @@ case 'fav_clear':
     $pos = cleanInt($_POST['posicion'] ?? 0);
     Database::execute("DELETE FROM pos_favoritos WHERE ubicacion_id=? AND posicion=?", [$ubi,$pos]);
     pout(['ok'=>true]);
+
+case 'enviar_recibo':
+    $pid   = cleanInt($_POST['pedido_id'] ?? 0);
+    $email = cleanEmail($_POST['email'] ?? '');
+    if (!$pid || !$email) pout(['ok'=>false,'error'=>'Correo inválido']);
+    $p = Database::fetch("SELECT * FROM pedidos WHERE id=? AND origen='pos'", [$pid]);
+    if (!$p) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
+    $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
+    $emp = getSetting('company_name', 'El Gringo Burger Joint');
+    $rows = '';
+    foreach ($items as $it) {
+        $qty = (int)($it['qty'] ?? 1);
+        $base = (float)($it['precio'] ?? 0);
+        $modsSum = 0; $modsHtml = '';
+        foreach ((array)($it['modificadores'] ?? []) as $m) {
+            $mp = (float)($m['precio'] ?? 0); $modsSum += $mp;
+            $modsHtml .= '<div style="font-size:12px;color:#888">' . clean($m['nombre'] ?? '') . '</div>';
+        }
+        $unit = $base + $modsSum; $lineTot = $unit * $qty;
+        $dt = $it['desc_tipo'] ?? null; $dv = (float)($it['desc_valor'] ?? 0);
+        if ($dt === 'porcentaje') $lineTot -= $lineTot * min(100,max(0,$dv))/100;
+        elseif ($dt === 'monto')  $lineTot -= min($lineTot,max(0,$dv));
+        $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #eee"><strong>' . $qty . 'x ' . clean($it['nombre'] ?? '') . '</strong>' . $modsHtml . '</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">' . formatMoney($lineTot) . '</td></tr>';
+    }
+    $compLabel = ['ticket'=>'Ticket','boleta'=>'Boleta','factura'=>'Factura'][$p['comprobante_tipo']] ?? 'Ticket';
+    $num = str_pad((string)$p['id'], 4, '0', STR_PAD_LEFT);
+    $subject = 'Tu comprobante — ' . $emp . ' · Pedido #' . $num;
+    $descHtml = ((float)($p['descuento_monto'] ?? 0) > 0)
+        ? '<tr><td style="padding:4px 0;color:#666">Descuento</td><td style="padding:4px 0;text-align:right;color:#666">- ' . formatMoney((float)$p['descuento_monto']) . '</td></tr>' : '';
+    $bodyHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f0f0f0;font-family:-apple-system,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:20px 0"><tr><td align="center">
+<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
+  <tr><td style="background:#1A1A1A;padding:22px 26px">
+    <p style="margin:0;font-size:20px;font-weight:800;color:#FFDF00">' . clean($emp) . '</p>
+    <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.7)">' . $compLabel . ' · Pedido #' . $num . '</p>
+  </td></tr>
+  <tr><td style="padding:26px">
+    <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.6">¡Gracias por tu compra en ' . clean($emp) . '!<br>Aquí está el detalle de tu pedido.</p>
+    <table width="100%" style="font-size:14px;color:#1a1a1a;margin-bottom:8px">' . $rows . '</table>
+    <table width="100%" style="font-size:14px;margin-top:8px">' . $descHtml . '
+      <tr><td style="padding:8px 0;font-size:18px;font-weight:800">TOTAL</td><td style="padding:8px 0;text-align:right;font-size:18px;font-weight:800">' . formatMoney((float)$p['total']) . '</td></tr>
+      <tr><td style="padding:2px 0;color:#666">Pago</td><td style="padding:2px 0;text-align:right;color:#666">' . clean($p['metodo_pago']) . '</td></tr>
+    </table>
+    <p style="margin:22px 0 0;font-size:12px;color:#999;line-height:1.5">Este es un correo automático, por favor no respondas a esta dirección.<br>' . clean($emp) . ' · Lima, Perú</p>
+  </td></tr>
+</table></td></tr></table></body></html>';
+    $headers  = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $headers .= "From: =?UTF-8?B?" . base64_encode($emp) . "?= <comprobantes@elgringo.pe>\r\n";
+    $headers .= "X-Mailer: ElGringoPOS/1.0\r\n";
+    $ok = @mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $bodyHtml, $headers);
+    pout(['ok' => (bool)$ok, 'error' => $ok ? '' : 'No se pudo enviar']);
 
 default:
     pout(['ok'=>false,'error'=>'Acción no válida']);

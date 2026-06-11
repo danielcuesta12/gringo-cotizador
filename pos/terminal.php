@@ -452,6 +452,12 @@ a{color:inherit;text-decoration:none}
   flex:0 0 auto;transition:background .12s;
 }
 #print-snack-btn:hover{background:var(--green-dk)}
+#print-snack-email-btn{
+  padding:6px 14px;border-radius:var(--radius-sm);background:var(--surface2);
+  border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;
+  flex:0 0 auto;transition:all .12s;
+}
+#print-snack-email-btn:hover{color:var(--text);border-color:var(--muted)}
 #print-snack-close{
   font-size:16px;color:var(--muted);cursor:pointer;padding:0 2px;
   transition:color .1s;flex:0 0 auto;
@@ -833,6 +839,7 @@ a{color:inherit;text-decoration:none}
 <div id="print-snack">
   <span id="print-snack-msg">Venta registrada</span>
   <button id="print-snack-btn">Imprimir ticket</button>
+  <button id="print-snack-email-btn">Enviar por correo</button>
   <span id="print-snack-close" title="Cerrar">✕</span>
 </div>
 
@@ -2107,6 +2114,7 @@ function showPrintSnack(ventaId) {
   var snack = document.getElementById('print-snack');
   var msg   = document.getElementById('print-snack-msg');
   var btn   = document.getElementById('print-snack-btn');
+  var emailBtn = document.getElementById('print-snack-email-btn');
   var close = document.getElementById('print-snack-close');
   msg.textContent = 'Venta #' + ventaId + ' registrada';
   snack.classList.add('show');
@@ -2117,10 +2125,61 @@ function showPrintSnack(ventaId) {
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
   };
+  emailBtn.onclick = function() {
+    snack.classList.remove('show');
+    if (_printSnackTimer) clearTimeout(_printSnackTimer);
+    showEmailModal(ventaId);
+  };
   close.onclick = function() {
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
   };
+}
+
+// ── Email receipt modal ────────────────────────────────
+function showEmailModal(ventaId) {
+  var modal = document.getElementById('modal-content');
+  modal.innerHTML = '<h3>Enviar recibo por correo</h3>'
+    + '<p>Pedido #' + esc(String(ventaId)) + '</p>'
+    + '<div>'
+    + '<label style="display:block;margin-bottom:6px">Correo electrónico</label>'
+    + '<input type="email" id="email-input" inputmode="email" autocomplete="email" placeholder="cliente@ejemplo.com"'
+    + ' style="width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius);'
+    + 'background:var(--surface2);color:var(--text);font-size:15px;">'
+    + '</div>'
+    + '<div class="modal-row">'
+    + '<button class="btn-modal-cancel" id="email-cancel">Cancelar</button>'
+    + '<button class="btn-modal-ok" id="email-send">Enviar</button>'
+    + '</div>';
+  document.getElementById('overlay').classList.add('active');
+  var inp = document.getElementById('email-input');
+  inp.focus();
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('email-send').click(); }
+  });
+  document.getElementById('email-cancel').addEventListener('click', closeModal);
+  document.getElementById('email-send').addEventListener('click', function() {
+    var email = inp.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      inp.style.borderColor = 'var(--red)';
+      inp.focus();
+      return;
+    }
+    var sendBtn = document.getElementById('email-send');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spin" style="border-top-color:#000"></span>';
+    apiPost('enviar_recibo', { pedido_id: ventaId, email: email }).then(function(res) {
+      closeModal();
+      if (res.ok) {
+        toast('Recibo enviado', 'ok');
+      } else {
+        toast('Error: ' + (res.error || 'No se pudo enviar'), 'err');
+      }
+    }).catch(function() {
+      closeModal();
+      toast('Error de red', 'err');
+    });
+  });
 }
 
 // ── Boot ───────────────────────────────────────────────
