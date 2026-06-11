@@ -45,7 +45,8 @@ include __DIR__ . '/../layout-top.php';
   .ed-tema { display:inline-flex; background:#eee; border-radius:8px; padding:2px; margin-left:auto; }
   .ed-tema button { border:none; background:none; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:700; color:var(--text-secondary); cursor:pointer; }
   .ed-tema button.on { background:#1a1a1a; color:#fff; }
-  #preview { width:100%; height:520px; border:1px solid var(--border); border-radius:10px; background:#fff; display:block; }
+  #pv-wrap { width:100%; overflow:hidden; border:1px solid var(--border); border-radius:10px; background:#fff; }
+  #preview { border:none; display:block; transform-origin:top left; }
   .ed-sizes { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:12px; }
   .ed-sizes h4 { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:12px; }
   .ed-slider { margin-bottom:10px; }
@@ -86,7 +87,7 @@ include __DIR__ . '/../layout-top.php';
         <button type="button" data-t="dia" onclick="setTema('dia')">☀️ Crema</button>
       </span>
     </div>
-    <iframe id="preview"></iframe>
+    <div id="pv-wrap"><iframe id="preview" onload="fitPreview()"></iframe></div>
     <div class="ed-sizes">
       <h4>Tamaños (mm) y ancho</h4>
       <div class="ed-slider"><label>Ancho del banner <span id="v-ancho"></span></label><input type="range" id="s-ancho" min="100" max="1200" step="10" oninput="onSize()"></div>
@@ -147,6 +148,22 @@ include __DIR__ . '/../layout-top.php';
     });
     return fetch(API+'?action='+action, {method:'POST', credentials:'same-origin', headers:{'X-CSRF-Token':CSRF}, body:body}).then(function(r){ return r.json(); });
   }
+
+  function fitPreview(){
+    var ifr=document.getElementById('preview'), wrap=document.getElementById('pv-wrap');
+    if(!ifr||!wrap) return;
+    var anchoMm = parseInt(document.getElementById('s-ancho').value) || 420;
+    var anchoPx = anchoMm * 96 / 25.4;
+    var scale = wrap.clientWidth / anchoPx;
+    var ch = 1200;
+    try { var d=ifr.contentDocument||ifr.contentWindow.document; if(d&&d.body) ch=Math.max(d.body.scrollHeight, d.documentElement.scrollHeight); } catch(e){}
+    ifr.style.width  = anchoPx + 'px';
+    ifr.style.height = ch + 'px';
+    ifr.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (ch * scale) + 'px';
+  }
+  var _rsTimer=null;
+  window.addEventListener('resize', function(){ clearTimeout(_rsTimer); _rsTimer=setTimeout(fitPreview, 150); });
 
   var _pvTimer=null;
   function refreshPreview(){
