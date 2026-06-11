@@ -66,7 +66,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   .lnk-wrap{display:flex;flex-direction:column}
   .quote-panel{max-height:0;overflow:hidden;transition:max-height .4s ease;border-radius:16px}
   .quote-panel.open{max-height:1600px;margin-top:12px}
-  .quote-panel iframe{width:100%;border:0;display:block;background:#f4f4f0;border-radius:16px}
+  .quote-panel iframe{width:100%;border:0;display:block;background:#FFEFBC;border-radius:16px}
   .foot{margin-top:26px;font-size:11px;color:rgba(0,0,0,.45);text-align:center}
 </style>
 <?php if ($bgUrl): ?>
@@ -94,7 +94,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   }
   .lnk.primary .lnk-ico{background:var(--brand);color:#1a1a1a}
   .lnk:hover{border-color:rgba(255,255,255,.28)}
-  .quote-panel iframe{background:rgba(244,244,240,.96)}
+  .quote-panel iframe{background:rgba(255,239,188,.96)}
 </style>
 <?php endif; ?>
 <style>.foot{color:<?= htmlspecialchars($footColor) ?>}</style>
