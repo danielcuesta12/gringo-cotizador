@@ -107,6 +107,23 @@ include __DIR__ . '/../layout-top.php';
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:5px">El QR abre <strong>elgringo.pe</strong> con <code>?src=</code> tu etiqueta, para rastrear escaneos en la analítica.</div>
       </div>
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;font-weight:600">
+          <input type="checkbox" id="qr2-enabled" onchange="saveMeta()"> Incluir un segundo QR (link personalizado)
+        </label>
+        <div style="margin-top:8px">
+          <label style="font-size:12px;color:var(--text-secondary)">Enlace (URL)</label>
+          <input type="text" id="qr2-url" placeholder="https://instagram.com/..." onchange="saveMeta()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-top:3px;font-size:13px">
+        </div>
+        <div style="margin-top:8px">
+          <label style="font-size:12px;color:var(--text-secondary)">Etiqueta (texto bajo el QR)</label>
+          <input type="text" id="qr2-label" placeholder="ej: Síguenos" onchange="saveMeta()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-top:3px;font-size:13px">
+        </div>
+        <div style="margin-top:8px">
+          <label style="font-size:12px;color:var(--text-secondary)">Etiqueta de origen (src) — opcional</label>
+          <input type="text" id="qr2-src" placeholder="ej: carta-ig" onchange="saveMeta()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-top:3px;font-size:13px">
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -193,6 +210,10 @@ include __DIR__ . '/../layout-top.php';
       setSliderVals(res.carta);
       document.getElementById('qr-enabled').checked = (res.carta.qr_enabled == 1);
       document.getElementById('qr-src').value = res.carta.qr_src || '';
+      document.getElementById('qr2-enabled').checked = (res.carta.qr2_enabled == 1);
+      document.getElementById('qr2-url').value = res.carta.qr2_url || '';
+      document.getElementById('qr2-label').value = res.carta.qr2_label || '';
+      document.getElementById('qr2-src').value = res.carta.qr2_src || '';
       setTemaUI(res.carta.tema);
       renderBuilder();
       refreshPreview();
@@ -255,7 +276,11 @@ include __DIR__ . '/../layout-top.php';
         size_photo: document.getElementById('s-photo').value,
         size_header: document.getElementById('s-header').value,
         qr_enabled: document.getElementById('qr-enabled').checked ? 1 : 0,
-        qr_src: document.getElementById('qr-src').value
+        qr_src: document.getElementById('qr-src').value,
+        qr2_enabled: document.getElementById('qr2-enabled').checked ? 1 : 0,
+        qr2_url: document.getElementById('qr2-url').value,
+        qr2_label: document.getElementById('qr2-label').value,
+        qr2_src: document.getElementById('qr2-src').value
       };
       apiPost('save_meta', d).then(function(){ refreshPreview(); });
     }, 400);

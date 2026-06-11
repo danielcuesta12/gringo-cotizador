@@ -20,13 +20,20 @@ foreach ($secs as &$s) {
 }
 unset($s);
 
-// QR opcional al pie → apunta al landing (raíz del dominio) con ?src= para rastreo
-$qrOn  = !empty($c['qr_enabled']);
-$qrUrl = '';
-if ($qrOn) {
-    $base  = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
-    $qrUrl = $base . '/?src=' . rawurlencode(($c['qr_src'] ?? '') !== '' ? $c['qr_src'] : 'carta');
+// QR 1 (al landing) y QR 2 (link personalizado), opcionales, al pie
+$qr1On  = !empty($c['qr_enabled']);
+$qr1Url = '';
+if ($qr1On) {
+    $base   = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
+    $qr1Url = $base . '/?src=' . rawurlencode(($c['qr_src'] ?? '') !== '' ? $c['qr_src'] : 'carta');
 }
+$qr2On  = !empty($c['qr2_enabled']) && trim((string)($c['qr2_url'] ?? '')) !== '';
+$qr2Url = '';
+if ($qr2On) {
+    $qr2Url = trim($c['qr2_url']);
+    if (($c['qr2_src'] ?? '') !== '') $qr2Url .= (strpos($qr2Url, '?') !== false ? '&' : '?') . 'src=' . rawurlencode($c['qr2_src']);
+}
+$anyQr = $qr1On || $qr2On;
 ?>
 <!DOCTYPE html>
 <html lang="es" data-theme="<?= $theme ?>" style="--sz-section:<?= (float)$c['size_section'] ?>mm;--sz-name:<?= (float)$c['size_name'] ?>mm;--sz-price:<?= (float)$c['size_price'] ?>mm;--sz-desc:<?= (float)$c['size_desc'] ?>mm;--sz-photo:<?= (float)$c['size_photo'] ?>mm;--sz-header:<?= (float)$c['size_header'] ?>mm;--ancho:<?= (int)$c['ancho_mm'] ?>mm;">
@@ -63,7 +70,8 @@ if ($qrOn) {
   .row-price { grid-area:price; font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif; font-size:var(--sz-price); font-weight:700; color:var(--accent); white-space:nowrap; align-self:center; }
   .sec-rows.cols1 .row-price { text-align:right; }
   .sec-rows.cols2 .row-price { text-align:center; }
-  .banner-qr { text-align:center; padding:0 14mm 20mm; }
+  .banner-qr { display:flex; justify-content:center; align-items:flex-start; gap:18mm; padding:0 14mm 20mm; }
+  .qr-item { text-align:center; }
   .banner-qr .qr-card { display:inline-block; background:#fff; padding:6mm; border-radius:6mm; }
   .banner-qr .qr-card img, .banner-qr .qr-card canvas { width:52mm !important; height:52mm !important; display:block; }
   .banner-qr .qr-label { color:var(--text); font-size:5mm; font-weight:700; letter-spacing:1mm; text-transform:uppercase; margin-top:5mm; }
@@ -104,14 +112,15 @@ if ($qrOn) {
     <?php endforeach; ?>
   </div>
 
-  <?php if ($qrOn): ?>
+  <?php if ($anyQr): ?>
   <div class="banner-qr">
-    <div class="qr-card"><div id="qrbox"></div></div>
-    <div class="qr-label">Escanéame</div>
+    <?php if ($qr1On): ?><div class="qr-item"><div class="qr-card"><div id="qrbox1"></div></div><div class="qr-label">Escanéame</div></div><?php endif; ?>
+    <?php if ($qr2On): ?><div class="qr-item"><div class="qr-card"><div id="qrbox2"></div></div><div class="qr-label"><?= clean(($c['qr2_label'] ?? '') !== '' ? $c['qr2_label'] : 'Escanéame') ?></div></div><?php endif; ?>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
-    new QRCode(document.getElementById('qrbox'), { text: <?= json_encode($qrUrl) ?>, width: 360, height: 360, colorDark: '#1A1A1A', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    <?php if ($qr1On): ?>new QRCode(document.getElementById('qrbox1'), { text: <?= json_encode($qr1Url) ?>, width: 360, height: 360, colorDark: '#1A1A1A', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });<?php endif; ?>
+    <?php if ($qr2On): ?>new QRCode(document.getElementById('qrbox2'), { text: <?= json_encode($qr2Url) ?>, width: 360, height: 360, colorDark: '#1A1A1A', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });<?php endif; ?>
   </script>
   <?php endif; ?>
 

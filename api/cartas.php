@@ -61,8 +61,14 @@ case 'save_meta':
     $ancho  = max(100, min(2000, cleanInt($_POST['ancho_mm'] ?? 420)));
     $qrEnabled = !empty($_POST['qr_enabled']) ? 1 : 0;
     $qrSrc     = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_POST['qr_src'] ?? ''));
+    $qr2Enabled = !empty($_POST['qr2_enabled']) ? 1 : 0;
+    $qr2Url     = trim((string)($_POST['qr2_url'] ?? ''));
+    if ($qr2Url !== '' && !preg_match('#^https?://#i', $qr2Url)) $qr2Url = 'https://' . $qr2Url;
+    $qr2Url     = mb_substr($qr2Url, 0, 480);
+    $qr2Src     = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_POST['qr2_src'] ?? ''));
+    $qr2Label   = mb_substr(trim(strip_tags((string)($_POST['qr2_label'] ?? ''))), 0, 60);
     Database::execute(
-        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=?, qr_enabled=?, qr_src=? WHERE id=?",
+        "UPDATE cartas SET nombre=?, tema=?, ancho_mm=?, size_section=?, size_name=?, size_price=?, size_desc=?, size_photo=?, size_header=?, qr_enabled=?, qr_src=?, qr2_enabled=?, qr2_url=?, qr2_src=?, qr2_label=? WHERE id=?",
         [$nombre, $tema, $ancho,
          $clampSize($_POST['size_section'] ?? '', 24),
          $clampSize($_POST['size_name'] ?? '', 18),
@@ -71,6 +77,7 @@ case 'save_meta':
          $clampSize($_POST['size_photo'] ?? '', 60),
          $clampSize($_POST['size_header'] ?? '', 55),
          $qrEnabled, $qrSrc,
+         $qr2Enabled, $qr2Url, $qr2Src, $qr2Label,
          $id]);
     jout(['ok' => true]);
 
