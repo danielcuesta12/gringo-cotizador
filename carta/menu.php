@@ -22,13 +22,13 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   <style>
     @font-face {
       font-family: 'Kimmy';
-      src: url('/marcona/fonts/Kimmy.woff2') format('woff2');
+      src: url('<?= APP_URL ?>/assets/fonts/Kimmy.woff2') format('woff2');
       font-display: swap;
     }
 
     @font-face {
       font-family: 'ArialNarrowBold';
-      src: url('/marcona/fonts/Arial_Narrow_Bold.ttf') format('truetype');
+      src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
       font-display: swap;
     }
 
