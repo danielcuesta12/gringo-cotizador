@@ -770,7 +770,10 @@ function cartTotal() {
 
 function renderCart() {
   var linesEl = document.getElementById('cart-lines');
-  var emptyEl = document.getElementById('cart-empty');
+  // cart-empty vive dentro de cart-lines; al pintar líneas con innerHTML se desprende del DOM.
+  // Cacheamos el nodo una vez para que getElementById no devuelva null en renders siguientes (rompía el render).
+  if (!renderCart._empty) renderCart._empty = document.getElementById('cart-empty');
+  var emptyEl = renderCart._empty;
   var count = state.cart.reduce(function(a, l) { return a + l.qty; }, 0);
   document.getElementById('cart-count').textContent = count;
   var total = cartTotal();
