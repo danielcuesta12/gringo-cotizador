@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/helpers.php';
 requireLogin();
 $ubis   = Database::fetchAll("SELECT id, nombre FROM ubicaciones WHERE activa = 1 ORDER BY nombre");
 $cajero = currentUser();
+$logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');
+$logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -48,8 +50,20 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:12px;padding:0 14px;
 }
 #topbar .brand{
+  display:flex;flex-direction:column;align-items:flex-start;
+  justify-content:center;white-space:nowrap;flex:0 0 auto;
+  gap:1px;
+}
+#topbar .brand-logo{
+  height:26px;width:auto;display:block;
+}
+#topbar .brand-text{
   font-weight:800;letter-spacing:.04em;font-size:15px;
-  color:var(--yellow);white-space:nowrap;
+  color:var(--yellow);line-height:1;
+}
+#topbar .brand-pos{
+  font-size:9px;font-weight:700;letter-spacing:.12em;
+  color:var(--muted);text-transform:uppercase;line-height:1;
 }
 #topbar .sep{color:var(--border);font-size:18px}
 #ubi-select{
@@ -483,37 +497,41 @@ a{color:inherit;text-decoration:none}
 #btn-fav-edit.active{background:rgba(255,223,0,.12);border-color:var(--yellow);color:var(--yellow)}
 #fav-grid{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:9px;
 }
 .fav-cell{
-  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
-  aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  overflow:hidden;cursor:pointer;position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  display:flex;flex-direction:column;overflow:hidden;cursor:pointer;position:relative;
   transition:border-color .1s,transform .08s;
   -webkit-tap-highlight-color:transparent;
 }
-.fav-cell:active{transform:scale(.95)}
+.fav-cell:active{transform:scale(.96)}
 .fav-cell.filled{border-color:var(--border)}
 .fav-cell.filled:active{border-color:var(--yellow)}
 .fav-cell.empty{border-style:dashed;cursor:default;}
 .fav-cell.empty.editable{cursor:pointer}
 .fav-cell.empty.editable:hover{border-color:var(--muted)}
+/* Empty cell placeholder — match prod-tile aspect */
+.fav-cell.empty .fav-empty-img{
+  width:100%;aspect-ratio:4/3;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+}
 .fav-cell .fav-plus{
   font-size:22px;color:var(--border);line-height:1;
 }
 .fav-cell.empty.editable .fav-plus{color:var(--muted)}
 .fav-cell img{
-  width:100%;height:60%;object-fit:cover;
+  width:100%;aspect-ratio:4/3;object-fit:cover;
 }
 .fav-cell .fav-img-ph{
-  width:100%;height:60%;display:flex;align-items:center;justify-content:center;
-  background:var(--surface2);font-size:20px;
+  width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;
+  background:var(--surface2);font-size:28px;
 }
 .fav-cell .fav-nombre{
-  font-size:10px;font-weight:600;color:var(--text);
-  text-align:center;padding:4px 4px 2px;line-height:1.2;
-  width:100%;overflow:hidden;display:-webkit-box;
+  font-size:12px;font-weight:600;color:var(--text);
+  padding:7px 8px 8px;line-height:1.25;
+  overflow:hidden;display:-webkit-box;
   -webkit-line-clamp:2;-webkit-box-orient:vertical;
 }
 /* Edit-mode overlay badge */
@@ -563,7 +581,14 @@ a{color:inherit;text-decoration:none}
 
 <!-- ── Topbar ─────────────────────────────────────────── -->
 <div id="topbar">
-  <span class="brand">EL GRINGO · POS</span>
+  <div class="brand">
+    <?php if ($logoUrl): ?>
+      <img src="<?= htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Logo" class="brand-logo">
+    <?php else: ?>
+      <span class="brand-text">EL GRINGO</span>
+    <?php endif; ?>
+    <span class="brand-pos">POS</span>
+  </div>
   <span class="sep">|</span>
   <select id="ubi-select">
     <option value="">Ubicación…</option>
@@ -735,8 +760,7 @@ var state = {
   // Favorites board
   favMap: {},       // posicion (int) → {producto_id, nombre, foto}
   favEditMode: false,
-  FAV_COLS: 4,
-  FAV_ROWS: 6       // 4×6 = 24 cells, positions 0..23
+  FAV_TOTAL: 40     // positions 0..39
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -1043,7 +1067,7 @@ function loadFavoritos() {
 }
 
 function renderFavBoard() {
-  var total = state.FAV_COLS * state.FAV_ROWS; // 24
+  var total = state.FAV_TOTAL; // 40
   var html = '';
   for (var pos = 0; pos < total; pos++) {
     var fav = state.favMap[pos];
@@ -1061,7 +1085,7 @@ function renderFavBoard() {
             + '</div>';
     } else {
       html += '<div class="fav-cell empty' + (state.favEditMode ? ' editable' : '') + '" data-pos="' + pos + '">'
-            + '<span class="fav-plus">+</span>'
+            + '<div class="fav-empty-img"><span class="fav-plus">+</span></div>'
             + '</div>';
     }
   }
