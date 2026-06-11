@@ -942,6 +942,14 @@ function closeModal() {
   document.getElementById('modal-content').innerHTML = '';
 }
 
+function refreshTurno() {
+  apiGet('turno_actual', { ubicacion_id: state.ubicacionId }).then(function(res) {
+    if (!res.ok || !res.turno) return;
+    state.turno = res.turno;
+    if (state.cajaOpen) renderCajaDetalle();
+  });
+}
+
 function confirmarVenta(metodo) {
   var total = cartTotal();
   var btn = document.getElementById('btn-cobrar');
@@ -959,11 +967,7 @@ function confirmarVenta(metodo) {
     if (!res.ok) { toast('Error al registrar venta: ' + (res.error || ''), 'err'); return; }
     state.cart = [];
     renderCart();
-    // Update local turno totals
-    if (state.turno) {
-      state.turno.total_ventas = (parseFloat(state.turno.total_ventas) || 0) + total;
-      state.turno.total_pedidos = (parseInt(state.turno.total_pedidos, 10) || 0) + 1;
-    }
+    refreshTurno();
     toast('Venta #' + res.id + ' registrada', 'ok');
   }).catch(function() {
     btn.disabled = false;
