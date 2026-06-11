@@ -11,7 +11,7 @@ function jout($data) { echo json_encode($data); exit; }
 $clampSize = fn($v, $def) => max(4.0, min(120.0, (float)(($v === '' || $v === null) ? $def : $v)));
 $cleanFoto = function ($v) {
     $v = trim((string)$v);
-    return ($v !== '' && preg_match('#^[A-Za-z0-9._/-]+$#', $v)) ? $v : '';
+    return ($v !== '' && strpos($v, '..') === false && preg_match('#^[A-Za-z0-9._/-]+$#', $v)) ? $v : '';
 };
 
 $action = clean($_GET['action'] ?? '');
@@ -90,8 +90,9 @@ case 'seccion_delete':
     jout(['ok' => true]);
 
 case 'seccion_reorder':
+    $cartaId = cleanInt($_POST['carta_id'] ?? 0);
     $ids = $_POST['ids'] ?? [];
-    if (is_array($ids)) { $o = 1; foreach ($ids as $sid) { Database::execute("UPDATE carta_secciones SET sort_order=? WHERE id=?", [$o++, cleanInt($sid)]); } }
+    if ($cartaId && is_array($ids)) { $o = 1; foreach ($ids as $sid) { Database::execute("UPDATE carta_secciones SET sort_order=? WHERE id=? AND carta_id=?", [$o++, cleanInt($sid), $cartaId]); } }
     jout(['ok' => true]);
 
 case 'item_create':
@@ -128,9 +129,10 @@ case 'item_delete':
     jout(['ok' => true]);
 
 case 'item_reorder':
-    $ids   = $_POST['ids'] ?? [];
-    $secId = cleanInt($_POST['seccion_id'] ?? 0);
-    if (is_array($ids) && $secId) { $o = 1; foreach ($ids as $iid) { Database::execute("UPDATE carta_items SET sort_order=?, seccion_id=? WHERE id=?", [$o++, $secId, cleanInt($iid)]); } }
+    $cartaId = cleanInt($_POST['carta_id'] ?? 0);
+    $ids     = $_POST['ids'] ?? [];
+    $secId   = cleanInt($_POST['seccion_id'] ?? 0);
+    if ($cartaId && $secId && is_array($ids)) { $o = 1; foreach ($ids as $iid) { Database::execute("UPDATE carta_items SET sort_order=?, seccion_id=? WHERE id=? AND carta_id=?", [$o++, $secId, cleanInt($iid), $cartaId]); } }
     jout(['ok' => true]);
 
 case 'cargar_ubicacion':
@@ -157,14 +159,15 @@ case 'cargar_ubicacion':
             $cat = $r['cat_name'] ?: 'Carta';
             if (!isset($secByCat[$cat])) {
                 $secOrd++;
-                $secByCat[$cat] = Database::insert("INSERT INTO carta_secciones (carta_id, nombre, sort_order) VALUES (?,?,?)", [$cartaId, $cat, $secOrd]);
+                $secByCat[$cat] = Database::insert("INSERT INTO carta_secciones (carta_id, nombre, sort_order) VALUES (?,?,?)", [$cartaId, clean($cat), $secOrd]);
                 $itemOrd[$secByCat[$cat]] = 0;
             }
             $sid = $secByCat[$cat];
             $itemOrd[$sid]++;
+            $pdesc = clean($r['pdesc'] ?? '');
             Database::execute(
                 "INSERT INTO carta_items (carta_id, seccion_id, nombre, descripcion, precio, foto, sort_order) VALUES (?,?,?,?,?,?,?)",
-                [$cartaId, $sid, $r['pname'], ($r['pdesc'] ?: null), (float)$r['price'], ($r['pimg'] ?: null), $itemOrd[$sid]]);
+                [$cartaId, $sid, clean($r['pname']), ($pdesc !== '' ? $pdesc : null), (float)$r['price'], ($r['pimg'] ?: null), $itemOrd[$sid]]);
         }
         $pdo->commit();
     } catch (Exception $e) {
