@@ -1084,7 +1084,8 @@ function renderFavBoard() {
         if (fav) {
           // Sell the product
           var prod = state.productos.find(function(p) { return p.id === fav.producto_id; });
-          var precio = prod ? parseFloat(prod.precio) : 0;
+          if (!prod || !(parseFloat(prod.precio) > 0)) { toast('Producto no disponible', 'err'); return; }
+          var precio = parseFloat(prod.precio);
           abrirItemModal({ id: fav.producto_id, nombre: fav.nombre, precio: precio }, undefined);
         }
         // Empty cell in non-edit mode: do nothing
@@ -1779,6 +1780,9 @@ function showModalCobro(metodo) {
       extraData.cliente_tipo = document.getElementById('cl-tipo').value;
       extraData.cliente_documento = document.getElementById('cl-doc').value.trim();
       extraData.cliente_nombre = document.getElementById('cl-nombre').value.trim();
+    }
+    if (comprobanteTipo === 'factura') {
+      extraData.cliente_razon_social = document.getElementById('cl-nombre').value.trim();
     }
     closeModal();
     confirmarVenta(metodo, extraData);
