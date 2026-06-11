@@ -204,9 +204,9 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     .item-info { flex: 1; min-width: 0; }
     .item-name { font-family: 'ArialNarrowBold', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.2; margin-bottom: 3px; }
     .item-desc {
-      font-size: 15px; color: var(--muted); line-height: 1.4;
+      font-size: 16px; color: var(--muted); line-height: 1.45;
       overflow: hidden; display: -webkit-box;
-      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     }
     .item-right {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
