@@ -90,6 +90,16 @@ Las ventas POS son filas en `pedidos` con `origen='pos'` y `turno_id`; reusan `p
 - **Cerrar caja:** arqueo (conteo de efectivo) vs total del turno → guarda monto_final y totales → cierra turno.
 - **Monitor (admin):** polling cada pocos segundos para el día de hoy (en vivo); selector de fecha para días pasados (agregados de ese día).
 
+## Interacción táctil (terminal)
+
+El terminal es **táctil-first** (tablet) y debe sentirse como una app nativa:
+- **Carrito — deslizar para eliminar:** swipe a la izquierda sobre una línea del pedido la quita (con un botón rojo que aparece al deslizar); también hay un botón de quitar visible como respaldo. Confirmación rápida (deshacer breve) para evitar borrados accidentales.
+- **Agregar:** un toque en el tile del producto lo suma al pedido (feedback visual/animación corta).
+- **Cantidad:** botones **+/−** grandes por línea; tocar la cantidad permite teclear el número.
+- **Targets grandes**, sin nada dependiente de hover; scroll suave en grilla y carrito.
+- **Favoritos** y **categorías** como pestañas grandes para acceso de un toque.
+- En **PC** los mismos elementos funcionan con click; los gestos son una mejora táctil, no un requisito para operar.
+
 ## SUNAT / RENIEC — preparado, no construido
 
 - **RENIEC/consulta:** el bloque de cliente captura tipo+doc+nombre+razón; un botón **"Buscar"** queda como enganche (manual hoy → consulta real luego). Sin cambios de esquema posteriores.
