@@ -32,6 +32,7 @@ function inlineSvgGrip() {
 <link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
 <link rel="manifest" href="<?= APP_URL ?>/manifest.php?app=monitor">
 <title>Ventas en vivo · El Gringo</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ── Reset & tokens ──────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -242,6 +243,26 @@ a{color:inherit;text-decoration:none}
 
 /* ── Updated time ───────────────────────────────────── */
 #mon-updated{font-size:11px;color:var(--muted);text-align:center;padding-top:4px}
+
+/* ── Excel export button ──────────────────────────── */
+.tb-excel-btn{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,223,0,.12);border:1px solid rgba(255,223,0,.3);
+  border-radius:var(--radius-sm);padding:5px 10px;
+  font-size:12px;font-weight:700;color:var(--yellow);
+  white-space:nowrap;flex-shrink:0;cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+.tb-excel-btn:hover,.tb-excel-btn:active{background:rgba(255,223,0,.22);border-color:rgba(255,223,0,.55)}
+/* ── Toast ───────────────────────────────────────── */
+#mon-toast{
+  position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-size:13px;font-weight:600;
+  padding:10px 18px;z-index:999;white-space:nowrap;
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+#mon-toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -265,6 +286,10 @@ a{color:inherit;text-decoration:none}
   <?php else: ?>
   <span style="font-size:13px;color:var(--muted)">Sin ubicaciones</span>
   <?php endif; ?>
+  <button id="btn-items-excel" class="tb-excel-btn" title="Exportar ítems vendidos a Excel">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2m2 0h2M8 17h2m2 0h2"/></svg>
+    <span>Ítems</span>
+  </button>
   <span class="tb-spacer"></span>
   <div id="tb-live" class="tb-live">
     <span class="tb-dot"></span>
@@ -368,14 +393,17 @@ a{color:inherit;text-decoration:none}
 
 </div><!-- #main -->
 
+<div id="mon-toast"></div>
+
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('<?= APP_URL ?>/sw.js').catch(function () {});
 }
 
-var API        = <?= json_encode(APP_URL . '/api/pos.php') ?>;
-var TODAY      = <?= json_encode(date('Y-m-d')) ?>;
-var TICKET_URL = <?= json_encode(APP_URL . '/pos/ticket.php') ?>;
+var API           = <?= json_encode(APP_URL . '/api/pos.php') ?>;
+var REPORTES_API  = <?= json_encode(APP_URL . '/api/reportes.php') ?>;
+var TODAY         = <?= json_encode(date('Y-m-d')) ?>;
+var TICKET_URL    = <?= json_encode(APP_URL . '/pos/ticket.php') ?>;
 var SEC_ORDER_KEY = 'monitor_sec_order';
 
 (function () {
@@ -401,6 +429,86 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
     return t.substring(0, 5);
   }
   function nowHMS() { return new Date().toTimeString().substring(0, 8); }
+
+  /* ── Toast ──────────────────────────────────────────── */
+  var toastTimer = null;
+  var elToast = document.getElementById("mon-toast");
+  function showToast(msg) {
+    if (!elToast) return;
+    elToast.textContent = msg;
+    elToast.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { elToast.classList.remove("show"); }, 3000);
+  }
+
+  /* ── Excel: build categorias workbook (shared logic) ── */
+  function buildCategoriasWorkbook(data) {
+    var cats = data.categorias || [];
+    /* Sheet 1: Por categoría */
+    var hdrs1 = ["Categoría", "Producto", "Unidades", "Total"];
+    var rows1 = [];
+    cats.forEach(function (cat) {
+      rows1.push([cat.categoria, "", cat.qty, Number(Number(cat.monto).toFixed(2))]);
+      (cat.items || []).forEach(function (it) {
+        rows1.push(["", it.nombre, it.qty, Number(Number(it.total).toFixed(2))]);
+      });
+    });
+    rows1.push(["TOTAL", "", data.total_qty, Number(Number(data.total_monto).toFixed(2))]);
+    var ws1 = XLSX.utils.aoa_to_sheet([hdrs1].concat(rows1));
+    ws1["!cols"] = [{wch:22},{wch:30},{wch:12},{wch:14}];
+    /* Sheet 2: Detalle */
+    var hdrs2 = ["Categoría", "Producto", "Unidades", "Total"];
+    var rows2 = [];
+    cats.forEach(function (cat) {
+      (cat.items || []).forEach(function (it) {
+        rows2.push([cat.categoria, it.nombre, it.qty, Number(Number(it.total).toFixed(2))]);
+      });
+    });
+    rows2.push(["TOTAL", "", data.total_qty, Number(Number(data.total_monto).toFixed(2))]);
+    var ws2 = XLSX.utils.aoa_to_sheet([hdrs2].concat(rows2));
+    ws2["!cols"] = [{wch:22},{wch:30},{wch:12},{wch:14}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, "Por categoría");
+    XLSX.utils.book_append_sheet(wb, ws2, "Detalle");
+    /* Sheet 3: Modificadores (only if present) */
+    var mods = data.modificadores || [];
+    if (mods.length) {
+      var hdrs3 = ["Modificador", "Veces", "Ingreso extra"];
+      var rows3 = mods.map(function (m) {
+        return [m.nombre, m.qty, Number(Number(m.ingreso).toFixed(2))];
+      });
+      rows3.push(["TOTAL", data.mod_total_qty, Number(Number(data.mod_total_ingreso).toFixed(2))]);
+      var ws3 = XLSX.utils.aoa_to_sheet([hdrs3].concat(rows3));
+      ws3["!cols"] = [{wch:28},{wch:10},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws3, "Modificadores");
+    }
+    return wb;
+  }
+
+  /* ── Excel export: ítems vendidos (día seleccionado) ── */
+  function exportItemsExcel() {
+    if (typeof XLSX === "undefined") {
+      showToast("No se pudo cargar la librería Excel");
+      return;
+    }
+    var fecha = getDate();
+    var ubi   = elUbi ? elUbi.value : "0";
+    var url   = REPORTES_API + "?action=categorias"
+              + "&desde=" + encodeURIComponent(fecha)
+              + "&hasta=" + encodeURIComponent(fecha);
+    if (ubi && ubi !== "0") {
+      url += "&ubicacion_id=" + encodeURIComponent(ubi);
+    }
+    fetch(url, { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) { showToast("Error: " + (data.error || "API")); return; }
+        if (!(data.categorias || []).length) { showToast("Sin ítems para este día"); return; }
+        var wb = buildCategoriasWorkbook(data);
+        XLSX.writeFile(wb, "items-" + fecha + ".xlsx");
+      })
+      .catch(function (e) { showToast("Error de red"); });
+  }
 
   var DAYS_ES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   var MONTHS_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -470,6 +578,8 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
     onChange();
   });
   if (elUbi) elUbi.addEventListener("change", onChange);
+  var elItemsBtn = document.getElementById("btn-items-excel");
+  if (elItemsBtn) elItemsBtn.addEventListener("click", exportItemsExcel);
 
   /* ── Fetch ──────────────────────────────────────────── */
   function load() {
@@ -639,10 +749,12 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
       }
     }
 
-    /* x-axis labels */
+    /* x-axis labels — full 24h: 0h, 6h, 12h, 18h, 23h */
     var xLabels = "";
-    [6, 12, 18].forEach(function (h) {
-      xLabels += '<text x="' + xPx(h) + '" y="' + (H - 2) + '" text-anchor="middle" fill="#8a8078" font-size="9">' + h + 'h</text>';
+    [[0,"0h"],[6,"6h"],[12,"12h"],[18,"18h"],[23,"23h"]].forEach(function (pair) {
+      var h = pair[0]; var label = pair[1];
+      var anchor = h === 0 ? "start" : (h === 23 ? "end" : "middle");
+      xLabels += '<text x="' + xPx(h) + '" y="' + (H - 2) + '" text-anchor="' + anchor + '" fill="#8a8078" font-size="9">' + label + '</text>';
     });
 
     var svgContent = '<svg id="comp-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +

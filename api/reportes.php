@@ -11,18 +11,24 @@ $desde  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['desde'] ?? '') ? $_GET['des
 $hasta  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['hasta'] ?? '') ? $_GET['hasta'] : '';
 $ubi    = cleanInt($_GET['ubicacion_id'] ?? 0);
 $origen = in_array($_GET['origen'] ?? '', ['carta', 'pos'], true) ? $_GET['origen'] : '';
+$turno  = cleanInt($_GET['turno_id'] ?? 0);
 
 function rout(array $d): never { echo json_encode($d); exit; }
 
 // ── action=pedidos ────────────────────────────────────────────────────────────
 if ($action === 'pedidos') {
     try {
-        $where  = "p.estado <> 'cancelado'";
-        $params = [];
-        if ($desde !== '') { $where .= " AND DATE(p.created_at) >= ?"; $params[] = $desde; }
-        if ($hasta !== '')  { $where .= " AND DATE(p.created_at) <= ?"; $params[] = $hasta; }
-        if ($ubi > 0)       { $where .= " AND p.ubicacion_id = ?";      $params[] = $ubi; }
-        if ($origen !== '')  { $where .= " AND p.origen = ?";            $params[] = $origen; }
+        if ($turno > 0) {
+            $where  = "p.turno_id = ? AND p.estado <> 'cancelado'";
+            $params = [$turno];
+        } else {
+            $where  = "p.estado <> 'cancelado'";
+            $params = [];
+            if ($desde !== '') { $where .= " AND DATE(p.created_at) >= ?"; $params[] = $desde; }
+            if ($hasta !== '')  { $where .= " AND DATE(p.created_at) <= ?"; $params[] = $hasta; }
+            if ($ubi > 0)       { $where .= " AND p.ubicacion_id = ?";      $params[] = $ubi; }
+            if ($origen !== '')  { $where .= " AND p.origen = ?";            $params[] = $origen; }
+        }
 
         $pedidos = Database::fetchAll(
             "SELECT p.id, p.created_at, p.origen,
@@ -45,12 +51,17 @@ if ($action === 'pedidos') {
 if ($action === 'categorias') {
     try {
         // Build the same pedidos WHERE (items only)
-        $where  = "estado <> 'cancelado'";
-        $params = [];
-        if ($desde !== '') { $where .= " AND DATE(created_at) >= ?"; $params[] = $desde; }
-        if ($hasta !== '')  { $where .= " AND DATE(created_at) <= ?"; $params[] = $hasta; }
-        if ($ubi > 0)       { $where .= " AND ubicacion_id = ?";      $params[] = $ubi; }
-        if ($origen !== '')  { $where .= " AND origen = ?";            $params[] = $origen; }
+        if ($turno > 0) {
+            $where  = "turno_id = ? AND estado <> 'cancelado'";
+            $params = [$turno];
+        } else {
+            $where  = "estado <> 'cancelado'";
+            $params = [];
+            if ($desde !== '') { $where .= " AND DATE(created_at) >= ?"; $params[] = $desde; }
+            if ($hasta !== '')  { $where .= " AND DATE(created_at) <= ?"; $params[] = $hasta; }
+            if ($ubi > 0)       { $where .= " AND ubicacion_id = ?";      $params[] = $ubi; }
+            if ($origen !== '')  { $where .= " AND origen = ?";            $params[] = $origen; }
+        }
 
         $rows = Database::fetchAll(
             "SELECT items_json FROM pedidos WHERE {$where}",

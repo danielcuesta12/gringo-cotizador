@@ -82,6 +82,7 @@ function difLabel(float $dif): string {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 $pageTitle  = 'Historial de caja';
 $activePage = 'pos-caja';
+$extraHead  = '<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>';
 include __DIR__ . '/../layout-top.php';
 ?>
 
@@ -357,12 +358,16 @@ include __DIR__ . '/../layout-top.php';
                   </table>
                   <?php endif; ?>
 
-                  <div style="margin-top:14px">
+                  <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
                     <a href="<?= APP_URL ?>/admin/pedidos/index.php?turno=<?= (int)$t['id'] ?>"
                        style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600"
                        target="_blank">
                       Ver pedidos del turno &#8250;
                     </a>
+                    <button onclick="exportTurnoItems(<?= (int)$t['id'] ?>)"
+                            class="btn-items-turno" type="button">
+                      &#8595; Ítems (Excel)
+                    </button>
                   </div>
                 </div>
 
@@ -448,11 +453,17 @@ include __DIR__ . '/../layout-top.php';
           <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span style="color:var(--text-secondary)">Diferencia</span><strong style="color:<?= difColor($difVal ?? 0) ?>"><?= difLabel($difVal ?? 0) ?></strong></div>
         </div>
         <?php endif; ?>
-        <a href="<?= APP_URL ?>/admin/pedidos/index.php?turno=<?= (int)$t['id'] ?>"
-           style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600"
-           target="_blank">
-          Ver pedidos del turno &#8250;
-        </a>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="<?= APP_URL ?>/admin/pedidos/index.php?turno=<?= (int)$t['id'] ?>"
+             style="font-size:13px;color:var(--blue);text-decoration:none;font-weight:600"
+             target="_blank">
+            Ver pedidos del turno &#8250;
+          </a>
+          <button onclick="exportTurnoItems(<?= (int)$t['id'] ?>)"
+                  class="btn-items-turno" type="button">
+            &#8595; Ítems (Excel)
+          </button>
+        </div>
       </div>
     </div>
     <?php endforeach; ?>
@@ -471,9 +482,77 @@ include __DIR__ . '/../layout-top.php';
   .caja-mobile  { display: block; }
 }
 .caja-main-row:hover { background: #fafafa; }
+.btn-items-turno {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--green);
+  background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.3);
+  border-radius: 6px; padding: 5px 11px; cursor: pointer;
+  transition: background .15s, border-color .15s;
+  font-family: inherit;
+}
+.btn-items-turno:hover { background: rgba(22,163,74,.16); border-color: rgba(22,163,74,.55); }
 </style>
 
 <script>
+var REPORTES_API_CAJA = <?= json_encode(APP_URL . '/api/reportes.php') ?>;
+
+function buildCategoriasWb(data) {
+  var cats = data.categorias || [];
+  var hdrs1 = ["Categoría", "Producto", "Unidades", "Total"];
+  var rows1 = [];
+  cats.forEach(function (cat) {
+    rows1.push([cat.categoria, "", cat.qty, Number(Number(cat.monto).toFixed(2))]);
+    (cat.items || []).forEach(function (it) {
+      rows1.push(["", it.nombre, it.qty, Number(Number(it.total).toFixed(2))]);
+    });
+  });
+  rows1.push(["TOTAL", "", data.total_qty, Number(Number(data.total_monto).toFixed(2))]);
+  var ws1 = XLSX.utils.aoa_to_sheet([hdrs1].concat(rows1));
+  ws1["!cols"] = [{wch:22},{wch:30},{wch:12},{wch:14}];
+  var hdrs2 = ["Categoría", "Producto", "Unidades", "Total"];
+  var rows2 = [];
+  cats.forEach(function (cat) {
+    (cat.items || []).forEach(function (it) {
+      rows2.push([cat.categoria, it.nombre, it.qty, Number(Number(it.total).toFixed(2))]);
+    });
+  });
+  rows2.push(["TOTAL", "", data.total_qty, Number(Number(data.total_monto).toFixed(2))]);
+  var ws2 = XLSX.utils.aoa_to_sheet([hdrs2].concat(rows2));
+  ws2["!cols"] = [{wch:22},{wch:30},{wch:12},{wch:14}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, "Por categoría");
+  XLSX.utils.book_append_sheet(wb, ws2, "Detalle");
+  var mods = data.modificadores || [];
+  if (mods.length) {
+    var hdrs3 = ["Modificador", "Veces", "Ingreso extra"];
+    var rows3 = mods.map(function (m) {
+      return [m.nombre, m.qty, Number(Number(m.ingreso).toFixed(2))];
+    });
+    rows3.push(["TOTAL", data.mod_total_qty, Number(Number(data.mod_total_ingreso).toFixed(2))]);
+    var ws3 = XLSX.utils.aoa_to_sheet([hdrs3].concat(rows3));
+    ws3["!cols"] = [{wch:28},{wch:10},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws3, "Modificadores");
+  }
+  return wb;
+}
+
+function exportTurnoItems(turnoId) {
+  if (typeof XLSX === "undefined") {
+    alert("No se pudo cargar la librería Excel. Verifica tu conexión.");
+    return;
+  }
+  var url = REPORTES_API_CAJA + "?action=categorias&turno_id=" + parseInt(turnoId, 10);
+  fetch(url, { credentials: "same-origin" })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok) { alert("Error: " + (data.error || "API")); return; }
+      if (!(data.categorias || []).length) { alert("Sin ítems para este turno."); return; }
+      var wb = buildCategoriasWb(data);
+      XLSX.writeFile(wb, "items-turno-" + turnoId + ".xlsx");
+    })
+    .catch(function () { alert("Error de red al exportar ítems."); });
+}
+
 function toggleCajaDetail(detailId, rowId) {
     var detail = document.getElementById(detailId);
     var arrow  = document.getElementById(rowId.replace('caja-row-', 'arrow-'));
