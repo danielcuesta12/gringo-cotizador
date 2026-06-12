@@ -5,26 +5,51 @@ require_once __DIR__ . '/../includes/helpers.php';
 
 requirePermission('dashboard');
 
-$pageTitle = 'Dashboard';
+// --- Mes parametrizable ---
+$mes = $_GET['mes'] ?? date('Y-m');
+if (!preg_match('/^\d{4}-\d{2}$/', $mes)) {
+    $mes = date('Y-m');
+}
+$mesParts  = explode('-', $mes);
+$mesYear   = (int)$mesParts[0];
+$mesMonth  = (int)$mesParts[1];
+$mesNames  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+$mesLabel  = $mesNames[$mesMonth] . ' ' . $mesYear;
 
-// Stats
-$statsCot = Database::fetch(
-    "SELECT COUNT(*) as n FROM quotes
-     WHERE MONTH(created_at)=MONTH(NOW()) AND YEAR(created_at)=YEAR(NOW())"
-);
-// Facturado del mes = suma de TODOS los eventos aceptados cuya FECHA DE EVENTO cae en el mes actual.
-// (Antes filtraba por accepted_at; un evento aceptado en mayo para una boda de junio no contaba en junio.)
-$statsFacturado = Database::fetch(
-    "SELECT COALESCE(SUM(total),0) as sum FROM quotes
+// --- Genera los últimos 12 meses para el selector ---
+$mesOpciones = [];
+for ($i = 0; $i < 13; $i++) {
+    $ts  = mktime(0, 0, 0, date('n') - $i, 1, date('Y'));
+    $val = date('Y-m', $ts);
+    $lbl = $mesNames[(int)date('n', $ts)] . ' ' . date('Y', $ts);
+    $mesOpciones[] = ['val' => $val, 'lbl' => $lbl];
+}
+
+// ============================================================
+// DATOS — COTIZACIONES
+// ============================================================
+
+$facturadoMes = (float)Database::fetch(
+    "SELECT COALESCE(SUM(total),0) s FROM quotes
      WHERE status='aceptada'
-     AND event_date IS NOT NULL AND event_date != ''
-     AND MONTH(event_date)=MONTH(NOW()) AND YEAR(event_date)=YEAR(NOW())"
-);
-$byStatus = Database::fetchAll("SELECT status, COUNT(*) as n FROM quotes GROUP BY status");
-$smap     = array_column($byStatus, 'n', 'status');
+       AND event_date IS NOT NULL AND event_date <> ''
+       AND DATE_FORMAT(event_date,'%Y-%m')=?",
+    [$mes]
+)['s'];
 
-// Solicitudes pendientes
-$pendingReq = (int)Database::fetch("SELECT COUNT(*) as n FROM quote_requests WHERE status='pendiente'")['n'];
+$cotMes = (int)Database::fetch(
+    "SELECT COUNT(*) n FROM quotes WHERE DATE_FORMAT(created_at,'%Y-%m')=?",
+    [$mes]
+)['n'];
+
+$aceptadasMes = (int)Database::fetch(
+    "SELECT COUNT(*) n FROM quotes WHERE status='aceptada' AND DATE_FORMAT(created_at,'%Y-%m')=?",
+    [$mes]
+)['n'];
+
+$pendingReq = (int)Database::fetch(
+    "SELECT COUNT(*) n FROM quote_requests WHERE status='pendiente'"
+)['n'];
 
 // Cotizaciones para calendario (enviadas y aceptadas con fecha de evento)
 $calQuotes = Database::fetchAll(
@@ -39,7 +64,7 @@ $calQuotes = Database::fetchAll(
 
 // Items por cotización para tooltips
 $calIds = array_column($calQuotes, 'id');
-$calItemsMap = array();
+$calItemsMap = [];
 if (!empty($calIds)) {
     $ph = implode(',', array_fill(0, count($calIds), '?'));
     $rows = Database::fetchAll(
@@ -50,163 +75,815 @@ if (!empty($calIds)) {
         $calItemsMap[$r['quote_id']][] = $r['name'] . ' × ' . number_format((float)$r['quantity'], 0);
     }
 }
-foreach ($calQuotes as &$q) {
-    $q['items_summary'] = isset($calItemsMap[$q['id']]) ? implode(' · ', array_slice($calItemsMap[$q['id']], 0, 3)) : '';
+foreach ($calQuotes as &$cqr) {
+    $cqr['items_summary'] = isset($calItemsMap[$cqr['id']]) ? implode(' · ', array_slice($calItemsMap[$cqr['id']], 0, 3)) : '';
 }
-unset($q);
+unset($cqr);
 
 // Agrupar por fecha
-$calMap = array();
-foreach ($calQuotes as $cq) {
-    $calMap[$cq['event_date']][] = $cq;
+$calMap = [];
+foreach ($calQuotes as $cqItem) {
+    $calMap[$cqItem['event_date']][] = $cqItem;
 }
 
-// Últimas cotizaciones
-$recentQuotes = Database::fetchAll(
-    "SELECT q.*, c.name as client_name FROM quotes q
-     JOIN clients c ON c.id=q.client_id
-     ORDER BY q.created_at DESC LIMIT 6"
-);
+// ============================================================
+// DATOS — OPERACIÓN (tabla pedidos; puede no existir)
+// ============================================================
+$opOk           = false;
+$ventasHoyTotal = 0.0;
+$ventasHoyN     = 0;
+$ventasMes      = 0.0;
+$canalCarta     = 0.0;
+$canalPos       = 0.0;
+$enPreparacion  = 0;
+$ticketProm     = 0.0;
+$opNote         = '';
 
-$activePage = 'dashboard';
-include __DIR__ . '/layout-top.php';
-?>
+try {
+    $rowHoy = Database::fetch(
+        "SELECT COALESCE(SUM(total),0) t, COUNT(*) n FROM pedidos
+         WHERE estado<>'cancelado' AND DATE(created_at)=CURDATE()"
+    );
+    $ventasHoyTotal = (float)($rowHoy['t'] ?? 0);
+    $ventasHoyN     = (int)($rowHoy['n'] ?? 0);
 
-<?php
+    $rowMes = Database::fetch(
+        "SELECT COALESCE(SUM(total),0) t FROM pedidos
+         WHERE estado<>'cancelado' AND DATE_FORMAT(created_at,'%Y-%m')=?",
+        [$mes]
+    );
+    $ventasMes = (float)($rowMes['t'] ?? 0);
+
+    $canales = Database::fetchAll(
+        "SELECT origen, COALESCE(SUM(total),0) t FROM pedidos
+         WHERE estado<>'cancelado' AND DATE_FORMAT(created_at,'%Y-%m')=?
+         GROUP BY origen",
+        [$mes]
+    );
+    foreach ($canales as $canal) {
+        if ($canal['origen'] === 'carta') $canalCarta = (float)$canal['t'];
+        if ($canal['origen'] === 'pos')   $canalPos   = (float)$canal['t'];
+    }
+
+    $rowPrep     = Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE estado='en_preparacion'");
+    $enPreparacion = (int)($rowPrep['n'] ?? 0);
+
+    $ticketProm  = $ventasHoyN > 0 ? $ventasHoyTotal / $ventasHoyN : 0.0;
+    $opOk        = true;
+} catch (Exception $e) {
+    $opNote = 'Módulo de operación no disponible en esta instalación.';
+}
+
+// ============================================================
+// CONSOLIDADO
+// ============================================================
+$totalConsolidado = $facturadoMes + $ventasMes;
+$pctEventos       = $totalConsolidado > 0 ? round(($facturadoMes / $totalConsolidado) * 100, 1) : 0;
+$pctOperacion     = $totalConsolidado > 0 ? round(($ventasMes   / $totalConsolidado) * 100, 1) : 0;
+
+// ============================================================
+// PRÓXIMOS EVENTOS
+// ============================================================
 $todayStr = date('Y-m-d');
-// Próximos eventos: enviadas/aceptadas/eventos con fecha futura o de hoy
 $upcoming = array_slice(array_values(array_filter($calQuotes, function ($q) use ($todayStr) {
     return $q['event_date'] >= $todayStr;
 })), 0, 6);
 
-// Clase de color por estado (amarillo=enviada, verde=aceptada, morado=evento)
-function dashState($q) {
+function dashState(array $q): string {
     if (($q['origin'] ?? '') === 'event') return 'evento';
     return ($q['status'] ?? '') === 'aceptada' ? 'aceptada' : 'enviada';
 }
-function dashStateLabel($q) {
+function dashStateLabel(array $q): string {
     if (($q['origin'] ?? '') === 'event') return 'Evento';
     return ($q['status'] ?? '') === 'aceptada' ? 'Aceptada' : 'Enviada';
 }
+
+$pageTitle  = 'Dashboard';
+$activePage = 'dashboard';
+include __DIR__ . '/layout-top.php';
 ?>
 
-<!-- STATS -->
-<div class="dash-stats">
-  <div class="dstat dstat-cot">
-    <div class="dstat-label">Cot. este mes</div>
-    <div class="dstat-num"><?php echo (int)($statsCot['n'] ?? 0); ?></div>
-    <div class="dstat-sub">cotizaciones</div>
-  </div>
-  <div class="dstat dstat-fact">
-    <div class="dstat-label">Facturado mes</div>
-    <div class="dstat-num money"><?php echo formatMoney((float)($statsFacturado['sum'] ?? 0)); ?></div>
-    <div class="dstat-sub">eventos del mes</div>
-  </div>
-  <div class="dstat dstat-acc">
-    <div class="dstat-label">Aceptadas</div>
-    <div class="dstat-num"><?php echo (int)(isset($smap['aceptada']) ? $smap['aceptada'] : 0); ?></div>
-    <div class="dstat-sub">histórico</div>
-  </div>
-  <a class="dstat dstat-req" href="<?php echo APP_URL; ?>/admin/requests/index.php" style="text-decoration:none">
-    <div class="dstat-label">Solicitudes</div>
-    <div class="dstat-num" style="color:#fb923c"><?php echo $pendingReq; ?></div>
-    <div class="dstat-sub">pendientes</div>
-  </a>
-</div>
+<style>
+/* ============================================================
+   BRAND TOKENS
+   ============================================================ */
+:root {
+  --pink:       #ef7da6;
+  --pink-soft:  rgba(255,187,200,.28);
+  --pink-deep:  #d6457e;
+  --yellow:     #FFDF00;
+  --yellow-soft:rgba(255,223,0,.18);
+  --yellow-deep:#8a7000;
+  --black:      #1E1E1E;
+}
 
-<div class="dash-grid">
-  <div class="dash-main">
+/* ============================================================
+   CONSOLIDADO CARD
+   ============================================================ */
+.cons-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.cons-left { flex: 1; min-width: 220px; }
+.cons-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.cons-total {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--black);
+  letter-spacing: -.5px;
+  line-height: 1.1;
+  margin-bottom: 14px;
+}
+.cons-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 10px;
+}
+.cons-bar-pink   { background: var(--pink);   transition: width .4s; }
+.cons-bar-yellow { background: var(--yellow); transition: width .4s; }
+.cons-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.cons-leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.cons-leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cons-leg strong { color: var(--text-primary); }
 
-<!-- PRÓXIMOS EVENTOS -->
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">Próximos eventos</span>
-    <a href="<?php echo APP_URL; ?>/quotes/list.php" class="btn btn-ghost btn-sm">Ver todas &rarr;</a>
-  </div>
-  <?php if (empty($upcoming)): ?>
-  <div class="empty-state" style="padding:36px 20px">
-    <p>Sin eventos próximos</p>
-    <a href="<?php echo APP_URL; ?>/quotes/create.php" class="btn btn-primary">+ Nueva cotización</a>
-  </div>
-  <?php else: foreach ($upcoming as $q): $st = dashState($q); ?>
-  <a class="ev-row" href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $q['id']; ?>">
-    <span class="ev-dot ev-dot-<?php echo $st; ?>"></span>
-    <div class="ev-info">
-      <div class="ev-name"><?php echo clean($q['client_name']); ?></div>
-      <div class="ev-meta"><?php echo clean($q['event_type'] ?: 'Evento'); ?> · <?php echo formatDate($q['event_date']); ?><?php echo (int)$q['num_people'] > 0 ? ' · ' . (int)$q['num_people'] . ' pers.' : ''; ?></div>
+.cons-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 180px;
+}
+.cons-mes-select {
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+}
+.cons-mes-select:focus { border-color: var(--black); }
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--black);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.btn-export:hover { opacity: .82; }
+.btn-export svg { width: 14px; height: 14px; }
+.btn-export-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: var(--black);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity .15s;
+}
+.btn-export-sm:hover { opacity: .82; }
+
+/* ============================================================
+   SECTION HEADERS
+   ============================================================ */
+.world-section { margin-bottom: 24px; }
+
+.world-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.world-chip {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.world-chip svg { width: 17px; height: 17px; }
+.world-chip-pink   { background: var(--pink-soft); color: var(--pink-deep); }
+.world-chip-yellow { background: var(--yellow-soft); color: var(--yellow-deep); }
+.world-titles { flex: 1; }
+.world-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.world-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.world-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.world-body {
+  padding-left: 14px;
+}
+.world-body-pink   { border-left: 3px solid var(--pink); }
+.world-body-yellow { border-left: 3px solid var(--yellow); }
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 12px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.kpi-val-pink   { color: var(--pink-deep); }
+.kpi-val-yellow { color: var(--yellow-deep); }
+.kpi-val-orange { color: #d97706; }
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ============================================================
+   DASH GRID (2 col)
+   ============================================================ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PRÓXIMOS EVENTOS
+   ============================================================ */
+.ev-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background .12s;
+}
+.ev-row:last-child { border-bottom: none; }
+.ev-row:hover { background: #fafafa; }
+.ev-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ev-dot-enviada  { background: #FCDA13; }
+.ev-dot-aceptada { background: #16a34a; }
+.ev-dot-evento   { background: #7c3aed; }
+.ev-info { flex: 1; min-width: 0; }
+.ev-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.ev-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+.ev-badge-enviada  { background: rgba(252,218,19,.2); color: #7a6200; }
+.ev-badge-aceptada { background: rgba(22,163,74,.1);  color: #15803d; }
+.ev-badge-evento   { background: rgba(124,58,237,.1); color: #6d28d9; }
+.ev-amount { font-size: 12.5px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; margin-left: 6px; }
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+.qa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+.qa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  background: #fafafa;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background .12s, border-color .12s;
+}
+.qa:hover { background: #f0f0f0; border-color: #ccc; }
+.qa-ico {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.qa-ico svg { width: 13px; height: 13px; }
+.qa-ico-pink   { background: var(--pink-soft);   color: var(--pink-deep); }
+.qa-ico-yellow { background: var(--yellow-soft); color: var(--yellow-deep); }
+.qa-ico-g      { background: rgba(37,99,235,.1); color: #2563eb; }
+.qa-ico-o      { background: rgba(234,88,12,.1); color: #ea580c; }
+
+/* ============================================================
+   CANAL SPLIT CARD
+   ============================================================ */
+.canal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.canal-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 10px;
+}
+.canal-bar {
+  height: 7px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 8px;
+}
+.canal-bar-carta { background: #3b82f6; }
+.canal-bar-pos   { background: var(--yellow); }
+.canal-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.canal-leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.canal-leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.canal-leg strong { color: var(--text-primary); }
+
+.prep-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prep-note a { color: var(--yellow-deep); font-weight: 600; text-decoration: none; }
+.prep-note a:hover { text-decoration: underline; }
+.prep-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yellow);
+  color: var(--yellow-deep);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 0 5px;
+}
+
+/* ============================================================
+   MINI CALENDAR (unchanged styles)
+   ============================================================ */
+.mc-day.has-ev { cursor: pointer; }
+.mc-day.has-ev:hover { background: var(--brand-soft, #fef2f2); }
+.mc-legend { display:flex; gap:12px; padding:8px 14px 14px; flex-wrap:wrap; }
+.mc-legend span { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text-muted); }
+.mc-legend i { width:9px; height:9px; border-radius:2px; display:inline-block; }
+#mcPop { position:fixed; z-index:9999; width:248px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
+#mcPop .pop-head { padding:9px 12px; border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text-primary); display:flex; justify-content:space-between; align-items:center; }
+#mcPop .pop-close { background:none; border:none; cursor:pointer; color:#999; font-size:16px; line-height:1; }
+#mcPop .pop-row { display:flex; align-items:center; gap:9px; padding:9px 12px; border-bottom:1px solid var(--border); text-decoration:none; color:inherit; }
+#mcPop .pop-row:last-child { border-bottom:none; }
+#mcPop .pop-row:hover { background:#fafafa; }
+#mcPop .pop-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+#mcPop .pop-info { display:flex; flex-direction:column; min-width:0; flex:1; }
+#mcPop .pop-name { font-size:12.5px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#mcPop .pop-meta { font-size:11px; color:var(--text-muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#mcPop .pop-amt { margin-left:auto; font-size:12px; font-weight:700; color:var(--text-primary); flex-shrink:0; }
+
+.op-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+/* Responsive: hide cons-right actions on tiny screens */
+@media (max-width: 480px) {
+  .cons-right { align-items: flex-start; }
+}
+</style>
+
+<?php
+// ============================================================
+// CONSOLIDADO (admin only)
+// ============================================================
+if (isAdmin()):
+?>
+<div class="cons-card">
+  <div class="cons-left">
+    <div class="cons-eyebrow">Negocio &middot; <?php echo $mesLabel; ?></div>
+    <div class="cons-total"><?php echo formatMoney($totalConsolidado); ?></div>
+    <div class="cons-bar">
+      <div class="cons-bar-pink"   style="width:<?php echo $pctEventos; ?>%"></div>
+      <div class="cons-bar-yellow" style="width:<?php echo $pctOperacion; ?>%"></div>
     </div>
-    <span class="ev-badge ev-badge-<?php echo $st; ?>"><?php echo dashStateLabel($q); ?></span>
-    <span class="ev-amount"><?php echo formatMoney((float)$q['total']); ?></span>
-  </a>
-  <?php endforeach; endif; ?>
+    <div class="cons-legend">
+      <span class="cons-leg">
+        <span class="cons-leg-dot" style="background:var(--pink)"></span>
+        Eventos &nbsp;<strong><?php echo formatMoney($facturadoMes); ?></strong>
+      </span>
+      <span class="cons-leg">
+        <span class="cons-leg-dot" style="background:var(--yellow)"></span>
+        Operación (POS+Carta) &nbsp;<strong><?php echo formatMoney($ventasMes); ?></strong>
+      </span>
+    </div>
+  </div>
+  <div class="cons-right">
+    <select class="cons-mes-select" onchange="location.href='?mes='+this.value">
+      <?php foreach ($mesOpciones as $opt): ?>
+        <option value="<?php echo $opt['val']; ?>" <?php echo $opt['val'] === $mes ? 'selected' : ''; ?>>
+          <?php echo $opt['lbl']; ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+    <a class="btn-export" href="<?php echo APP_URL; ?>/admin/export.php?type=consolidado&mes=<?php echo urlencode($mes); ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar a Excel
+    </a>
+  </div>
 </div>
+<?php endif; ?>
 
-  </div><!-- /dash-main -->
+<?php
+// ============================================================
+// SECCIÓN COTIZACIONES Y EVENTOS
+// ============================================================
+if (can('quotes') || can('events') || can('calendar') || can('requests')):
+?>
+<div class="world-section">
+  <div class="world-header">
+    <span class="world-chip world-chip-pink">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+    </span>
+    <div class="world-titles">
+      <div class="world-title">Cotizaciones y eventos</div>
+      <div class="world-sub"><?php echo $mesLabel; ?> &middot; Facturación y seguimiento</div>
+    </div>
+    <div class="world-actions">
+      <?php if (can('quotes')): ?>
+        <a class="btn-export-sm" href="<?php echo APP_URL; ?>/admin/export.php?type=cotizaciones&mes=<?php echo urlencode($mes); ?>">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel
+        </a>
+      <?php endif; ?>
+    </div>
+  </div>
 
-  <!-- PANEL LATERAL -->
-  <div class="side-panel">
-
-    <!-- Acciones rápidas -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Acciones rápidas</span></div>
-      <div class="qa-grid">
-        <a class="qa" href="<?php echo APP_URL; ?>/quotes/create.php">
-          <span class="qa-ico qa-ico-y"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
-          <span class="qa-txt">Nueva cotización</span>
-        </a>
-        <a class="qa" href="<?php echo APP_URL; ?>/admin/events/create">
-          <span class="qa-ico qa-ico-p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg></span>
-          <span class="qa-txt">Nuevo evento</span>
-        </a>
-        <a class="qa" href="<?php echo APP_URL; ?>/admin/clients/form.php">
-          <span class="qa-ico qa-ico-g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-          <span class="qa-txt">Nuevo cliente</span>
-        </a>
-        <a class="qa" href="<?php echo APP_URL; ?>/admin/requests/index.php">
-          <span class="qa-ico qa-ico-o"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg></span>
-          <span class="qa-txt">Solicitudes</span>
-        </a>
+  <div class="world-body world-body-pink">
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Facturado mes</div>
+        <div class="kpi-val kpi-val-pink"><?php echo formatMoney($facturadoMes); ?></div>
+        <div class="kpi-sub">eventos del mes</div>
       </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cotizaciones</div>
+        <div class="kpi-val"><?php echo $cotMes; ?></div>
+        <div class="kpi-sub">creadas este mes</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Aceptadas</div>
+        <div class="kpi-val"><?php echo $aceptadasMes; ?></div>
+        <div class="kpi-sub">este mes</div>
+      </div>
+      <a class="kpi-card" href="<?php echo APP_URL; ?>/admin/requests/index.php" style="text-decoration:none">
+        <div class="kpi-label">Solicitudes</div>
+        <div class="kpi-val kpi-val-orange"><?php echo $pendingReq; ?></div>
+        <div class="kpi-sub">pendientes</div>
+      </a>
     </div>
 
-    <!-- Mini calendario (interactivo) -->
-    <div class="card">
-      <div class="mc-head">
-        <span class="mc-title" id="mcTitle">—</span>
-        <div class="mc-nav">
-          <button type="button" onclick="mcNav(-1)" aria-label="Mes anterior">&#8249;</button>
-          <button type="button" onclick="mcNav(1)" aria-label="Mes siguiente">&#8250;</button>
+    <!-- Próximos eventos + mini-calendario -->
+    <div class="dash-grid">
+      <div class="dash-main">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Próximos eventos</span>
+            <?php if (can('quotes')): ?>
+              <a href="<?php echo APP_URL; ?>/quotes/list.php" class="btn btn-ghost btn-sm">Ver todas &rarr;</a>
+            <?php endif; ?>
+          </div>
+          <?php if (empty($upcoming)): ?>
+            <div class="empty-state" style="padding:36px 20px">
+              <p>Sin eventos próximos</p>
+              <?php if (can('quotes')): ?>
+                <a href="<?php echo APP_URL; ?>/quotes/create.php" class="btn btn-primary">+ Nueva cotización</a>
+              <?php endif; ?>
+            </div>
+          <?php else: foreach ($upcoming as $uq): $st = dashState($uq); ?>
+            <a class="ev-row" href="<?php echo APP_URL; ?>/quotes/edit.php?id=<?php echo $uq['id']; ?>">
+              <span class="ev-dot ev-dot-<?php echo $st; ?>"></span>
+              <div class="ev-info">
+                <div class="ev-name"><?php echo clean($uq['client_name']); ?></div>
+                <div class="ev-meta"><?php echo clean($uq['event_type'] ?: 'Evento'); ?> &middot; <?php echo formatDate($uq['event_date']); ?><?php echo (int)$uq['num_people'] > 0 ? ' &middot; ' . (int)$uq['num_people'] . ' pers.' : ''; ?></div>
+              </div>
+              <span class="ev-badge ev-badge-<?php echo $st; ?>"><?php echo dashStateLabel($uq); ?></span>
+              <span class="ev-amount"><?php echo formatMoney((float)$uq['total']); ?></span>
+            </a>
+          <?php endforeach; endif; ?>
+        </div>
+
+        <!-- Quick actions cotizaciones -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-header"><span class="card-title">Acciones rápidas</span></div>
+          <div class="qa-grid">
+            <?php if (can('quotes')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/quotes/create.php">
+                <span class="qa-ico qa-ico-pink">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </span>
+                <span class="qa-txt">Nueva cotización</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('events')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/events/create">
+                <span class="qa-ico qa-ico-pink">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
+                </span>
+                <span class="qa-txt">Nuevo evento</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('clients')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/clients/form.php">
+                <span class="qa-ico qa-ico-g">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span class="qa-txt">Nuevo cliente</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('calendar')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/calendar">
+                <span class="qa-ico qa-ico-pink">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                </span>
+                <span class="qa-txt">Calendario</span>
+              </a>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
-      <div class="mc-grid" id="mcGrid"></div>
-      <div class="mc-legend">
-        <span><i style="background:#FCDA13"></i>Enviada</span>
-        <span><i style="background:#16a34a"></i>Aceptada</span>
-        <span><i style="background:#7c3aed"></i>Evento</span>
+
+      <!-- Mini calendario -->
+      <div class="side-panel">
+        <div class="card">
+          <div class="mc-head">
+            <span class="mc-title" id="mcTitle">—</span>
+            <div class="mc-nav">
+              <button type="button" onclick="mcNav(-1)" aria-label="Mes anterior">&#8249;</button>
+              <button type="button" onclick="mcNav(1)"  aria-label="Mes siguiente">&#8250;</button>
+            </div>
+          </div>
+          <div class="mc-grid" id="mcGrid"></div>
+          <div class="mc-legend">
+            <span><i style="background:#FCDA13"></i>Enviada</span>
+            <span><i style="background:#16a34a"></i>Aceptada</span>
+            <span><i style="background:#7c3aed"></i>Evento</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- /dash-grid -->
+  </div><!-- /world-body -->
+</div><!-- /world-section cotizaciones -->
+<?php endif; ?>
+
+<?php
+// ============================================================
+// SECCIÓN OPERACIÓN
+// ============================================================
+if (can('pedidos') || can('pos_terminal') || can('kds') || can('pos_monitor')):
+?>
+<div class="world-section">
+  <div class="world-header">
+    <span class="world-chip world-chip-yellow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+    </span>
+    <div class="world-titles">
+      <div class="world-title">Operación &middot; POS y Cartas</div>
+      <div class="world-sub"><?php echo $mesLabel; ?> &middot; Pedidos y ventas de mostrador</div>
+    </div>
+    <div class="world-actions">
+      <?php if (can('pedidos') || can('pos_terminal')): ?>
+        <a class="btn-export-sm" href="<?php echo APP_URL; ?>/admin/export.php?type=operacion&mes=<?php echo urlencode($mes); ?>">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel
+        </a>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="world-body world-body-yellow">
+    <?php if (!$opOk && $opNote): ?>
+      <div class="op-note"><?php echo clean($opNote); ?></div>
+    <?php endif; ?>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Ventas hoy</div>
+        <div class="kpi-val kpi-val-yellow"><?php echo formatMoney($ventasHoyTotal); ?></div>
+        <div class="kpi-sub"><?php echo $ventasHoyN; ?> pedidos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ventas mes</div>
+        <div class="kpi-val kpi-val-yellow"><?php echo formatMoney($ventasMes); ?></div>
+        <div class="kpi-sub"><?php echo $mesLabel; ?></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pedidos hoy</div>
+        <div class="kpi-val"><?php echo $ventasHoyN; ?></div>
+        <div class="kpi-sub">no cancelados</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ticket prom.</div>
+        <div class="kpi-val"><?php echo formatMoney($ticketProm); ?></div>
+        <div class="kpi-sub">por pedido hoy</div>
       </div>
     </div>
 
-  </div><!-- /side-panel -->
-</div><!-- /dash-grid -->
+    <div class="dash-grid">
+      <div class="dash-main">
+        <!-- Canal split -->
+        <div class="canal-card">
+          <div class="canal-title">Ventas del mes por canal</div>
+          <?php
+            $totalCanal = $canalCarta + $canalPos;
+            $pctCarta   = $totalCanal > 0 ? round(($canalCarta / $totalCanal) * 100, 1) : 0;
+            $pctPos     = $totalCanal > 0 ? round(($canalPos   / $totalCanal) * 100, 1) : 0;
+          ?>
+          <div class="canal-bar">
+            <div class="canal-bar-carta" style="width:<?php echo $pctCarta; ?>%"></div>
+            <div class="canal-bar-pos"   style="width:<?php echo $pctPos; ?>%"></div>
+          </div>
+          <div class="canal-legend">
+            <span class="canal-leg">
+              <span class="canal-leg-dot" style="background:#3b82f6"></span>
+              Carta &nbsp;<strong><?php echo formatMoney($canalCarta); ?></strong>
+            </span>
+            <span class="canal-leg">
+              <span class="canal-leg-dot" style="background:var(--yellow)"></span>
+              POS &nbsp;<strong><?php echo formatMoney($canalPos); ?></strong>
+            </span>
+          </div>
+          <div class="prep-note">
+            <span class="prep-badge"><?php echo $enPreparacion; ?></span>
+            pedidos en preparación ahora
+            <?php if (can('kds')): ?>
+              &middot; <a href="<?php echo APP_URL; ?>/admin/kds/index.php" target="_blank">Ver KDS &rarr;</a>
+            <?php endif; ?>
+          </div>
+        </div>
 
-<style>
-.mc-day.has-ev{cursor:pointer}
-.mc-day.has-ev:hover{background:var(--brand-soft)}
-.mc-legend{display:flex;gap:12px;padding:8px 14px 14px;flex-wrap:wrap}
-.mc-legend span{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text-muted)}
-.mc-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
-#mcPop{position:fixed;z-index:9999;width:248px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);overflow:hidden}
-#mcPop .pop-head{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-primary);display:flex;justify-content:space-between;align-items:center}
-#mcPop .pop-close{background:none;border:none;cursor:pointer;color:#999;font-size:16px;line-height:1}
-#mcPop .pop-row{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit}
-#mcPop .pop-row:last-child{border-bottom:none}
-#mcPop .pop-row:hover{background:#fafafa}
-#mcPop .pop-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-#mcPop .pop-info{display:flex;flex-direction:column;min-width:0;flex:1}
-#mcPop .pop-name{font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#mcPop .pop-meta{font-size:11px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#mcPop .pop-amt{margin-left:auto;font-size:12px;font-weight:700;color:var(--text-primary);flex-shrink:0}
-</style>
+        <!-- Quick actions operación -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-header"><span class="card-title">Acciones rápidas</span></div>
+          <div class="qa-grid">
+            <?php if (can('pos_terminal')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/pos/terminal.php" target="_blank">
+                <span class="qa-ico qa-ico-yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                </span>
+                <span class="qa-txt">Abrir POS</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('kds')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/kds/index.php" target="_blank">
+                <span class="qa-ico qa-ico-yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </span>
+                <span class="qa-txt">KDS</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('pedidos')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/pedidos/index.php">
+                <span class="qa-ico qa-ico-yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                </span>
+                <span class="qa-txt">Pedidos</span>
+              </a>
+            <?php endif; ?>
+            <?php if (can('pos_monitor')): ?>
+              <a class="qa" href="<?php echo APP_URL; ?>/admin/pos/monitor.php" target="_blank">
+                <span class="qa-ico qa-ico-yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </span>
+                <span class="qa-txt">En vivo</span>
+              </a>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- placeholder side for visual balance on wide screens -->
+      <div></div>
+    </div><!-- /dash-grid operación -->
+  </div><!-- /world-body-yellow -->
+</div><!-- /world-section operación -->
+<?php endif; ?>
 
 <script>
 var MC_EVENTS = <?php echo json_encode($calQuotes); ?>;
@@ -223,7 +900,7 @@ function mcPad(n){ return (n<10?'0':'')+n; }
 function mcRender(){
   var y = mcCur.getFullYear(), m = mcCur.getMonth();
   document.getElementById('mcTitle').textContent = MC_MONTHS[m] + ' ' + y;
-  var lead   = (new Date(y, m, 1).getDay() + 6) % 7;   // Lunes = 0
+  var lead   = (new Date(y, m, 1).getDay() + 6) % 7;
   var days   = new Date(y, m+1, 0).getDate();
   var todayS = MC_TODAY.getFullYear()+'-'+mcPad(MC_TODAY.getMonth()+1)+'-'+mcPad(MC_TODAY.getDate());
   var html = '';
@@ -263,7 +940,7 @@ function mcShowDay(ev, ds){
       + '<span class="pop-info"><span class="pop-name">'+e.client_name+'</span><span class="pop-meta">'+meta+'</span></span>'
       + '<span class="pop-amt">'+amt+'</span></a>';
   }).join('');
-  p.innerHTML = '<div class="pop-head"><span>'+head+' · '+evs.length+' evento'+(evs.length>1?'s':'')+'</span>'
+  p.innerHTML = '<div class="pop-head"><span>'+head+' &middot; '+evs.length+' evento'+(evs.length>1?'s':'')+'</span>'
     + '<button class="pop-close" type="button" onclick="mcClosePop()">&times;</button></div>' + rows;
   p.style.display = 'block';
   var rect = ev.currentTarget.getBoundingClientRect();

@@ -146,6 +146,42 @@ body {
   color: var(--text-sidebar-m);
   padding: 16px 12px 7px;
 }
+
+/* ---- Grupos colapsables del sidebar ---- */
+.sb-group { margin-bottom: 2px; }
+.sb-header {
+  /* hereda look de .nav-section-label; añadimos comportamiento de botón */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  border-radius: 8px;
+  transition: color .15s, background .15s;
+}
+.sb-header:hover { color: rgba(255,255,255,.5); background: rgba(255,255,255,.04); }
+.sb-dot {
+  width: 8px; height: 8px;
+  border-radius: 3px;
+  background: #555;
+  flex-shrink: 0;
+}
+.sb-dot-pink   { background: #ef7da6; }
+.sb-dot-yellow { background: #FFDF00; }
+.sb-chevron {
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 1;
+  transition: transform .18s ease;
+}
+.sb-group.collapsed .sb-chevron { transform: rotate(-90deg); }
+.sb-group.collapsed .sb-items   { display: none; }
+.sb-items { display: block; }
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -164,17 +200,25 @@ body {
   color: rgba(255,255,255,.85);
 }
 .nav-link.active {
-  background: var(--brand);
-  color: var(--ink);
+  background: #FFDF00;
+  color: #111;
   font-weight: 700;
 }
-/* "Nueva cotización": amarillo siempre */
+.nav-link.active .nav-icon { color: #111; }
+/* "Nueva cotización": texto rosa */
 .nav-link-highlight {
-  color: var(--brand);
+  color: #ffaec1;
   font-weight: 600;
 }
-.nav-link-highlight:hover { background: var(--brand-soft); color: var(--brand); }
-.nav-link-highlight.active { color: var(--ink); }
+.nav-link-highlight:hover { background: rgba(239,125,166,.12); color: #ffaec1; }
+.nav-link-highlight.active { color: #111; }
+/* "POS · Terminal": texto amarillo */
+.nav-link-pos {
+  color: #FFDF00;
+  font-weight: 600;
+}
+.nav-link-pos:hover { background: var(--brand-soft); color: #FFDF00; }
+.nav-link-pos.active { color: #111; }
 /* "Nuevo evento": rosa siempre */
 .nav-link-event {
   color: var(--accent-pink);
@@ -197,7 +241,7 @@ body {
   text-align: center;
 }
 .nav-badge-count { background: var(--brand-soft); color: var(--brand); }
-.nav-badge-req   { background: rgba(250,184,192,.15); color: var(--accent-pink); }
+.nav-badge-req   { background: #ef7da6; color: #111; }
 
 /* Sidebar user */
 .sidebar-user {
