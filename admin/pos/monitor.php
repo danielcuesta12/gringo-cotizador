@@ -762,55 +762,45 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
   }
 
   function renderChart(porHora, fechaStr, comp) {
-    var cumA = buildCumulative(porHora);
-    var cumB = comp ? buildCumulative((comp.por_hora || [])) : new Array(24).fill(0);
-    var maxA = cumA[23] || 0;
-    var maxB = comp ? (cumB[23] || 0) : 0;
-    var maxV = Math.max(maxA, maxB, 1);
+    // Ventas POR HORA (no acumulado): array de 24 con el total de cada hora
+    function hourly(arr) {
+      var out = new Array(24).fill(0);
+      (arr || []).forEach(function (h) { out[parseInt(h.h, 10)] = parseFloat(h.t) || 0; });
+      return out;
+    }
+    var hA = hourly(porHora);
+    var hB = comp ? hourly(comp.por_hora || []) : new Array(24).fill(0);
+    var totalA = hA.reduce(function (a, b) { return a + b; }, 0);
+    var totalB = hB.reduce(function (a, b) { return a + b; }, 0);
+    var maxV = 1;
+    for (var i = 0; i < 24; i++) { if (hA[i] > maxV) maxV = hA[i]; if (hB[i] > maxV) maxV = hB[i]; }
 
     var fechaLabel = fechaStr ? fmtDateLabel(fechaStr) : "Hoy";
     var compLabel  = comp ? fmtDateLabel(comp.fecha) : "Sem. pasada";
-    var totalA = maxA;
-    var totalB = maxB;
 
     var deltaHtml = "";
     if (totalB > 0) {
       var pct = Math.round(((totalA - totalB) / totalB) * 100);
-      if (pct > 0) {
-        deltaHtml = '<span class="chart-delta up">&#9650; ' + pct + '%</span>';
-      } else if (pct < 0) {
-        deltaHtml = '<span class="chart-delta down">&#9660; ' + Math.abs(pct) + '%</span>';
-      } else {
-        deltaHtml = '<span class="chart-delta neutral">= 0%</span>';
-      }
+      if (pct > 0)      deltaHtml = '<span class="chart-delta up">&#9650; ' + pct + '%</span>';
+      else if (pct < 0) deltaHtml = '<span class="chart-delta down">&#9660; ' + Math.abs(pct) + '%</span>';
+      else              deltaHtml = '<span class="chart-delta neutral">= 0%</span>';
+    } else if (totalA > 0) {
+      deltaHtml = '<span class="chart-delta up">nuevo</span>';
     }
 
-    /* Build SVG */
-    var W = 320; var H = 120; var PL = 36; var PR = 8; var PT = 8; var PB = 18;
-    var chartW = W - PL - PR; var chartH = H - PT - PB;
-    var hours  = [];
-    for (var i = 0; i < 24; i++) hours.push(i);
-
-    function xPx(h)  { return PL + (h / 23) * chartW; }
-    function yPx(v)  { return PT + chartH - (v / maxV) * chartH; }
-
-    function polyline(cum, color, opacity) {
-      var pts = cum.map(function (v, i) { return xPx(i) + "," + yPx(v); }).join(" ");
-      /* filled area */
-      var areaD = "M" + xPx(0) + "," + yPx(0) +
-        cum.map(function (v, i) { return " L" + xPx(i) + "," + yPx(v); }).join("") +
-        " L" + xPx(23) + "," + (PT + chartH) +
-        " L" + xPx(0)  + "," + (PT + chartH) + " Z";
-      return '<path d="' + areaD + '" fill="' + color + '" fill-opacity="' + opacity + '"/>' +
-             '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>';
-    }
+    /* SVG: barras por hora */
+    var W = 320, H = 120, PL = 36, PR = 8, PT = 8, PB = 18;
+    var chartW = W - PL - PR, chartH = H - PT - PB;
+    var slotW = chartW / 24;
+    var baseY = PT + chartH;
+    function barH(v) { return (v / maxV) * chartH; }
 
     /* y-axis ticks */
     var yTicks = "";
     var nTicks = 3;
     for (var ti = 0; ti <= nTicks; ti++) {
       var tv = (maxV / nTicks) * ti;
-      var ty = yPx(tv);
+      var ty = baseY - barH(tv);
       yTicks += '<line x1="' + PL + '" y1="' + ty + '" x2="' + (W - PR) + '" y2="' + ty + '" stroke="#332e29" stroke-width="1"/>';
       if (ti > 0) {
         var label = tv >= 1000 ? Math.round(tv / 100) / 10 + "k" : Math.round(tv);
@@ -818,42 +808,49 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
       }
     }
 
-    /* x-axis labels — full 24h: 0h, 6h, 12h, 18h, 23h */
+    /* x-axis labels — 0h, 6h, 12h, 18h, 23h */
     var xLabels = "";
     [[0,"0h"],[6,"6h"],[12,"12h"],[18,"18h"],[23,"23h"]].forEach(function (pair) {
-      var h = pair[0]; var label = pair[1];
+      var h = pair[0], label = pair[1];
+      var cx = PL + (h + 0.5) * slotW;
+      var tx = h === 0 ? PL : (h === 23 ? (W - PR) : cx);
       var anchor = h === 0 ? "start" : (h === 23 ? "end" : "middle");
-      xLabels += '<text x="' + xPx(h) + '" y="' + (H - 2) + '" text-anchor="' + anchor + '" fill="#8a8078" font-size="9">' + label + '</text>';
+      xLabels += '<text x="' + tx + '" y="' + (H - 2) + '" text-anchor="' + anchor + '" fill="#8a8078" font-size="9">' + label + '</text>';
     });
 
-    var svgContent = '<svg id="comp-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
-      yTicks + xLabels;
+    /* barras: gris (sem. pasada) detrás + amarillo (día) delante, por cada hora */
+    var bars = "";
+    var wComp = slotW * 0.66, wDay = slotW * 0.40;
+    for (var hh = 0; hh < 24; hh++) {
+      var cx2 = PL + (hh + 0.5) * slotW;
+      if (hB[hh] > 0) {
+        var bh = barH(hB[hh]);
+        bars += '<rect x="' + (cx2 - wComp / 2) + '" y="' + (baseY - bh) + '" width="' + wComp + '" height="' + bh + '" rx="1" fill="#5a544c"/>';
+      }
+      if (hA[hh] > 0) {
+        var ah = barH(hA[hh]);
+        bars += '<rect x="' + (cx2 - wDay / 2) + '" y="' + (baseY - ah) + '" width="' + wDay + '" height="' + ah + '" rx="1" fill="#FFDF00"/>';
+      }
+    }
 
-    /* Draw comp first (behind) */
-    if (comp && totalB > 0) {
-      svgContent += polyline(cumB, "#8a8078", 0.12);
-    }
-    /* Draw main on top */
-    if (totalA > 0) {
-      svgContent += polyline(cumA, "#FFDF00", 0.18);
-    }
-    svgContent += '</svg>';
+    var svgContent = '<svg id="comp-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
+      yTicks + bars + xLabels + '</svg>';
 
     var html =
       '<div class="chart-header">' +
         '<div class="chart-totals">' +
           '<div class="chart-main-total">' + fmtMoney(totalA) + '</div>' +
-          (comp && totalB > 0 ? '<div class="chart-comp-total">vs ' + fmtMoney(totalB) + ' · ' + esc(compLabel) + '</div>' : '') +
+          '<div class="chart-comp-total">vs ' + fmtMoney(totalB) + ' · ' + esc(compLabel) + '</div>' +
         '</div>' +
         deltaHtml +
       '</div>' +
       '<div class="chart-legend">' +
         '<span class="legend-item"><span class="legend-dot yellow"></span>' + esc(fechaLabel) + '</span>' +
-        (comp && totalB > 0 ? '<span class="legend-item"><span class="legend-dot gray"></span>' + esc(compLabel) + '</span>' : '') +
+        '<span class="legend-item"><span class="legend-dot gray"></span>' + esc(compLabel) + '</span>' +
       '</div>';
 
-    if (totalA === 0 && (!comp || totalB === 0)) {
-      html += '<div class="chart-empty">Sin ventas para comparar</div>';
+    if (totalA === 0 && totalB === 0) {
+      html += '<div class="chart-empty">Sin ventas para este día</div>';
     } else {
       html += svgContent;
     }
