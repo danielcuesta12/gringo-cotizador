@@ -17,12 +17,12 @@ function rout(array $d): never { echo json_encode($d); exit; }
 // ── action=pedidos ────────────────────────────────────────────────────────────
 if ($action === 'pedidos') {
     try {
-        $where  = "estado <> 'cancelado'";
+        $where  = "p.estado <> 'cancelado'";
         $params = [];
-        if ($desde !== '') { $where .= " AND DATE(created_at) >= ?"; $params[] = $desde; }
-        if ($hasta !== '')  { $where .= " AND DATE(created_at) <= ?"; $params[] = $hasta; }
-        if ($ubi > 0)       { $where .= " AND ubicacion_id = ?";      $params[] = $ubi; }
-        if ($origen !== '')  { $where .= " AND origen = ?";            $params[] = $origen; }
+        if ($desde !== '') { $where .= " AND DATE(p.created_at) >= ?"; $params[] = $desde; }
+        if ($hasta !== '')  { $where .= " AND DATE(p.created_at) <= ?"; $params[] = $hasta; }
+        if ($ubi > 0)       { $where .= " AND p.ubicacion_id = ?";      $params[] = $ubi; }
+        if ($origen !== '')  { $where .= " AND p.origen = ?";            $params[] = $origen; }
 
         $pedidos = Database::fetchAll(
             "SELECT p.id, p.created_at, p.origen,
