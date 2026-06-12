@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
-requireLogin();
+requirePermission('pos_terminal');
 
 $id = cleanInt($_GET['id'] ?? 0);
 $p  = $id ? Database::fetch("SELECT * FROM pedidos WHERE id = ? AND origen = 'pos'", [$id]) : null;

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
+requirePermission('requests');
 
 $id  = cleanInt(isset($_GET['id']) ? $_GET['id'] : 0);
 $req = Database::fetch("SELECT * FROM quote_requests WHERE id=?", array($id));

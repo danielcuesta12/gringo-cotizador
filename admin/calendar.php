@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
-requireLogin();
+requirePermission('calendar');
 
 // Cotizaciones y eventos para el calendario
 $calQuotes = Database::fetchAll(

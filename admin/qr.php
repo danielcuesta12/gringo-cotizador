@@ -3,8 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
-requireLogin();
-if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
+requirePermission('qr');
 
 $pageTitle  = 'Generador de QR';
 $activePage = 'qr-gen';

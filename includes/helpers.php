@@ -3,6 +3,7 @@
 // helpers.php — Funciones de utilidad global
 // ============================================================
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/permissions.php';
 
 // ------------------------------------------------------------
 // AUTENTICACIÓN Y SESIÓN
@@ -51,6 +52,41 @@ function currentUser(): ?array
 function isAdmin(): bool
 {
     return isLoggedIn() && $_SESSION['user_role'] === 'admin';
+}
+
+// ------------------------------------------------------------
+// PERMISOS GRANULARES
+// ------------------------------------------------------------
+
+// Permisos del usuario actual (array de claves; admins => todas)
+function userPermissions(): array {
+    if (isAdmin()) return allPermissionKeys();
+    return $_SESSION['user_permissions'] ?? [];
+}
+
+// ¿El usuario actual puede acceder a esta clave? (admin siempre true)
+function can(string $key): bool {
+    if (isAdmin()) return true;
+    return in_array($key, $_SESSION['user_permissions'] ?? [], true);
+}
+
+// Primera ruta accesible del usuario (para redirigir tras login o acceso denegado)
+function firstAllowedPath(): string {
+    if (isAdmin() || can('dashboard')) return '/admin/dashboard';
+    $paths = permissionPaths();
+    foreach (($_SESSION['user_permissions'] ?? []) as $k) {
+        if (isset($paths[$k])) return preg_replace('/\.php$/', '', $paths[$k]);
+    }
+    return '/auth/logout';
+}
+
+// Exige un permiso concreto; si no lo tiene, redirige a su primer acceso disponible
+function requirePermission(string $key): void {
+    requireLogin();
+    if (!can($key)) {
+        flashMessage('error', 'No tienes acceso a esa sección.');
+        redirect(firstAllowedPath());
+    }
 }
 
 // ------------------------------------------------------------

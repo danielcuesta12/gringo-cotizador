@@ -18,10 +18,11 @@ if (isset($_COOKIE['remember_token'])) {
     );
     if ($ruser) {
         session_regenerate_id(true);
-        $_SESSION['user_id']    = $ruser['id'];
-        $_SESSION['user_name']  = $ruser['name'];
-        $_SESSION['user_email'] = $ruser['email'];
-        $_SESSION['user_role']  = $ruser['role'];
+        $_SESSION['user_id']          = $ruser['id'];
+        $_SESSION['user_name']        = $ruser['name'];
+        $_SESSION['user_email']       = $ruser['email'];
+        $_SESSION['user_role']        = $ruser['role'];
+        $_SESSION['user_permissions'] = json_decode(($ruser['permissions'] ?? '') ?: '[]', true) ?: [];
         $newTok = generateToken();
         $newExp = date('Y-m-d H:i:s', strtotime('+30 days'));
         Database::execute(
@@ -61,10 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user && password_verify($password, $user['password'])) {
                 session_regenerate_id(true);
-                $_SESSION['user_id']    = $user['id'];
-                $_SESSION['user_name']  = $user['name'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_role']  = $user['role'];
+                $_SESSION['user_id']          = $user['id'];
+                $_SESSION['user_name']        = $user['name'];
+                $_SESSION['user_email']       = $user['email'];
+                $_SESSION['user_role']        = $user['role'];
+                $_SESSION['user_permissions'] = json_decode(($user['permissions'] ?? '') ?: '[]', true) ?: [];
                 unset($_SESSION['csrf_token']);
 
                 Database::execute("UPDATE users SET last_login=NOW() WHERE id=?", array($user['id']));
@@ -79,7 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setcookie('remember_token', $tok, time() + (30*24*3600), '/', '', isset($_SERVER['HTTPS']), true);
                 }
 
-                $dest = isset($_SESSION['redirect_after_login']) ? $_SESSION['redirect_after_login'] : '/admin/dashboard';
+                $dest = isset($_SESSION['redirect_after_login'])
+                    ? $_SESSION['redirect_after_login']
+                    : (can('dashboard') ? '/admin/dashboard' : firstAllowedPath());
                 unset($_SESSION['redirect_after_login']);
                 redirect($dest);
 

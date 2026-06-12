@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
-requireAdmin();
+requirePermission('pos_monitor');
 
 $ubis    = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY nombre");
 $logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');

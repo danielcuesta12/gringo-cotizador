@@ -3,8 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
-if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
+requirePermission('inv_insumos');
 
 $id  = cleanInt($_GET['id'] ?? 0);
 $ins = $id ? Database::fetch("SELECT * FROM insumos WHERE id = ?", [$id]) : null;

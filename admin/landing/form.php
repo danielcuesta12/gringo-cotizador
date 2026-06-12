@@ -4,8 +4,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/landing_icons.php';
 
-requireLogin();
-if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
+requirePermission('landing');
 
 $id   = cleanInt($_GET['id'] ?? 0);
 $link = $id ? Database::fetch("SELECT * FROM landing_links WHERE id = ?", [$id]) : null;

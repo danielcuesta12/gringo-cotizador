@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
+requirePermission('pedidos');
 
 // Cambiar estado o borrar
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

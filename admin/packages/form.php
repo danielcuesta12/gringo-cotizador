@@ -3,8 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
-requireAdmin();
+requirePermission('packages');
 
 $id  = cleanInt($_GET['id'] ?? 0);
 $pkg = $id ? Database::fetch("SELECT * FROM packages WHERE id=?",[$id]) : null;

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireAdmin();
+requirePermission('pos_clientes');
 
 $doc = clean($_GET['doc'] ?? '');
 $q   = clean($_GET['q']   ?? '');

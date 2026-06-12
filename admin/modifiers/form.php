@@ -3,8 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
-if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
+requirePermission('modifiers');
 
 $id    = cleanInt($_GET['id'] ?? 0);
 $grupo = $id ? Database::fetch("SELECT * FROM grupos_modificadores WHERE id = ?", [$id]) : null;

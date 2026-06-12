@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 
-requireLogin();
+requirePermission('kds');
 
 // Ubicaciones activas para el selector (tolerante a que la tabla no exista aún)
 $ubicaciones = [];

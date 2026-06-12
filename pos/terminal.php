@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
-requireLogin();
+requirePermission('pos_terminal');
 $ubis   = Database::fetchAll("SELECT id, nombre FROM ubicaciones WHERE activa = 1 ORDER BY nombre");
 $cajero = currentUser();
 $logoRel = getSetting('company_logo_b', '') ?: getSetting('company_logo', '');

@@ -4,8 +4,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/inventario.php';
 
-requireLogin();
-if (!isAdmin()) { flashMessage('error', 'Sin permisos.'); redirect('/admin/dashboard.php'); }
+requirePermission('inv_compras');
 if (!comprasListo()) { flashMessage('error', 'Aplica install/inventario_c.sql primero.'); redirect('/admin/inventory/compras.php'); }
 
 $proveedores = Database::fetchAll("SELECT id,nombre FROM proveedores WHERE activo=1 ORDER BY nombre");

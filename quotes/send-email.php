@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
-requireLogin();
+requirePermission('quotes');
 
 $id    = cleanInt(isset($_GET['id']) ? $_GET['id'] : 0);
 $quote = Database::fetch(

@@ -102,9 +102,13 @@ include __DIR__ . '/../layout-top.php';
           <td><?= clean($u['email']) ?></td>
           <td>
             <?php if ($u['role']==='admin'): ?>
-              <span class="badge badge-danger">Admin</span>
-            <?php else: ?>
-              <span class="badge badge-secondary">Asistente</span>
+              <span class="badge badge-danger">Acceso total</span>
+            <?php else:
+              $permsArr = json_decode($u['permissions'] ?? '[]', true) ?: [];
+              $cnt      = count($permsArr);
+            ?>
+              <span class="badge badge-secondary">Personalizado</span>
+              <span style="font-size:11px;color:var(--text-muted);margin-left:4px"><?= $cnt ?> <?= $cnt === 1 ? 'acceso' : 'accesos' ?></span>
             <?php endif; ?>
           </td>
           <td><span class="badge badge-info"><?= $u['quote_count'] ?></span></td>
@@ -137,43 +141,21 @@ include __DIR__ . '/../layout-top.php';
   <?php endif; ?>
 </div>
 
-<!-- Tabla de permisos por rol -->
+<!-- Catálogo de permisos disponibles -->
 <div class="card" style="margin-top:24px">
-  <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>Permisos por rol</span></div>
-  <div class="table-wrap" style="border:none;border-radius:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Acción</th>
-          <th style="text-align:center">Admin</th>
-          <th style="text-align:center">Asistente</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php
-        $perms = [
-          ['Crear cotizaciones',            true,  true],
-          ['Ver todas las cotizaciones',    true,  false],
-          ['Ver solo sus cotizaciones',     true,  true],
-          ['Cambiar estado cotizaciones',   true,  true],
-          ['CRUD Productos',                true,  false],
-          ['CRUD Categorías',               true,  false],
-          ['CRUD Paquetes',                 true,  false],
-          ['Crear y editar clientes',       true,  true],
-          ['Eliminar clientes',             true,  false],
-          ['Gestión de usuarios',           true,  false],
-          ['Configuración del sistema',     true,  false],
-        ];
-        foreach ($perms as [$label,$admin,$asistente]):
-        ?>
-        <tr>
-          <td><?= $label ?></td>
-          <td style="text-align:center"><?= $admin     ? '<span style="color:var(--green);font-size:18px">✓</span>' : '<span style="color:#ddd;font-size:18px">✗</span>' ?></td>
-          <td style="text-align:center"><?= $asistente ? '<span style="color:var(--green);font-size:18px">✓</span>' : '<span style="color:#ddd;font-size:18px">✗</span>' ?></td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+  <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>Catálogo de accesos</span></div>
+  <div style="padding:16px 20px">
+    <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">Los usuarios <strong>Administrador</strong> tienen acceso total. Los usuarios <strong>Personalizado</strong> acceden solo a los módulos habilitados en su perfil.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
+      <?php foreach (permissionCatalog() as $grupo => $items): ?>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:8px"><?= clean($grupo) ?></div>
+          <?php foreach ($items as $k => $label): ?>
+            <div style="font-size:12px;color:var(--text-secondary);padding:2px 0"><?= clean($label) ?></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
   </div>
 </div>
 
