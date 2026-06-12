@@ -172,6 +172,18 @@ try {
        class="nav-link">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span> POS · Terminal
     </a>
+    <a href="<?php echo APP_URL; ?>/admin/pos/monitor.php"
+       class="nav-link <?php echo ($activePage??'')==='pos-monitor'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> POS · En vivo
+    </a>
+    <a href="<?php echo APP_URL; ?>/admin/pos/caja.php"
+       class="nav-link <?php echo ($activePage??'')==='pos-caja'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 12h20"/></svg></span> POS · Caja
+    </a>
+    <a href="<?php echo APP_URL; ?>/admin/pos/clientes.php"
+       class="nav-link <?php echo ($activePage??'')==='pos-clientes'?'active':''; ?>">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> POS · Clientes
+    </a>
     <a href="<?php echo APP_URL; ?>/admin/pos/metodos.php"
        class="nav-link <?php echo ($activePage??'')==='pos-metodos'?'active':''; ?>">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span> POS · Métodos

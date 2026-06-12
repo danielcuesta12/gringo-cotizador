@@ -2058,31 +2058,164 @@ function renderCajaDetalle() {
 
 // ── Cerrar turno ───────────────────────────────────────
 function promptCerrarTurno() {
+  var t = state.turno;
+  var cajaInicial   = parseFloat(t.monto_inicial) || 0;
+  var ventasEfectivo = parseFloat(t.total_efectivo) || 0;
+
+  // Local modal state
+  var gastos = []; // [{concepto:'', monto:0}, ...]
+
+  function calcCajaEsperada(ingreso) {
+    var gastosTot = gastos.reduce(function(a, g) { return a + (parseFloat(g.monto) || 0); }, 0);
+    return cajaInicial + (parseFloat(ingreso) || 0) + ventasEfectivo - gastosTot;
+  }
+
+  function recompute() {
+    var ingreso   = parseFloat(document.getElementById('aq-ingreso').value) || 0;
+    var cajaReal  = parseFloat(document.getElementById('aq-caja-real').value) || 0;
+    // sync gastos from DOM
+    document.querySelectorAll('.aq-gasto-row').forEach(function(row, i) {
+      if (!gastos[i]) gastos[i] = { concepto: '', monto: 0 };
+      gastos[i].concepto = row.querySelector('.aq-concepto').value.trim();
+      gastos[i].monto    = parseFloat(row.querySelector('.aq-monto').value) || 0;
+    });
+    var esperada   = calcCajaEsperada(ingreso);
+    var diferencia = esperada - cajaReal;
+    var difEl = document.getElementById('aq-diferencia');
+    var sign = diferencia > 0 ? '+' : '';
+    difEl.textContent = sign + fmt(diferencia);
+    var rounded = Math.round(diferencia * 100);
+    difEl.style.color = rounded === 0 ? '#4ade80' : (diferencia < 0 ? '#f87171' : '#fbbf24');
+    document.getElementById('aq-esperada').textContent = fmt(esperada);
+  }
+
+  function renderGastoRows() {
+    var container = document.getElementById('aq-gastos-list');
+    container.innerHTML = gastos.map(function(g, i) {
+      return '<div class="aq-gasto-row" data-idx="' + i + '" style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'
+        + '<input class="aq-concepto" type="text" placeholder="Concepto" maxlength="60"'
+        + ' style="flex:2;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:13px"'
+        + ' value="' + esc(g.concepto) + '">'
+        + '<input class="aq-monto" type="number" placeholder="0.00" min="0" step="0.01"'
+        + ' style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:13px;-moz-appearance:textfield"'
+        + ' value="' + (g.monto > 0 ? g.monto : '') + '">'
+        + '<button class="aq-del-gasto" data-idx="' + i + '"'
+        + ' style="flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:rgba(200,16,46,.2);color:#f87171;font-size:16px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer">✕</button>'
+        + '</div>';
+    }).join('');
+    attachGastoEvents();
+    recompute();
+  }
+
+  function attachGastoEvents() {
+    document.querySelectorAll('.aq-gasto-row input').forEach(function(inp) {
+      inp.addEventListener('input', recompute);
+    });
+    document.querySelectorAll('.aq-del-gasto').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(this.dataset.idx, 10);
+        gastos.splice(idx, 1);
+        renderGastoRows();
+      });
+    });
+  }
+
   var modal = document.getElementById('modal-content');
-  var expected = (parseFloat(state.turno.monto_inicial) || 0) + (parseFloat(state.turno.total_efectivo) || 0);
-  modal.innerHTML = '<h3>Cerrar turno</h3>'
-    + '<p>Cuenta el efectivo en caja e ingresa el total contado.</p>'
-    + '<p style="margin-top:4px;color:var(--text2)">Esperado en efectivo: <strong>' + esc(fmt(expected)) + '</strong></p>'
-    + '<div><label>Monto contado (S/)</label>'
-    + '<input type="number" id="modal-monto-final" min="0" step="0.01" value="' + expected.toFixed(2) + '" inputmode="decimal"></div>'
+  modal.style.maxWidth = '480px';
+  modal.innerHTML = '<h3>Arqueo de caja</h3>'
+
+    // Caja inicial (read-only)
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">'
+    + '<span style="font-size:13px;color:var(--text2)">Caja inicial</span>'
+    + '<span style="font-size:15px;font-weight:700">' + esc(fmt(cajaInicial)) + '</span>'
+    + '</div>'
+
+    // Ventas en efectivo (read-only)
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">'
+    + '<span style="font-size:13px;color:var(--text2)">Ventas en efectivo</span>'
+    + '<span style="font-size:15px;font-weight:700;color:#4ade80">' + esc(fmt(ventasEfectivo)) + '</span>'
+    + '</div>'
+    + '<p style="font-size:11px;color:var(--muted);margin-top:-8px">Tarjeta y Yape/QR no entran a la caja física</p>'
+
+    // Ingreso de efectivo
+    + '<div>'
+    + '<label style="display:block;margin-bottom:6px">Ingreso de efectivo (extra)</label>'
+    + '<input type="number" id="aq-ingreso" min="0" step="0.01" value="0" inputmode="decimal"'
+    + ' placeholder="0.00" style="-moz-appearance:textfield">'
+    + '</div>'
+
+    // Gastos varios
+    + '<div>'
+    + '<label style="display:block;margin-bottom:6px">Gastos varios</label>'
+    + '<div id="aq-gastos-list"></div>'
+    + '<button id="aq-add-gasto"'
+    + ' style="width:100%;padding:8px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:color .1s">'
+    + '+ Agregar gasto</button>'
+    + '</div>'
+
+    // Caja esperada (computed, read-only)
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">'
+    + '<span style="font-size:13px;color:var(--text2)">Caja esperada</span>'
+    + '<span id="aq-esperada" style="font-size:16px;font-weight:800">' + esc(fmt(cajaInicial + ventasEfectivo)) + '</span>'
+    + '</div>'
+
+    // Caja real (cashier counts)
+    + '<div>'
+    + '<label style="display:block;margin-bottom:6px">Caja real (contada)</label>'
+    + '<input type="number" id="aq-caja-real" min="0" step="0.01" value="0" inputmode="decimal"'
+    + ' placeholder="0.00" style="-moz-appearance:textfield">'
+    + '</div>'
+
+    // Diferencia (computed)
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)">'
+    + '<span style="font-size:13px;color:var(--text2)">Diferencia</span>'
+    + '<span id="aq-diferencia" style="font-size:18px;font-weight:800;color:#fbbf24">+' + esc(fmt(cajaInicial + ventasEfectivo)) + '</span>'
+    + '</div>'
+
     + '<div class="modal-row">'
-    + '<button class="btn-modal-cancel" id="modal-cancel">Cancelar</button>'
-    + '<button class="btn-modal-ok" id="modal-confirm" style="background:var(--red);color:#fff">Cerrar turno</button>'
+    + '<button class="btn-modal-cancel" id="aq-cancel">Cancelar</button>'
+    + '<button class="btn-modal-ok" id="aq-confirm" style="background:var(--red);color:#fff">Cerrar turno</button>'
     + '</div>';
+
   document.getElementById('overlay').classList.add('active');
-  document.getElementById('modal-monto-final').focus();
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-confirm').addEventListener('click', function() {
-    var mf = parseFloat(document.getElementById('modal-monto-final').value) || 0;
-    closeModal();
-    cerrarTurno(mf);
+
+  // Wire events
+  document.getElementById('aq-ingreso').addEventListener('input', recompute);
+  document.getElementById('aq-caja-real').addEventListener('input', recompute);
+  document.getElementById('aq-add-gasto').addEventListener('click', function() {
+    gastos.push({ concepto: '', monto: 0 });
+    renderGastoRows();
   });
+  document.getElementById('aq-cancel').addEventListener('click', function() {
+    modal.style.maxWidth = '';
+    closeModal();
+  });
+  document.getElementById('aq-confirm').addEventListener('click', function() {
+    // sync final gastos from DOM
+    document.querySelectorAll('.aq-gasto-row').forEach(function(row, i) {
+      if (!gastos[i]) gastos[i] = { concepto: '', monto: 0 };
+      gastos[i].concepto = row.querySelector('.aq-concepto').value.trim();
+      gastos[i].monto    = parseFloat(row.querySelector('.aq-monto').value) || 0;
+    });
+    var ingreso  = parseFloat(document.getElementById('aq-ingreso').value) || 0;
+    var cajaReal = parseFloat(document.getElementById('aq-caja-real').value) || 0;
+    modal.style.maxWidth = '';
+    closeModal();
+    cerrarTurno(cajaReal, ingreso, gastos);
+  });
+
+  // Initial render (empty gastos list)
+  renderGastoRows();
+  recompute();
+  document.getElementById('aq-caja-real').focus();
 }
 
-function cerrarTurno(montoFinal) {
+function cerrarTurno(cajaReal, ingreso, gastos) {
   apiPost('cerrar_turno', {
     turno_id: state.turno.id,
-    monto_final: montoFinal.toFixed(2)
+    caja_real: cajaReal.toFixed(2),
+    ingreso_efectivo: ingreso.toFixed(2),
+    gastos: JSON.stringify(gastos.filter(function(g) { return g.monto > 0 || g.concepto !== ''; }))
   }).then(function(res) {
     if (!res.ok) { toast('Error al cerrar turno: ' + (res.error || ''), 'err'); return; }
     state.turno = null;

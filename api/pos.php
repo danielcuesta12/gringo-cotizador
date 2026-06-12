@@ -47,8 +47,22 @@ case 'abrir_turno':
     pout(['ok'=>true,'id'=>$id]);
 
 case 'cerrar_turno':
-    $tid = cleanInt($_POST['turno_id'] ?? 0);
-    $montoFinal = cleanFloat($_POST['monto_final'] ?? 0);
+    $tid      = cleanInt($_POST['turno_id'] ?? 0);
+    $cajaReal = cleanFloat($_POST['caja_real'] ?? 0);
+    $ingreso  = max(0, cleanFloat($_POST['ingreso_efectivo'] ?? 0));
+    $gastosIn = json_decode($_POST['gastos'] ?? '[]', true);
+    $gastos = []; $gastosTot = 0;
+    if (is_array($gastosIn)) {
+        foreach ($gastosIn as $g) {
+            if (!is_array($g)) continue;
+            $concepto = mb_substr(trim(strip_tags((string)($g['concepto'] ?? ''))), 0, 60);
+            $monto    = max(0, (float)($g['monto'] ?? 0));
+            if ($monto <= 0 && $concepto === '') continue;
+            $gastos[] = ['concepto' => $concepto, 'monto' => $monto];
+            $gastosTot += $monto;
+            if (count($gastos) >= 20) break;
+        }
+    }
     $t = Database::fetch("SELECT * FROM pos_turnos WHERE id=? AND usuario_id=? AND estado='abierto'", [$tid,$uid]);
     if (!$t) pout(['ok'=>false,'error'=>'Turno no encontrado']);
     $ag = Database::fetch(
@@ -59,10 +73,16 @@ case 'cerrar_turno':
                 COALESCE(SUM(CASE WHEN m.tipo NOT IN ('efectivo','tarjeta','qr') OR m.tipo IS NULL THEN p.total ELSE 0 END),0) ot
          FROM pedidos p LEFT JOIN pos_metodos_pago m ON m.nombre = p.metodo_pago
          WHERE p.turno_id = ? AND p.estado <> 'cancelado'", [$tid]);
+    $cajaEsperada = (float)$t['monto_inicial'] + $ingreso + (float)$ag['ef'] - $gastosTot;
+    $diferencia   = $cajaEsperada - $cajaReal;
     Database::execute(
-        "UPDATE pos_turnos SET estado='cerrado', cerrado_en=NOW(), monto_final=?,
+        "UPDATE pos_turnos SET estado='cerrado', cerrado_en=NOW(),
+            ingreso_efectivo=?, gastos_total=?, gastos_json=?,
+            monto_final=?, caja_esperada=?, caja_real=?, diferencia=?,
             total_pedidos=?, total_ventas=?, total_efectivo=?, total_tarjeta=?, total_qr=?, total_otros=? WHERE id=?",
-        [$montoFinal, (int)$ag['n'], $ag['tot'], $ag['ef'], $ag['ta'], $ag['qr'], $ag['ot'], $tid]);
+        [$ingreso, $gastosTot, ($gastos ? json_encode($gastos, JSON_UNESCAPED_UNICODE) : null),
+         $cajaReal, $cajaEsperada, $cajaReal, $diferencia,
+         (int)$ag['n'], $ag['tot'], $ag['ef'], $ag['ta'], $ag['qr'], $ag['ot'], $tid]);
     pout(['ok'=>true]);
 
 case 'registrar_venta':
@@ -217,6 +237,19 @@ case 'enviar_recibo':
     $headers .= "X-Mailer: ElGringoPOS/1.0\r\n";
     $ok = @mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $bodyHtml, $headers);
     pout(['ok' => (bool)$ok, 'error' => $ok ? '' : 'No se pudo enviar']);
+
+case 'monitor':
+    if (!isAdmin()) pout(['ok'=>false,'error'=>'Sin permisos']);
+    $fecha = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_GET['fecha'] ?? '')) ? $_GET['fecha'] : date('Y-m-d');
+    $ubi   = cleanInt($_GET['ubicacion_id'] ?? 0);
+    $w = "p.origen='pos' AND p.estado <> 'cancelado' AND DATE(p.created_at) = ?";
+    $params = [$fecha];
+    if ($ubi) { $w .= " AND p.ubicacion_id = ?"; $params[] = $ubi; }
+    $tot = Database::fetch("SELECT COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $w", $params);
+    $metodos = Database::fetchAll("SELECT p.metodo_pago nombre, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $w GROUP BY p.metodo_pago ORDER BY t DESC", $params);
+    $ubis = Database::fetchAll("SELECT COALESCE(u.nombre,'—') nombre, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id = p.ubicacion_id WHERE $w GROUP BY p.ubicacion_id ORDER BY t DESC", $params);
+    $recientes = Database::fetchAll("SELECT p.id, p.total, p.metodo_pago, p.created_at, COALESCE(u.nombre,'—') ubi FROM pedidos p LEFT JOIN ubicaciones u ON u.id = p.ubicacion_id WHERE $w ORDER BY p.id DESC LIMIT 40", $params);
+    pout(['ok'=>true, 'fecha'=>$fecha, 'total'=>$tot, 'metodos'=>$metodos, 'ubicaciones'=>$ubis, 'recientes'=>$recientes]);
 
 default:
     pout(['ok'=>false,'error'=>'Acción no válida']);

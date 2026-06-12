@@ -26,6 +26,8 @@ $ESTADOS = [
 
 $filter  = clean($_GET['estado'] ?? 'activos');
 $ubiF    = cleanInt($_GET['ubi'] ?? 0);
+$origenF = clean($_GET['origen'] ?? '');           // '', 'carta', 'pos'
+$turnoF  = cleanInt($_GET['turno'] ?? 0);           // filter by POS turno
 $page    = max(1, cleanInt($_GET['page'] ?? 1));
 $perPage = 20;
 $offset  = ($page - 1) * $perPage;
@@ -39,6 +41,8 @@ try {
     if ($filter === 'activos')      { $where .= " AND p.estado IN ('pendiente','en_preparacion')"; }
     elseif (isset($ESTADOS[$filter])) { $where .= " AND p.estado = ?"; $params[] = $filter; }
     if ($ubiF > 0) { $where .= " AND p.ubicacion_id = ?"; $params[] = $ubiF; }
+    if ($origenF === 'carta' || $origenF === 'pos') { $where .= " AND p.origen = ?"; $params[] = $origenF; }
+    if ($turnoF > 0) { $where .= " AND p.turno_id = ?"; $params[] = $turnoF; }
 
     $total = (int)Database::fetch("SELECT COUNT(*) n FROM pedidos p WHERE $where", $params)['n'];
     $pedidos = Database::fetchAll(
@@ -90,15 +94,27 @@ include __DIR__ . '/../layout-top.php';
     elseif ($val==='all') $cnt = array_sum($cmap);
     else $cnt = $cmap[$val] ?? 0;
     $active = $filter === $val;
-    $q = 'estado='.$val.($ubiF?'&ubi='.$ubiF:'');
+    $q = 'estado='.$val.($ubiF?'&ubi='.$ubiF:'').($origenF?'&origen='.$origenF:'').($turnoF?'&turno='.$turnoF:'');
   ?>
   <a href="?<?= $q ?>" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid;white-space:nowrap;<?= $active?'background:var(--brand);color:#1a1a1a;border-color:var(--brand)':'background:#fff;color:var(--text-secondary);border-color:var(--border)' ?>">
     <?= $label ?> <span style="font-size:11px;opacity:.8">(<?= $cnt ?>)</span>
   </a>
   <?php endforeach; ?>
 
+  <?php
+  // Origen filter pills
+  $origenOpts = ['' => 'Todos', 'carta' => 'Carta', 'pos' => 'POS'];
+  foreach ($origenOpts as $ov => $ol):
+    $oActive = $origenF === $ov;
+    $oQ = 'estado='.clean($filter).($ubiF?'&ubi='.$ubiF:'').($ov?'&origen='.$ov:'').($turnoF?'&turno='.$turnoF:'');
+  ?>
+  <a href="?<?= $oQ ?>" style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid;white-space:nowrap;<?= $oActive?'background:var(--blue);color:#fff;border-color:var(--blue)':'background:#fff;color:var(--text-secondary);border-color:var(--border)' ?>">
+    <?= $ol ?>
+  </a>
+  <?php endforeach; ?>
+
   <?php if (count($ubicaciones) > 1): ?>
-  <select onchange="location.href='?estado=<?= clean($filter) ?>'+(this.value?'&ubi='+this.value:'')" style="margin-left:auto;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:#fff">
+  <select onchange="location.href='?estado=<?= clean($filter) ?>'+(this.value?'&ubi='+this.value:'')+'<?= $origenF?'&amp;origen='.urlencode($origenF):'' ?><?= $turnoF?'&amp;turno='.$turnoF:'' ?>'" style="margin-left:auto;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:#fff">
     <option value="">Todas las ubicaciones</option>
     <?php foreach ($ubicaciones as $u): ?>
       <option value="<?= (int)$u['id'] ?>" <?= $ubiF==$u['id']?'selected':'' ?>><?= clean($u['nombre']) ?></option>
@@ -106,6 +122,13 @@ include __DIR__ . '/../layout-top.php';
   </select>
   <?php endif; ?>
 </div>
+
+<?php if ($turnoF > 0): ?>
+<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--red-light);border:1px solid rgba(200,16,46,.2);margin-bottom:14px;font-size:13px">
+  <span style="color:var(--red);font-weight:600">Mostrando pedidos del turno #<?= $turnoF ?></span>
+  <a href="?estado=<?= clean($filter) ?><?= $ubiF?'&ubi='.$ubiF:'' ?><?= $origenF?'&origen='.urlencode($origenF):'' ?>" style="margin-left:auto;color:var(--text-secondary);text-decoration:none;font-size:12px;border:1px solid var(--border);padding:3px 10px;border-radius:6px;background:#fff">&#10005; Quitar filtro de turno</a>
+</div>
+<?php endif; ?>
 
 <div class="card">
   <?php if (empty($pedidos)): ?>
@@ -127,8 +150,12 @@ include __DIR__ . '/../layout-top.php';
           [$el, $ec] = $ESTADOS[$p['estado']] ?? [$p['estado'], 'badge-secondary'];
           $tipo = ($p['origen'] ?? 'carta')==='pos' ? 'Salón' : ($p['tipo_entrega']==='delivery'?'Delivery':'Recojo');
         ?>
+        <?php $isPOS = ($p['origen'] ?? 'carta') === 'pos'; ?>
         <tr>
-          <td><a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="font-weight:700;color:var(--ink);text-decoration:none">#<?= str_pad($p['id'],3,'0',STR_PAD_LEFT) ?></a></td>
+          <td>
+            <a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="font-weight:700;color:var(--ink);text-decoration:none">#<?= str_pad($p['id'],3,'0',STR_PAD_LEFT) ?></a>
+            <span class="badge <?= $isPOS ? 'badge-info' : 'badge-secondary' ?>" style="font-size:10px;margin-left:4px"><?= $isPOS ? 'POS' : 'Carta' ?></span>
+          </td>
           <td>
             <a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="font-weight:600;color:var(--ink);text-decoration:none"><?= clean($p['nombre'] ?: 'Cliente') ?></a>
             <div style="font-size:11px;color:var(--text-muted)"><?= $tipo ?><?= $p['telefono'] ? ' · '.clean($p['telefono']) : '' ?></div>
@@ -161,12 +188,13 @@ include __DIR__ . '/../layout-top.php';
       $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
       $resumen = implode(', ', array_map(fn($i) => (($i['qty'] ?? 1).'x '.($i['nombre'] ?? '')), $items));
       [$el, $ec] = $ESTADOS[$p['estado']] ?? [$p['estado'], 'badge-secondary'];
+      $mIsPOS = ($p['origen'] ?? 'carta') === 'pos';
     ?>
     <a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);text-decoration:none">
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;color:#1a1a1a">#<?= str_pad($p['id'],3,'0',STR_PAD_LEFT) ?> · <?= clean($p['nombre'] ?: 'Cliente') ?></div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= clean($resumen) ?></div>
-        <div style="margin-top:5px"><span class="badge <?= $ec ?>" style="font-size:10px"><?= $el ?></span> <span style="font-size:12px;font-weight:700;color:var(--ink);margin-left:4px"><?= formatMoney($p['total']) ?></span></div>
+        <div style="margin-top:5px"><span class="badge <?= $ec ?>" style="font-size:10px"><?= $el ?></span> <span class="badge <?= $mIsPOS ? 'badge-info' : 'badge-secondary' ?>" style="font-size:10px"><?= $mIsPOS ? 'POS' : 'Carta' ?></span> <span style="font-size:12px;font-weight:700;color:var(--ink);margin-left:4px"><?= formatMoney($p['total']) ?></span></div>
       </div>
       <div style="font-size:18px;color:var(--text-muted)">&#8250;</div>
     </a>
@@ -175,7 +203,7 @@ include __DIR__ . '/../layout-top.php';
 
   <?php if ($pag['total_pages'] > 1): ?>
   <div class="pagination">
-    <?php $qs = 'estado='.$filter.($ubiF?'&ubi='.$ubiF:''); ?>
+    <?php $qs = 'estado='.$filter.($ubiF?'&ubi='.$ubiF:'').($origenF?'&origen='.urlencode($origenF):'').($turnoF?'&turno='.$turnoF:''); ?>
     <?php if ($pag['has_prev']): ?><a href="?<?= $qs ?>&page=<?= $page-1 ?>" class="page-btn">&#8249;</a><?php endif; ?>
     <?php for ($i=max(1,$page-2);$i<=min($pag['total_pages'],$page+2);$i++): ?>
     <a href="?<?= $qs ?>&page=<?= $i ?>" class="page-btn <?= $i===$page?'active':'' ?>"><?= $i ?></a>
