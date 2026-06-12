@@ -1,416 +1,246 @@
-# El Gringo Cotizador — CLAUDE.md
+# El Gringo — CLAUDE.md
 
-Sistema de cotización web para empresas de catering y food truck. Construido en PHP puro + MySQL, desplegado en hosting cPanel compartido.
+Plataforma web integral para **El Gringo Burger Joint** (Lima, Perú). Empezó como cotizador de eventos y hoy es un **sistema completo de catering + restaurante**: cotizaciones/eventos B2B **y** operación diaria (carta online, POS, KDS, inventario, reservas, landing y analítica). PHP puro + MySQL, desplegado en hosting cPanel compartido.
+
+> **Nota de orientación:** este archivo describe un sistema grande con dos "mundos" que NO deben mezclarse: **Cotizaciones/eventos** (catering B2B, por mes/evento) y **Operación POS+Cartas** (venta diaria, por día/ticket). El dinero de uno nunca se suma con el del otro salvo en el panel consolidado del dashboard.
 
 ---
 
 ## Negocio
 
 - **Empresa:** El Gringo Burger Joint — Lima, Perú
-- **Operación:** 2 dark kitchens + food truck
-- **Productos principales:** Smash burgers, pollos crispy, salchipapas
-- **Moneda:** Soles peruanos (S/)
-- **IGV:** Seleccionable por cotización — none / 10.5% / 18%
-- **Precios:** Por persona / por evento / precio libre (según producto)
-- **Usuarios:** Admin (Daniel) + Asistente
+- **Operación:** dark kitchens + food truck + local (reservas de mesa)
+- **Productos:** smash burgers, pollos crispy, salchipapas
+- **Moneda:** Soles (S/) · **IGV** seleccionable por cotización (none / 10.5% / 18%)
+- **Usuarios:** Admin (Daniel) + staff con permisos a la medida (cajero, cocina, asistente, inventario)
 
 ---
 
 ## Stack técnico
 
-- **Backend:** PHP 8.0+ puro, sin frameworks
-- **Base de datos:** MySQL 5.7+ / MariaDB 10.3+ via PDO
-- **Frontend:** HTML + CSS propio + JS vanilla — sin Bootstrap ni jQuery
-- **PDF:** HTML imprimible con CSS @media print (TCPDF disponible como fallback)
-- **Hosting:** cPanel compartido — /home/ebakxdhm/elgringo/cotizador/
-- **URL producción:** https://elgringo.pe/cotizador
-- **Repo:** https://github.com/danielcuesta12/gringo-cotizador
+- **Backend:** PHP 8.0+ puro, sin frameworks · **BD:** MySQL 5.7+/MariaDB 10.3+ vía PDO
+- **Frontend:** HTML + CSS propio + JS vanilla (sin Bootstrap/jQuery)
+- **PWA:** `manifest.php` (por-app) + `sw.js` (network-only) → POS/KDS/Ventas instalables en el celular
+- **Pagos online:** Izipay (Lyra/micuentaweb) — `api/izipay_*` — ACTIVO
+- **Impresión térmica:** ESC/POS 80mm vía app **RawBT** (Android) — `pos/escpos.php`
+- **PDF/impresión:** HTML imprimible con `@media print`
+- **Correo:** PHP `mail()` nativo. Remitentes por área: `cotizaciones@elgringo.pe`, `reservas@elgringo.pe`, `comprobantes@elgringo.pe` (deben existir como buzones en cPanel)
+- **Hosting:** cPanel compartido. Docroot de `elgringo.pe` = carpeta `elgringo/`; el cotizador es subcarpeta `elgringo/cotizador/`. La **landing** se sirve en la raíz (`elgringo/index.php` carga `cotizador/landing.php`)
+- **URLs:** Landing `https://elgringo.pe` · Panel/cotizador `https://elgringo.pe/cotizador` · Carta por ubicación `https://elgringo.pe/{slug}`
+- **Repo:** github.com/danielcuesta12/gringo-cotizador
+
+### Colores de marca (IMPORTANTE)
+La marca es **amarillo `#FFDF00` + rosa `#FFBBC8` + negro `#1E1E1E`** (crema `#FFEFBC` secundario). El `--red #C8102E` es legado del cotizador original; en diseños nuevos (dashboard, emails, sidebar) **se usa la marca, no el rojo**.
 
 ---
 
 ## Flujo de trabajo
 
 ```
-Editar en Claude Code (Mac)
-  → git add . && git commit -m "descripción"
-  → git push origin main
+Editar en Claude Code (Mac) → git commit → git push origin main
   → SSH al servidor → cd /home/ebakxdhm/elgringo/cotizador && git pull
+  → aplicar migraciones nuevas de install/*.sql en phpMyAdmin (cuando las haya)
 ```
 
 ---
 
-## Estructura de carpetas
+## Los dos mundos
+
+| | Cotizaciones / eventos (B2B) | Operación · POS y Cartas (diario) |
+|---|---|---|
+| Qué | Catering, eventos, food truck a tu evento | Venta diaria (carta online + caja POS) |
+| Plata | "Facturado" = `quotes` **aceptadas** | "Ventas" = `pedidos` (origen carta+pos) |
+| Tablas | `quotes`, `quote_items`, `quote_requests`, `reservas` | `pedidos`, `pos_*`, `ubicaciones`, `location_products` |
+| Escala | por mes / por evento | por día / por ticket |
+
+El **dashboard** (`admin/dashboard.php`) muestra ambos mundos separados por color (rosa cotizaciones / amarillo operación) + un **panel consolidado** (solo admin) que suma los dos, con export a Excel/CSV (`admin/export.php`).
+
+---
+
+## Estructura
 
 ```
 gringo-cotizador/
-├── .env                          ← Variables de entorno (NO en git)
-├── .env.example                  ← Plantilla (SÍ en git)
-├── .gitignore
-├── CLAUDE.md
-├── .htaccess                     ← URLs sin .php + no-cache + security headers
-├── solicitud.php                 ← Formulario público de solicitud de cotización
-├── config/
-│   ├── config.php                ← Carga .env, define constantes globales
-│   └── database.php              ← Clase PDO Singleton
-├── includes/
-│   └── helpers.php               ← Funciones globales
-├── auth/
-│   ├── login.php
-│   └── logout.php
+├── index.php / landing.php          ← Landing link-in-bio (raíz elgringo.pe)
+├── solicitud.php                    ← Form público de cotización (→ quote_requests)
+├── reserva.php                      ← Form público de reserva de mesa (→ reservas)
+├── manifest.php / sw.js             ← PWA (apps instalables)
+├── config/  (config.php, database.php)
+├── includes/  (helpers.php, permissions.php, inventario.php)
+├── auth/  (login.php, logout.php)
+├── carta/                           ← Carta de venta pública por ubicación
+│   ├── index.php (carta de venta + carrito → WhatsApp/Izipay)
+│   ├── menu.php (menú solo-lectura) · banner.php · carta-print.php
+├── pos/                             ← Terminal POS (standalone, full-screen, PWA)
+│   ├── terminal.php · ticket.php (58mm) · escpos.php (ESC/POS 80mm → RawBT)
+├── quotes/  (create, edit, list, pdf, view, send-email)
+├── api/                             ← Endpoints JSON
+│   ├── quotes.php · carta.php · carta_analytics.php · pedido.php
+│   ├── pos.php · kds_pedidos.php · kds_update.php · kds_historial.php
+│   ├── cartas.php · track.php
+│   └── izipay_{config,create,verify,ipn,store_pending}.php
 ├── admin/
-│   ├── layout-top.php            ← Header HTML, sidebar, topbar, flash messages
-│   ├── layout-bottom.php         ← Cierre HTML + scripts
-│   ├── dashboard.php             ← Stats + calendario mes/lista con tooltip inline
-│   ├── calendar.php              ← Calendario independiente con tooltip y vista lista
-│   ├── events/
-│   │   └── create.php            ← Nuevo evento directo (EV- prefix, status aceptada)
-│   ├── clients/                  ← index.php, form.php
-│   ├── categories/               ← index.php, form.php
-│   ├── products/                 ← index.php, form.php
-│   ├── packages/                 ← index.php, form.php
-│   ├── requests/
-│   │   ├── index.php             ← Bandeja de solicitudes con filtros
-│   │   └── detail.php            ← Detalle con botones WA/llamar/email + aceptar/rechazar
-│   ├── users/                    ← index.php, form.php
-│   └── settings/
-│       └── index.php             ← Config empresa, logos A/B, tipos de evento, cuentas bancarias, colores PDF
-├── quotes/
-│   ├── create.php                ← Nueva cotización (EG- prefix)
-│   ├── edit.php                  ← Ver + botón seguimiento por estado + WA/email/llamar
-│   ├── list.php                  ← Lista con filtros y cards mobile
-│   ├── pdf.php                   ← Vista HTML imprimible (pública y privada)
-│   ├── send-email.php            ← Envío de email con asunto/cuerpo por estado
-│   └── view.php                  ← Vista pública por token (sin login)
-├── api/
-│   └── quotes.php                ← Endpoints AJAX (search_products, search_clients, etc.)
-├── assets/
-│   ├── css/
-│   │   ├── style.css             ← Design system completo
-│   │   └── quoter.css            ← Estilos específicos del cotizador
-│   ├── js/
-│   │   ├── app.js                ← Sidebar, modales, utilidades globales
-│   │   └── quoter.js             ← Motor JS del cotizador
-│   └── img/
-│       ├── favicon.ico
-│       ├── favicon-32.png
-│       ├── favicon-180.png
-│       └── uploads/
-│           └── logos/            ← Logos subidos desde Configuración
-└── install/
-    ├── schema.sql                ← Schema completo de la BD
-    ├── bank_accounts.sql         ← Tabla de cuentas bancarias
-    └── update-events.sql         ← Columnas origin, event_time, event_duration, event_location
+│   ├── layout-top.php / layout-bottom.php   ← Sidebar (grupos colapsables, gateado por permisos)
+│   ├── dashboard.php                ← Dos mundos + consolidado + export
+│   ├── export.php                   ← CSV/Excel (cotizaciones / operacion / consolidado)
+│   ├── clients, categories, products, packages, modifiers, locations, events
+│   ├── requests/  (buzón solicitudes cotización)
+│   ├── reservas/  (buzón reservas: index + detail con confirmar/rechazar + email)
+│   ├── pedidos/   (pedidos carta+POS, filtro origen, badge)
+│   ├── kds/       (pantalla de cocina, standalone)
+│   ├── pos/       (metodos, caja [arqueo], monitor [en vivo], clientes)
+│   ├── cartas/    (generador de cartas PDF: index + editor)
+│   ├── inventory/ (insumos, stock, recetas, movimientos, ajuste, compras, proveedores, salida_evento)
+│   ├── landing/   (botones del landing por tipo + editor de apariencia + qr)
+│   ├── analytics/ · settings/ · users/
+└── install/  (26 migraciones .sql — ver "Migraciones / despliegue")
 ```
 
 ---
 
-## Base de datos
+## Base de datos (35 tablas)
 
-### Tablas principales
+**Core / cotizaciones:** `users`, `company_settings`, `categories`, `products`, `packages`, `package_products`, `clients`, `quotes`, `quote_items`, `quote_status_log`, `quote_requests`, `quote_templates`, `bank_accounts`, `reservas`.
 
-| Tabla | Propósito |
-|-------|-----------|
-| users | Usuarios del sistema (admin / asistente) |
-| company_settings | Config empresa en formato key/value |
-| categories | Categorías de productos |
-| products | Productos con precio_per_person y precio_per_event |
-| packages | Combos de productos |
-| package_products | Relación N:N paquete-producto |
-| clients | Clientes (empresa con RUC / persona con DNI) |
-| quotes | Cotizaciones y eventos directos |
-| quote_items | Ítems de cada cotización |
-| quote_status_log | Historial de cambios de estado |
-| quote_requests | Solicitudes públicas de cotización |
-| bank_accounts | Cuentas bancarias para mostrar en el PDF |
-| quote_templates | Plantillas de T&C reutilizables |
+**Carta / operación:** `ubicaciones`, `location_products`, `pedidos`, `grupos_modificadores`, `modificadores`, `product_modifier_groups`.
 
-### Campos clave de quotes
+**POS:** `pos_turnos`, `pos_metodos_pago`, `pos_favoritos`.
 
-```sql
-status         ENUM('borrador','enviada','aceptada','rechazada')
-origin         ENUM('quote','event') DEFAULT 'quote'
-event_time     VARCHAR(10)    -- hora de inicio
-event_duration VARCHAR(50)   -- duración estimada
-event_location VARCHAR(255)
-public_token   VARCHAR(64)   -- acceso público sin login
-igv_type       ENUM('none','10.5','18')
-accepted_at    TIMESTAMP     -- usado para calcular facturado del mes
+**Generador de cartas PDF:** `cartas`, `carta_secciones`, `carta_items`.
+
+**Inventario:** `insumos`, `insumo_stock`, `recetas`, `inventario_movimientos`, `proveedores`, `compras`, `compra_items`.
+
+**Marketing/analítica:** `landing_links`, `analytics_events`, `product_likes`.
+
+### Campos clave
+
+**`quotes`** — `status ENUM('borrador','enviada','aceptada','rechazada')`, `origin ENUM('quote','event')`, `public_token`, `igv_type ENUM('none','10.5','18')`, `accepted_at`, `event_date`. Prefijos: **EG-** (quote) / **EV-** (evento directo, nace aceptada).
+
+**`pedidos`** (carta + POS) — `ubicacion_id`, `nombre`, `telefono`, `tipo_entrega ENUM('delivery','recojo')`, `items_json`, `total`, `estado ENUM('pendiente','en_preparacion','listo','entregado','cancelado')`, `metodo_pago VARCHAR(60)`, `origen ENUM('carta','pos')`, `izipay_order_id`, `turno_id`, `aceptado_at`, `completado_at`, `stock_descontado`. **POS extra:** `descuento_tipo/valor/monto`, `cliente_tipo/nombre/documento/razon_social`, `comprobante_tipo ENUM('ticket','boleta','factura')`, `notas_pos`.
+
+**`ubicaciones`** — `slug`, `sales_mode ENUM('menu','whatsapp','izipay')`, `whatsapp_number`, `hora_apertura/cierre`, `cerrado_manual`, `activa`, `es_principal`. `location_products`: precio/disponibilidad por local.
+
+**`pos_turnos`** (arqueo) — `monto_inicial`, `ingreso_efectivo`, `gastos_total`, `gastos_json`, `total_efectivo/tarjeta/qr/otros`, `monto_final`, `caja_esperada`, `caja_real`, `diferencia`, `estado ENUM('abierto','cerrado')`. Arqueo: `caja_esperada = inicial + ingresos + ventas_efectivo − gastos`; `diferencia = esperada − real`.
+
+**`reservas`** — `nombre`, `telefono`, `email`, `fecha`, `hora`, `num_personas`, `ubicacion_id`, `comentarios`, `estado ENUM('pendiente','confirmada','rechazada')`.
+
+**`inventario_movimientos`** — ledger con `tipo (ingreso/ajuste/merma/venta/evento/compra/transferencia)`, `cantidad` (con signo), `costo_unitario`, `pedido_id`. **`users.permissions`** = JSON de claves de permiso (null = admin/acceso total).
+
+---
+
+## Permisos (control de acceso)
+
+Sistema en `includes/permissions.php` + helpers en `helpers.php`. **Admin (role='admin') = superusuario** (ve todo, gestiona usuarios). Otros usuarios: `users.permissions` = arreglo JSON de claves.
+
+```php
+can('clave')                  // bool — admin siempre true; else revisa $_SESSION['user_permissions']
+requirePermission('clave')    // gatea la página; redirige al primer acceso disponible si no tiene
+userPermissions()             // array de claves del usuario actual
+firstAllowedPath()            // primera ruta accesible (post-login / acceso denegado)
 ```
 
-### Prefijos de numeración
+**Claves (28):** `dashboard, quotes, events, calendar, clients, requests, reservas, analytics` · `products, categories, packages, modifiers, locations` · `pedidos, kds, pos_terminal, pos_metodos, pos_caja, pos_monitor, pos_clientes` · `inv_insumos, inv_stock, inv_recetas, inv_movimientos, inv_compras, inv_evento` · `cartas_pdf, qr, landing`. (`settings`/`users` = solo `isAdmin()`.)
 
-- EG-2026-XXXX — cotizaciones normales (origin: quote)
-- EV-2026-XXXX — eventos directos (origin: event, status aceptada inmediato)
-
-### Tabla bank_accounts
-
-```sql
-id, bank_name, account_holder, tax_id,
-account_type   -- 'ahorros' | 'corriente'
-currency, account_number, cci, active, sort_order
-```
+**Plantillas rápidas:** cajero (`pos_terminal,pos_caja`), cocina (`kds`), ventas (dashboard+quotes+events+calendar+clients+requests+reservas), inventario (los `inv_*`), admin (acceso total). El form de usuario (`admin/users/form.php`) tiene checkboxes por área + botones de plantilla. El menú (`layout-top.php`) y cada página se gatean con `can()`/`requirePermission()`.
 
 ---
 
 ## Clase Database (config/database.php)
 
 ```php
-Database::fetch($sql, $params)       // array|null — un registro
-Database::fetchAll($sql, $params)    // array — todos los registros
-Database::insert($sql, $params)      // int — último ID insertado
-Database::execute($sql, $params)     // int — filas afectadas
-Database::getInstance()              // PDO — para transacciones
+Database::fetch($sql, $params)       // array|null
+Database::fetchAll($sql, $params)    // array
+Database::insert($sql, $params)      // int (último ID)
+Database::execute($sql, $params)     // int (filas afectadas)
+Database::getInstance()              // PDO (para transacciones)
 ```
-
-Nunca concatenar variables en SQL — siempre usar prepared statements con ?
+Nunca concatenar variables en SQL — siempre `?` con prepared statements.
 
 ---
 
-## Funciones helpers (includes/helpers.php)
+## Helpers (includes/helpers.php)
 
 ```php
-// Autenticación
-isLoggedIn()           // bool
-requireLogin()         // redirige a login si no hay sesión
-requireAdmin()         // redirige si no es admin
-isAdmin()              // bool
-currentUser()          // array [id, name, email, role]
-
-// Seguridad
-verifyCsrf()           // lanza 403 si token inválido — usar en TODO POST
-csrfToken()            // string
-csrfField()            // string — <input type="hidden" name="csrf_token" ...>
-
-// Sanitización — usar SIEMPRE en inputs
-clean($value)          // htmlspecialchars + trim → string
-cleanInt($value)       // → int
-cleanFloat($value)     // → float
-cleanEmail($value)     // → string|false
-
-// Formateo
-formatMoney($amount)   // → "S/ 1,234.50"
-formatDate($date)      // → "25/12/2024"
-formatDatetime($dt)    // → "25/12/2024 14:30"
-
-// Utilidades
-redirect($path)                  // redirect y exit — NO incluir .php en la ruta
-flashMessage($type, $message)    // 'success'|'error'|'info'
-getFlashMessages()               // array — consume y devuelve los mensajes
-generateQuoteNumber()            // → "EG-2026-0001"
-generateToken($bytes)            // → hex string para public_token
-getSetting($key, $default)       // leer company_settings (cacheado)
-setSetting($key, $value)         // escribir company_settings
-uploadImage($file, $folder)      // → 'logos/img_xxx.jpg' | false — SIN prefijo uploads/
-igvRate($type)                   // '18'→0.18, '10.5'→0.105, 'none'→0.0
-quoteStatusBadge($status)        // → HTML badge
-quoteStatusLabel($status)        // → 'Borrador'|'Enviada'|etc.
-paginate($total, $perPage, $page)// → array con offset, has_prev, has_next
+// Auth/permisos: isLoggedIn, requireLogin, requireAdmin, isAdmin, currentUser,
+//                can, requirePermission, userPermissions, firstAllowedPath
+// Seguridad:     verifyCsrf, csrfToken, csrfField
+// Sanitización:  clean, cleanInt, cleanFloat, cleanEmail
+// Formato:       formatMoney ("S/ 1,234.50"), formatDate (dd/mm/yyyy), formatDatetime
+// Utilidades:    redirect (sin .php), flashMessage, getFlashMessages, generateQuoteNumber,
+//                generateToken, getSetting, setSetting, uploadImage (→ 'logos/x.png', sin prefijo uploads/),
+//                igvRate, quoteStatusBadge/Label, paginate, ubicacionAbierta
 ```
+Inventario en `includes/inventario.php`: `invMovimiento`, `descontarStockPedido` (al marcar Listo en KDS, idempotente vía `stock_descontado`), `invEntradaCompra` (costo promedio ponderado), `recetaCosto`, `inventarioListo`/`comprasListo` (tolerancia a tablas faltantes).
+
+### Constantes
+`APP_URL` (`https://elgringo.pe/cotizador`, sin slash) · `APP_PATH` · `UPLOAD_URL`/`UPLOAD_PATH` (con slash) · `MAX_FILE_SIZE` (2MB) · `DEBUG_MODE` (false en prod).
 
 ---
 
-## Constantes disponibles en toda la app
+## Subsistemas
 
-```php
-APP_URL      // https://elgringo.pe/cotizador  (sin slash final)
-APP_PATH     // /home/ebakxdhm/elgringo/cotizador
-UPLOAD_URL   // https://elgringo.pe/cotizador/assets/img/uploads/  (con slash final)
-UPLOAD_PATH  // /home/ebakxdhm/elgringo/cotizador/assets/img/uploads/  (con slash final)
-MAX_FILE_SIZE // 2097152 (2MB)
-DEBUG_MODE   // false en producción
-```
+### Carta de venta + pedidos (público)
+`carta/index.php` por **slug de ubicación**. Tema **día/noche** (toggle + memoria). El cliente arma carrito → según `ubicaciones.sales_mode`: **whatsapp** (guarda pedido + abre WhatsApp) o **izipay** (paga con tarjeta y luego se crea el pedido). `carta/menu.php` = menú solo-lectura. `api/carta.php` sirve el menú (secciones+productos+modificadores).
 
-### Rutas de archivos subidos
+### POS (operación en caja) — construido completo
+`pos/terminal.php` standalone, full-screen, PWA, **opera en celular**. Caja por **turnos** con **arqueo** (caja inicial, ingresos, gastos, ventas efectivo, esperada vs real → diferencia). Modal de ítem con modificadores/nota/descuento, descuento global, cliente DNI/RUC + comprobante. Cobro por método. Genera `pedidos` con `origen='pos'`. Ticket 58mm (`ticket.php`) o **impresión térmica 80mm** ESC/POS vía RawBT (`escpos.php` → botón "Imprimir" abre `rawbt:base64,...`); también recibo por correo y ticket embebido en modal. Admin: `pos/metodos`, `pos/caja` (historial+arqueo), `pos/monitor` (ventas en vivo, solo dueño, standalone+PWA, comparativo semanal+export), `pos/clientes`.
 
-```php
-// uploadImage() retorna 'logos/img_xxx.png' — SIN prefijo 'uploads/'
-UPLOAD_PATH . $imagen  // ruta en disco
-UPLOAD_URL  . $imagen  // URL pública
-```
+### KDS (cocina) — integrado con carta Y POS
+`admin/kds/index.php` standalone. Lee `pedidos` (carta y `origen='pos'` → badge "SALÓN"). Estados pendiente→en_preparacion→listo/entregado/cancelado. Al **marcar Listo** descuenta inventario (`descontarStockPedido`). `api/kds_{pedidos,update,historial}.php`. Sonido + fullscreen + historial del día.
+
+### Inventario
+Insumos con `costo_unitario`; stock por ubicación (`insumo_stock`, con `stock_min`). Recetas (producto→insumos = ficha técnica/costeo). Movimientos (ledger auditable). Compras a proveedores → actualizan costo por **promedio ponderado** (`invEntradaCompra`). Salida a evento. Descuento automático de stock al marcar Listo.
+
+### Reservas (mesa)
+`reserva.php` público (form embebible) → tabla `reservas` + aviso a `reservas@elgringo.pe`. Buzón admin `admin/reservas/` (pendiente/confirmada/rechazada) con botones **Confirmar/Rechazar** que pre-redactan un email editable y lo envían desde `reservas@elgringo.pe`. Admin puede **eliminar** reservas.
+
+### Landing link-in-bio (raíz elgringo.pe)
+`landing.php` con botones administrables (`landing_links`) por **tipo**: `link` (enlace), `cotizacion` (embebe `solicitud.php`), `reserva` (embebe `reserva.php`) — los embebidos son **colapsables**. Editor de apariencia (foto fondo, colores, transparencia) + QR con `?src=` rastreable. Las URLs de los forms embebidos se resuelven desde `APP_URL` (no del campo url).
+
+### Analítica
+`analytics_events` (page_view, link_click, product_view, add_to_cart, checkout_open, order_placed, search) vía `api/track.php` y `api/carta_analytics.php`. Rastrea fuente con `?src=`. `product_likes` (acumulado). Dashboard `admin/analytics/` (KPIs, embudo, por página/dispositivo/fuente, top productos/clics/búsquedas).
+
+### Izipay (pagos online) — ACTIVO
+`api/izipay_{config,create,verify,ipn,store_pending}.php`. Flujo: create (formToken) → form Krypton embebido en la carta → verify (HMAC) → crea `pedido` (`metodo_pago` izipay, `estado='en_preparacion'`). IPN server-to-server como respaldo. Credenciales `IZIPAY_*` en `.env`.
+
+### Generador de cartas PDF
+`admin/cartas/` (lista + editor de dos paneles). Cartas a medida con secciones/ítems/fotos/**badges**/colores/QR → banner imprimible 42cm (`carta-print.php`). Tablas `cartas`/`carta_secciones`/`carta_items`. Independiente del catálogo de productos.
 
 ---
 
-## Layout del panel admin
+## Layout admin
 
 ```php
-<?php
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
-
-requireLogin(); // o requireAdmin()
-
-$pageTitle  = 'Título';
-$activePage = 'products';   // marca el nav activo
-// $extraHead    = '...';   // CSS adicional
-// $extraScripts = '...';   // JS adicional
-
+requirePermission('clave');   // o requireAdmin() para settings/users
+$pageTitle = '...'; $activePage = '...';
 include __DIR__ . '/../../admin/layout-top.php';
-?>
-<!-- Contenido aquí -->
-<?php include __DIR__ . '/../../admin/layout-bottom.php'; ?>
+// contenido
+include __DIR__ . '/../../admin/layout-bottom.php';
 ```
-
-### Valores válidos de $activePage
-
-dashboard | quote-new | event-new | quotes | calendar |
-clients | products | categories | packages | requests | users | settings
-
----
-
-## CSS — Variables del design system
-
-```css
---red:           #C8102E   /* color principal */
---red-dark:      #a80d25
---red-light:     rgba(200,16,46,.1)
---bg-sidebar:    #111111
---bg-page:       #f4f4f5
---bg-card:       #ffffff
---text-primary:  #1a1a1a
---text-secondary:#666666
---text-muted:    #999999
---border:        #e5e5e5
---green:         #16a34a
---blue:          #2563eb
---radius:        10px
---radius-lg:     14px
-```
-
-### Variables CSS del PDF
-
-```css
---red          /* fondo de header, tabla, total final, footer */
---text-on-red  /* texto dentro de las cajas de color primario */
-```
-
-Generadas desde company_settings: pdf_primary_color y pdf_secondary_color.
-Los títulos OBSERVACIONES y TERMINOS Y CONDICIONES son #888 fijo — no cambian.
-
----
-
-## Configuración empresa (company_settings)
-
-```
-company_name, company_ruc, company_address, company_phone, company_email
-pdf_primary_color      fondo del PDF (header, tabla, total, footer)
-pdf_secondary_color    texto en cajas de color primario
-company_logo           Logo A: ruta relativa desde uploads/ (logos/img_xxx.png)
-company_logo_b         Logo B: misma estructura
-active_logo            'a' o 'b'
-event_types            tipos separados por coma: "Corporativo,Boda,Cumpleaños,..."
-show_bank_accounts     '1' o '0'
-default_terms          términos por defecto
-default_observations   observaciones por defecto
-quote_prefix           prefijo del número (EG)
-quote_validity_days    días de vigencia (15)
-whatsapp_number        número WA empresa normalizado: 51XXXXXXXXX
-```
-
----
-
-## Cotizaciones vs Eventos directos
-
-| | Cotización | Evento directo |
-|---|---|---|
-| Prefix | EG- | EV- |
-| origin | 'quote' | 'event' |
-| Status inicial | 'borrador' | 'aceptada' |
-| accepted_at | cuando se acepta | NOW() al crear |
-| Calendario | azul/verde | morado |
-
-### Facturado del mes
-
-```sql
-WHERE status = 'aceptada'
-  AND MONTH(accepted_at) = MONTH(NOW())
-  AND YEAR(accepted_at) = YEAR(NOW())
-```
-
-Los eventos directos nacen con status='aceptada' y accepted_at=NOW(), por lo que suman automáticamente.
-
----
-
-## Botón de seguimiento (edit.php)
-
-| Estado | Título | Color |
-|--------|--------|-------|
-| borrador | "Enviar cotización al cliente" | neutro |
-| enviada | "Hacer seguimiento · N días" | azul |
-| aceptada | "Coordinar el evento · N días para evento" | verde |
-| rechazada | "Recuperar cliente" | rojo |
-
-Al clicar se despliega panel con 3 botones: WhatsApp, Llamar, Email.
-Mensajes WA y email tienen texto y tono diferente por estado.
-
----
-
-## Emojis en WhatsApp
-
-Usar mb_convert_encoding desde codepoints decimales:
-
-```php
-mb_convert_encoding('&#127828;', 'UTF-8', 'HTML-ENTITIES') // 🍔
-mb_convert_encoding('&#128075;', 'UTF-8', 'HTML-ENTITIES') // 👋
-mb_convert_encoding('&#127881;', 'UTF-8', 'HTML-ENTITIES') // 🎉
-```
-
-NO usar bytes \xF0\x9F... literales — se corrompen al guardar en algunos editores.
-
----
-
-## Cotizador JS (quoter.js)
-
-- parseNum(val, default) — cantidad vacía usa default (1 para qty, 0 para disc)
-- Inputs de cantidad y descuento: type="text" inputmode="decimal" (sin flechitas)
-- API_URL y CSRF_TOKEN deben definirse ANTES de cargar quoter.js
-- recalculate() se dispara en cada cambio de campo
-
----
-
-## Calendario
-
-### Colores de eventos
-- Azul #dbeafe → cotización enviada
-- Verde #dcfce7 → cotización aceptada
-- Morado #ede9fe → evento directo
-
-### Tooltip
-Al clicar una píldora del calendario se muestra un tooltip con:
-cliente, hora, lugar, personas, productos, total y botón "Ver cotización/evento →"
+El sidebar tiene **grupos colapsables** (persistidos en localStorage), gateados por `can()`, con acentos de marca (rosa Cotizaciones / amarillo Operación) y pastilla activa amarilla. Orden: Dashboard · Cotizaciones · Operación · Catálogo · Inventario · Marketing · Sistema.
 
 ---
 
 ## Convenciones de código
 
 ```php
-// Todo archivo protegido empieza con:
-requireLogin(); // o requireAdmin()
-
-// Todo POST incluye:
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
-    $campo = clean($_POST['campo'] ?? '');
-    // validar → ejecutar → flashMessage → redirect
-}
-
-// Formularios incluyen:
-<form method="post"><?= csrfField() ?></form>
-
-// Redirecciones siempre sin .php:
-redirect('/admin/dashboard');      // correcto
-redirect('/admin/dashboard.php');  // incorrecto
+// Página protegida: requirePermission('clave');  (admin = requireAdmin())
+// Todo POST del admin: verifyCsrf(); luego clean()/cleanInt()/cleanFloat()
+// Forms admin: <form method="post"><?= csrfField() ?>...
+// Redirecciones sin .php: redirect('/admin/dashboard');
 ```
+
+**Forms públicos embebidos (solicitud, reserva): NO usan verifyCsrf()** — van en iframe (el token de sesión no sobrevive). Protegidos por **honeypot** (campo `website`). NO agregar CSRF a esos forms.
+
+**APIs:** `requireLogin()` + JSON + switch `$action` + `verifyCsrf()` en escrituras (token por header `X-CSRF-Token`). El monitor (`pos.php?action=monitor`) es admin-only.
 
 ---
 
-## Seguridad — Reglas no negociables
-
-1. Nunca concatenar variables en SQL — siempre ? con PDO
-2. Siempre verifyCsrf() al inicio de todo bloque POST
-3. Siempre sanitizar con clean() / cleanInt() / cleanFloat()
-4. Siempre requireLogin() o requireAdmin() en cada página protegida
-5. Nunca mostrar errores PDO en producción (DEBUG_MODE = false)
+## Seguridad — no negociable
+1. Nunca concatenar variables en SQL — siempre `?`. 2. `verifyCsrf()` en POST del admin. 3. Sanitizar con `clean*()`. 4. `requirePermission()`/`requireAdmin()` en cada página protegida. 5. Nunca mostrar errores PDO en prod.
 
 ---
 
@@ -418,48 +248,37 @@ redirect('/admin/dashboard.php');  // incorrecto
 
 | Bug | Fix |
 |-----|-----|
-| Doble /cotizador/ en redirect post-login | requireLogin() extrae parse_url(APP_URL, PHP_URL_PATH) de REQUEST_URI antes de guardar en sesión |
-| Logo con doble prefijo uploads/ | uploadImage() retorna 'logos/img_xxx.png' — el consumidor agrega UPLOAD_URL |
-| PDF en blanco al imprimir en Mac | Padding movido de body a .doc como margin; @media print cancela body{padding:0} |
-| Inputs con flechitas en Chrome | type="text" inputmode="decimal" con -webkit-appearance:none |
-| Emojis corruptos en WA desde Mac | mb_convert_encoding('&#CODEPOINT;', 'UTF-8', 'HTML-ENTITIES') |
-| Facturado sumaba cotizaciones no aceptadas | Query filtra status='aceptada' AND MONTH(accepted_at) |
+| Doble /cotizador/ en redirect post-login | requireLogin extrae el path de APP_URL del REQUEST_URI |
+| Logo con doble prefijo uploads/ | uploadImage retorna 'logos/x.png'; el consumidor agrega UPLOAD_URL |
+| PDF en blanco al imprimir en Mac | padding en .doc como margin; @media print cancela body padding |
+| Inputs con flechitas | type="text" inputmode="decimal" |
+| Emojis corruptos en WA | mb_convert_encoding('&#CODEPOINT;','UTF-8','HTML-ENTITIES') |
+| Facturado sumaba no-aceptadas | filtra status='aceptada' |
+| POS: cerrar_turno NULL comprobante (500) | default 'ticket' si falta la clave |
+| POS: carrito mostraba 1 línea | cachear nodo #cart-empty (no re-buscar tras innerHTML) |
+| Monitor "Error al actualizar" | renderChart en rama sin-ventas llamaba con args corridos |
+| Landing botón Reserva 404 | resolver URL del form embebido desde APP_URL, no del campo url |
+| Reserva "Token de seguridad inválido" | quitar verifyCsrf del form público embebido (honeypot, como solicitud) |
+| api/pos.php acción no leída en POST | $action = $_GET['action'] ?? $_POST['action'] |
 
 ---
 
 ## Objetivo multi-empresa
-
-Cada instancia solo necesita su propio .env con:
-- DB_NAME diferente
-- APP_URL y APP_PATH propios
-- UPLOAD_URL y UPLOAD_PATH propios
-
-El código fuente es idéntico. La configuración visual (colores, logos, nombre, cuentas) va en company_settings de cada BD.
+Cada instancia: su propio `.env` (DB_NAME, APP_URL/PATH, UPLOAD_URL/PATH). El código es idéntico; la config visual (colores, logos, cuentas, tipos de evento) vive en `company_settings`. Esta plataforma porta los módulos de restaurante de **Marcona** como instancia independiente (datos separados; marcona no se toca).
 
 ---
 
-## Notas generales
+## Migraciones / despliegue
 
-- Sistema en español — textos de UI, mensajes, labels en español peruano
-- Formato de moneda: siempre S/ 1,234.50 — usar formatMoney()
-- Fechas: dd/mm/yyyy para mostrar, yyyy-mm-dd para BD — usar formatDate()
-- Zona horaria: America/Lima (UTC-5)
-- Codificación: UTF-8 / utf8mb4 en toda la BD
-- Asistentes solo ven sus propias cotizaciones — query con WHERE q.user_id = ? cuando !isAdmin()
-- public_token = link que se comparte con el cliente sin login
-- Teléfonos guardados normalizados: 51XXXXXXXXX (con código de país, sin +)
+26 archivos en `install/`. Al desplegar hay que aplicar las **nuevas** en phpMyAdmin (no hay tracking automático — conviene un checklist). Las más recientes: `permisos.sql`, `reservas.sql`, `landing_tipo.sql`, `pos_arqueo.sql`, `cartas_badges.sql`. Muchas tablas tienen guards (`inventarioListo()`, `$tableReady`) para no romper si falta aplicar una.
 
 ---
 
-## Prompts de ejemplo para Claude Code
+## Pendiente / notas honestas
 
-```
-> Agrega en el cotizador la opción de cargar paquetes además de productos individuales
-> Crea admin/reports/index.php con ventas por mes y top 5 productos
-> Agrega validación de dígito verificador del RUC peruano en clients/form.php
-> Agrega en quotes/list.php la opción de exportar a CSV
-> Crea una vista admin/clients/history.php con el historial de cotizaciones de un cliente
-> Implementa búsqueda global en el topbar que busque en cotizaciones y clientes
-> Crea un dashboard de reportes con gráficas de ventas mensuales
-> Agrega un módulo de notificaciones cuando llegan solicitudes nuevas
-```
+- **Lealtad/fidelización** — único módulo de Marcona aún no portado (hay referencias en frontend; falta backend + admin + tabla). Es el siguiente gran build.
+- **Entregabilidad de correo:** `mail()` nativo; en prod conviene migrar a **SMTP autenticado** por reputación. Los buzones `cotizaciones@`/`reservas@`/`comprobantes@elgringo.pe` deben existir en cPanel. Cuidado con el **límite horario de correos** del hosting (puede hacer que "no lleguen").
+- **APIs aún en `requireAdmin()`** (ej. `api/cartas.php`): un usuario personalizado no-admin con ese permiso podría no poder guardar. Afinar a `can()` por permiso si se da ese acceso.
+- Migración de marca incompleta: el panel aún usa `--red #C8102E` en varios lados; lo nuevo va en marca.
+- Sistema en **español peruano**; moneda `S/ 1,234.50`; fechas dd/mm/yyyy (BD yyyy-mm-dd); TZ America/Lima (UTC-5); utf8mb4.
+- Mucho de lo nuevo (POS, reservas, permisos, dashboard) es **reciente** — necesita uso real para pulir.
