@@ -220,6 +220,14 @@ function barColor(q) {
 }
 function numColor(q) { return barColor(q); }
 
+// Clave de orden por hora: 'HH:MM' (24h); sin hora → al final
+function timeKey(t){
+  if(!t) return '99:99';
+  var m=String(t).match(/(\d{1,2}):(\d{2})/);
+  if(!m) return '99:99';
+  return (m[1].length<2?'0':'')+m[1]+':'+m[2];
+}
+
 function renderMonth() {
   document.getElementById('calTitle').textContent = MONTHS[cur.getMonth()] + ' ' + cur.getFullYear();
   var grid = document.getElementById('calGrid');
@@ -246,12 +254,13 @@ function renderMonth() {
     html += '<div class="cal-day-cell'+(blocked?' blocked':'')+'" style="'+bg+'">';
     html += '<div style="font-size:11px;'+nc+';padding-left:2px;margin-bottom:2px">'+d+'</div>';
     if (blocked) html += '<div class="cal-blocked-tag" style="margin-bottom:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>No disponible</div>';
-    qs.forEach(function(q) {
-      var ec = evClass(q);
-      html += '<button class="cal-ev '+ec+'" onclick="showTooltip(event,'+q.id+')">'+q.quote_number+'</button>';
-    });
-    ags.forEach(function(a) {
-      html += '<button class="cal-ev cal-ev-g" onclick="showAgendaTooltip(event,'+a.id+')">'+esc(a.titulo)+'</button>';
+    var dayEv = [];
+    qs.forEach(function(q){ dayEv.push({k:timeKey(q.event_time), t:'q', d:q}); });
+    ags.forEach(function(a){ dayEv.push({k:timeKey(a.hora), t:'a', d:a}); });
+    dayEv.sort(function(x,y){ return x.k<y.k?-1:(x.k>y.k?1:0); });
+    dayEv.forEach(function(e){
+      if (e.t==='q') html += '<button class="cal-ev '+evClass(e.d)+'" onclick="showTooltip(event,'+e.d.id+')">'+e.d.quote_number+'</button>';
+      else html += '<button class="cal-ev cal-ev-g" onclick="showAgendaTooltip(event,'+e.d.id+')">'+esc(e.d.titulo)+'</button>';
     });
     html += '</div>';
   }
@@ -353,7 +362,11 @@ function renderList() {
     .map(function(q){ return q; })
     .concat(AGENDA.filter(function(a){ return agendaEnd(a)>=startS && a.event_date<=endS; })
       .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, fecha_fin:a.fecha_fin, titulo:a.titulo, hora:a.hora, hora_fin:a.hora_fin, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea}; }));
-  filtered.sort(function(a,b){ return a.event_date<b.event_date?-1:(a.event_date>b.event_date?1:0); });
+  filtered.sort(function(a,b){
+    if (a.event_date !== b.event_date) return a.event_date<b.event_date?-1:1;
+    var ka=timeKey(a.__agenda?a.hora:a.event_time), kb=timeKey(b.__agenda?b.hora:b.event_time);
+    return ka<kb?-1:(ka>kb?1:0);
+  });
 
   if (!filtered.length) {
     document.getElementById('listContent').innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:14px">Sin eventos en este periodo</div>';
