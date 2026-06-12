@@ -507,7 +507,7 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
       elMetodos.innerHTML   = '<p class="empty">Sin ventas para este día</p>';
       elUbisEl.innerHTML    = '<p class="empty">Sin ventas para este día</p>';
       elRecientes.innerHTML = '<p class="empty">Sin ventas para este día</p>';
-      renderChart([], [], d.fecha, d.comp);
+      renderChart(d.por_hora || [], d.fecha, d.comp);
       return;
     }
 
