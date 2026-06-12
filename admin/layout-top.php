@@ -112,7 +112,7 @@ try {
     <?php endif; ?>
 
     <?php /* ===== 3. Operación · POS y Cartas ===== */ ?>
-    <?php if (can('pos_terminal') || can('pedidos') || can('kds') || can('pos_monitor') || can('pos_caja') || can('pos_clientes') || can('cartas_pdf') || can('pos_metodos')): ?>
+    <?php if (can('pos_terminal') || can('pedidos') || can('kds') || can('pos_monitor') || can('pos_caja') || can('pos_clientes') || can('cartas_pdf') || can('pos_metodos') || isAdmin()): ?>
     <div class="sb-group" data-sb-group="operacion">
       <button type="button" class="nav-section-label sb-header" aria-expanded="true">
         <span class="sb-dot sb-dot-yellow"></span>Operación · POS y Cartas<span class="sb-chevron">&#9662;</span>
@@ -158,6 +158,13 @@ try {
         <a href="<?php echo APP_URL; ?>/admin/pos/clientes.php"
            class="nav-link <?php echo ($activePage??'')==='pos-clientes'?'active':''; ?>">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> POS · Clientes
+        </a>
+        <?php endif; ?>
+
+        <?php if (isAdmin()): ?>
+        <a href="<?php echo APP_URL; ?>/admin/reportes/index.php"
+           class="nav-link <?php echo ($activePage??'')==='reportes'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg></span> Reportes
         </a>
         <?php endif; ?>
 
