@@ -1617,8 +1617,8 @@ function abrirItemModal(prod, lineIdx) {
     + '<label style="display:block;margin-bottom:6px">Descuento del ítem</label>'
     + '<div class="item-disc-row">'
     + '<div class="disc-toggle">'
-    + '<button id="im-disc-pct" class="' + (descTipo === 'porcentaje' ? 'active' : '') + '">%</button>'
-    + '<button id="im-disc-mnt" class="' + (descTipo === 'monto' ? 'active' : '') + '">S/</button>'
+    + '<button id="im-disc-pct">%</button>'
+    + '<button id="im-disc-mnt">S/</button>'
     + '</div>'
     + '<input class="disc-input" type="text" inputmode="decimal" id="im-disc-val" placeholder="0" value="' + (descValor > 0 ? descValor : '') + '">'
     + '</div>'
@@ -1660,6 +1660,22 @@ function abrirItemModal(prod, lineIdx) {
     if (el) el.textContent = fmt(calcLinePriceModal());
   }
 
+  // Resalta el toggle de descuento SOLO cuando hay un valor > 0
+  function syncDiscToggle() {
+    var dv  = parseFloat(document.getElementById('im-disc-val').value) || 0;
+    var pct = document.getElementById('im-disc-pct');
+    var mnt = document.getElementById('im-disc-mnt');
+    if (!pct || !mnt) return;
+    pct.classList.toggle('active', dv > 0 && modalState.descTipo === 'porcentaje');
+    mnt.classList.toggle('active', dv > 0 && modalState.descTipo === 'monto');
+  }
+
+  // Compara modificadores por id (fallback a nombre si falta el id)
+  function sameMod(a, b) {
+    if (a && b && a.id != null && b.id != null) return a.id === b.id;
+    return !!(a && b && a.nombre === b.nombre);
+  }
+
   function updateQtyDisplay() {
     var el = document.getElementById('im-qty');
     if (el) el.textContent = modalState.qty;
@@ -1675,17 +1691,19 @@ function abrirItemModal(prod, lineIdx) {
   });
   document.getElementById('im-disc-pct').addEventListener('click', function() {
     modalState.descTipo = 'porcentaje';
-    document.getElementById('im-disc-pct').classList.add('active');
-    document.getElementById('im-disc-mnt').classList.remove('active');
+    syncDiscToggle();
     updateModalPrice();
   });
   document.getElementById('im-disc-mnt').addEventListener('click', function() {
     modalState.descTipo = 'monto';
-    document.getElementById('im-disc-mnt').classList.add('active');
-    document.getElementById('im-disc-pct').classList.remove('active');
+    syncDiscToggle();
     updateModalPrice();
   });
-  document.getElementById('im-disc-val').addEventListener('input', updateModalPrice);
+  document.getElementById('im-disc-val').addEventListener('input', function() {
+    updateModalPrice();
+    syncDiscToggle();
+  });
+  syncDiscToggle(); // estado inicial: activo solo si el ítem ya trae descuento
 
   if (isEditing) {
     document.getElementById('im-del').addEventListener('click', function() {
@@ -1739,7 +1757,7 @@ function abrirItemModal(prod, lineIdx) {
             + '</div>'
             + '<div class="mod-chips">'
             + g.modificadores.map(function(m, mi) {
-                var isSel = modalState.selectedMods.some(function(sm) { return sm.nombre === m.nombre; });
+                var isSel = modalState.selectedMods.some(function(sm) { return sameMod(sm, m); });
                 return '<button class="mod-chip' + (isSel ? ' selected' : '') + '" '
                   + 'data-gi="' + gi + '" data-mi="' + mi + '">'
                   + esc(m.nombre)
@@ -1757,7 +1775,7 @@ function abrirItemModal(prod, lineIdx) {
         var grupo = modalState.grupos[gi];
         var mod = grupo.modificadores[mi];
         var isSingle = (grupo.tipo === 'unico' || grupo.tipo === 'single' || grupo.max_opciones == 1);
-        var idx = modalState.selectedMods.findIndex(function(sm) { return sm.nombre === mod.nombre; });
+        var idx = modalState.selectedMods.findIndex(function(sm) { return sameMod(sm, mod); });
         if (idx !== -1) {
           // deselect
           modalState.selectedMods.splice(idx, 1);
@@ -1766,7 +1784,7 @@ function abrirItemModal(prod, lineIdx) {
           if (isSingle) {
             // remove other chips in this group
             grupo.modificadores.forEach(function(gm) {
-              var existIdx = modalState.selectedMods.findIndex(function(sm) { return sm.nombre === gm.nombre; });
+              var existIdx = modalState.selectedMods.findIndex(function(sm) { return sameMod(sm, gm); });
               if (existIdx !== -1) modalState.selectedMods.splice(existIdx, 1);
             });
             section.querySelectorAll('.mod-chip[data-gi="' + gi + '"]').forEach(function(c) {
@@ -1776,12 +1794,12 @@ function abrirItemModal(prod, lineIdx) {
             // respect max_opciones
             if (grupo.max_opciones) {
               var selCount = modalState.selectedMods.filter(function(sm) {
-                return grupo.modificadores.some(function(gm) { return gm.nombre === sm.nombre; });
+                return grupo.modificadores.some(function(gm) { return sameMod(gm, sm); });
               }).length;
               if (selCount >= grupo.max_opciones) return;
             }
           }
-          modalState.selectedMods.push({ nombre: mod.nombre, precio: parseFloat(mod.precio_adicional) || 0 });
+          modalState.selectedMods.push({ id: mod.id, nombre: mod.nombre, precio: parseFloat(mod.precio_adicional) || 0 });
           this.classList.add('selected');
         }
         updateModalPrice();
