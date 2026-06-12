@@ -117,7 +117,12 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
       $isEmbed = ($tipo === 'cotizacion' || $tipo === 'reserva');
     ?>
       <?php if ($isEmbed):
-        $embedUrl = $l['url'] . (strpos($l['url'], '?') !== false ? '&' : '?') . 'embed=1';
+        // Los forms embebidos (cotización/reserva) viven en el cotizador; resolver
+        // siempre desde APP_URL para que la ruta sea correcta desde la raíz de elgringo.pe.
+        if ($tipo === 'reserva')          $formUrl = APP_URL . '/reserva.php';
+        elseif ($tipo === 'cotizacion')   $formUrl = APP_URL . '/solicitud.php';
+        else                              $formUrl = $l['url'];
+        $embedUrl = $formUrl . (strpos($formUrl, '?') !== false ? '&' : '?') . 'embed=1';
         $pid = 'panel-' . (int)$l['id'];
         $fid = 'frame-' . (int)$l['id'];
         $frameTitle = $tipo === 'reserva' ? 'Reserva tu mesa' : 'Cotiza tu evento';
