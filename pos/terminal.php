@@ -87,6 +87,9 @@ a{color:inherit;text-decoration:none}
 #caja-estado.abierta{background:rgba(22,163,74,.15);color:#4ade80;border-color:rgba(22,163,74,.3)}
 .spacer{flex:1}
 #cajero-name{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+#btn-fullscreen{flex:0 0 auto;width:34px;height:34px;margin-left:10px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;padding:0}
+#btn-fullscreen:hover{color:var(--text);border-color:var(--muted)}
+#btn-fullscreen svg{width:18px;height:18px}
 
 /* ── Layout body ───────────────────────────────────────── */
 #app{
@@ -719,6 +722,7 @@ a{color:inherit;text-decoration:none}
   <span id="caja-estado">Caja cerrada</span>
   <span class="spacer"></span>
   <span id="cajero-name"></span>
+  <button id="btn-fullscreen" title="Pantalla completa" aria-label="Pantalla completa"></button>
 </div>
 
 <!-- ── App body ───────────────────────────────────────── -->
@@ -2452,6 +2456,35 @@ function showEmailModal(ventaId) {
     });
   });
 }
+
+// ── Pantalla completa ──────────────────────────────────
+var FS_EXPAND   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M16 21h3a2 2 0 0 0 2-2v-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>';
+var FS_COMPRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M16 21v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
+function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function toggleFullscreen() {
+  var el = document.documentElement;
+  if (!isFullscreen()) {
+    var req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) req.call(el);
+  } else {
+    var exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) exit.call(document);
+  }
+}
+function updateFsIcon() {
+  var b = document.getElementById('btn-fullscreen');
+  if (b) b.innerHTML = isFullscreen() ? FS_COMPRESS : FS_EXPAND;
+}
+(function initFullscreen() {
+  var btn = document.getElementById('btn-fullscreen');
+  if (!btn) return;
+  var el = document.documentElement;
+  if (!(el.requestFullscreen || el.webkitRequestFullscreen)) { btn.style.display = 'none'; return; } // iPhone: sin Fullscreen API
+  btn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', updateFsIcon);
+  document.addEventListener('webkitfullscreenchange', updateFsIcon);
+  updateFsIcon();
+})();
 
 // ── Boot ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
