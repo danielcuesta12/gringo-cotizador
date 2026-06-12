@@ -86,6 +86,10 @@ foreach ($calQuotes as $cqItem) {
     $calMap[$cqItem['event_date']][] = $cqItem;
 }
 
+// Agenda (eventos sin venta) para el mini-calendario. Tolerante si falta la migración.
+try { $agendaDash = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar FROM agenda"); }
+catch (Exception $e) { $agendaDash = array(); }
+
 // ============================================================
 // DATOS — OPERACIÓN (tabla pedidos; puede no existir)
 // ============================================================
@@ -748,6 +752,7 @@ if (can('quotes') || can('events') || can('calendar') || can('requests')):
             <span><i style="background:#FCDA13"></i>Enviada</span>
             <span><i style="background:#16a34a"></i>Aceptada</span>
             <span><i style="background:#7c3aed"></i>Evento</span>
+            <span><i style="background:#f97316"></i>Agenda</span>
           </div>
         </div>
       </div>
@@ -1014,14 +1019,17 @@ function exportOperacion() {
 
 <script>
 var MC_EVENTS = <?php echo json_encode($calQuotes); ?>;
+var MC_AGENDA = <?php echo json_encode($agendaDash); ?>;
 var MC_APP    = '<?php echo APP_URL; ?>';
 var MC_TODAY  = new Date();
 var mcCur     = new Date(MC_TODAY.getFullYear(), MC_TODAY.getMonth(), 1);
 var MC_MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+function mcEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function mcState(e){ if(e.origin==='event') return 'evento'; return e.status==='aceptada' ? 'aceptada' : 'enviada'; }
 function mcColor(st){ return st==='aceptada' ? '#16a34a' : (st==='evento' ? '#7c3aed' : '#FCDA13'); }
 function mcByDate(ds){ return MC_EVENTS.filter(function(e){ return e.event_date === ds; }); }
+function mcAgendaByDate(ds){ return MC_AGENDA.filter(function(a){ return a.event_date === ds; }); }
 function mcPad(n){ return (n<10?'0':'')+n; }
 
 function mcRender(){
@@ -1036,9 +1044,12 @@ function mcRender(){
   for (var d=1; d<=days; d++){
     var ds  = y+'-'+mcPad(m+1)+'-'+mcPad(d);
     var evs = mcByDate(ds);
-    var cls = 'mc-day' + (ds===todayS?' today':'') + (evs.length?' has-ev':'');
-    var dot = evs.length ? '<span class="mk" style="background:'+mcColor(mcState(evs[0]))+'"></span>' : '';
-    var clk = evs.length ? ' onclick="mcShowDay(event,\''+ds+'\')"' : '';
+    var ags = mcAgendaByDate(ds);
+    var hasAny = evs.length || ags.length;
+    var cls = 'mc-day' + (ds===todayS?' today':'') + (hasAny?' has-ev':'');
+    var dotColor = evs.length ? mcColor(mcState(evs[0])) : '#f97316';
+    var dot = hasAny ? '<span class="mk" style="background:'+dotColor+'"></span>' : '';
+    var clk = hasAny ? ' onclick="mcShowDay(event,\''+ds+'\')"' : '';
     html += '<div class="'+cls+'"'+clk+'>'+d+dot+'</div>';
   }
   document.getElementById('mcGrid').innerHTML = html;
@@ -1050,7 +1061,8 @@ function mcClosePop(){ var p=document.getElementById('mcPop'); if(p) p.style.dis
 function mcShowDay(ev, ds){
   ev.stopPropagation();
   var evs = mcByDate(ds);
-  if (!evs.length) return;
+  var ags = mcAgendaByDate(ds);
+  if (!evs.length && !ags.length) return;
   var p = document.getElementById('mcPop');
   if (!p){
     p = document.createElement('div'); p.id = 'mcPop'; document.body.appendChild(p);
@@ -1064,10 +1076,17 @@ function mcShowDay(ev, ds){
     var amt  = 'S/ ' + parseFloat(e.total).toLocaleString('es-PE',{minimumFractionDigits:2});
     return '<a class="pop-row" href="'+MC_APP+'/quotes/edit.php?id='+e.id+'">'
       + '<span class="pop-dot" style="background:'+mcColor(st)+'"></span>'
-      + '<span class="pop-info"><span class="pop-name">'+e.client_name+'</span><span class="pop-meta">'+meta+'</span></span>'
+      + '<span class="pop-info"><span class="pop-name">'+mcEsc(e.client_name)+'</span><span class="pop-meta">'+mcEsc(meta)+'</span></span>'
       + '<span class="pop-amt">'+amt+'</span></a>';
   }).join('');
-  p.innerHTML = '<div class="pop-head"><span>'+head+' &middot; '+evs.length+' evento'+(evs.length>1?'s':'')+'</span>'
+  rows += ags.map(function(a){
+    var meta = 'Sin venta' + (a.hora?' · '+a.hora:'') + (a.lugar?' · '+a.lugar:'');
+    return '<a class="pop-row" href="'+MC_APP+'/admin/events/create?agenda='+a.id+'">'
+      + '<span class="pop-dot" style="background:#f97316"></span>'
+      + '<span class="pop-info"><span class="pop-name">'+mcEsc(a.titulo)+'</span><span class="pop-meta">'+mcEsc(meta)+'</span></span></a>';
+  }).join('');
+  var n = evs.length + ags.length;
+  p.innerHTML = '<div class="pop-head"><span>'+head+' &middot; '+n+' evento'+(n>1?'s':'')+'</span>'
     + '<button class="pop-close" type="button" onclick="mcClosePop()">&times;</button></div>' + rows;
   p.style.display = 'block';
   var rect = ev.currentTarget.getBoundingClientRect();

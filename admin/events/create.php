@@ -7,6 +7,31 @@ requirePermission('events');
 
 $errors = array();
 
+// --- Modo agenda (evento sin venta) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['modo']) ? $_POST['modo'] : '') === 'agenda') {
+    verifyCsrf();
+    $titulo = clean($_POST['titulo'] ?? '');
+    $fecha  = clean($_POST['fecha'] ?? '');
+    $hora   = clean($_POST['hora'] ?? '');
+    $lugar  = clean($_POST['lugar'] ?? '');
+    $notas  = clean($_POST['notas'] ?? '');
+    $aid    = cleanInt($_POST['agenda_id'] ?? 0);
+    if ($titulo === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) { flashMessage('error','Título y fecha son obligatorios.'); redirect('/admin/events/create'); }
+    if (isset($_POST['delete_agenda'])) { Database::execute("DELETE FROM agenda WHERE id=?", [$aid]); flashMessage('success','Evento de agenda eliminado.'); redirect('/admin/calendar'); }
+    if ($aid > 0) { Database::execute("UPDATE agenda SET fecha=?,titulo=?,hora=?,lugar=?,notas=? WHERE id=?", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$aid]); }
+    else { Database::insert("INSERT INTO agenda (fecha,titulo,hora,lugar,notas,created_by) VALUES (?,?,?,?,?,?)", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null, (int)(currentUser()['id'] ?? 0)]); }
+    flashMessage('success','Evento de agenda guardado.');
+    redirect('/admin/calendar');
+}
+
+// --- Cargar agenda para edición (?agenda=<id>) ---
+$editAgenda = null;
+$agendaIdGet = cleanInt($_GET['agenda'] ?? 0);
+if ($agendaIdGet > 0) {
+    $editAgenda = Database::fetch("SELECT id, fecha, titulo, hora, lugar, notas FROM agenda WHERE id=?", array($agendaIdGet));
+    if (!$editAgenda) { flashMessage('error','Evento de agenda no encontrado.'); redirect('/admin/calendar'); }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
@@ -121,25 +146,98 @@ $extraHead  = '
 .card-title{display:inline-flex;align-items:center;gap:8px}
 .card-title .sec-ico{display:inline-flex;color:var(--text-secondary)}
 .card-title .sec-ico svg{width:17px;height:17px}
+.mode-switch{display:inline-flex;background:var(--bg-input,#f4f4f5);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px;margin-bottom:16px}
+.mode-switch button{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:600;padding:7px 16px;border-radius:7px;cursor:pointer;transition:all .12s}
+.mode-switch button svg{width:15px;height:15px}
+.mode-switch button.active{background:#fff;color:#7c3aed;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.agenda-form-grid{max-width:560px}
 </style>';
 
 include __DIR__ . '/../layout-top.php';
 ?>
 
+<?php $isAgendaEdit = $editAgenda !== null; ?>
 <div class="breadcrumb">
   <a href="<?php echo APP_URL; ?>/admin/dashboard">Dashboard</a>
   <span class="breadcrumb-sep">›</span>
-  <span class="breadcrumb-current">Nuevo evento</span>
+  <span class="breadcrumb-current"><?= $isAgendaEdit ? 'Editar agenda' : 'Nuevo evento' ?></span>
 </div>
 
-<div class="event-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Evento directo — se registra como aceptado inmediatamente</div>
+<!-- Selector de modo -->
+<div class="mode-switch" role="group" aria-label="Tipo de registro">
+  <button type="button" id="modeBtnVenta" class="<?= $isAgendaEdit ? '' : 'active' ?>" onclick="setMode('venta')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2H8a2 2 0 0 0-2 2v18l3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2Z"/><path d="M9 7h6M9 11h6"/></svg>
+    Con venta
+  </button>
+  <button type="button" id="modeBtnAgenda" class="<?= $isAgendaEdit ? 'active' : '' ?>" onclick="setMode('agenda')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Solo agenda
+  </button>
+</div>
+
+<div class="event-badge" id="badgeVenta" style="<?= $isAgendaEdit ? 'display:none' : '' ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Evento directo — se registra como aceptado inmediatamente</div>
+<div class="event-badge" id="badgeAgenda" style="background:rgba(249,115,22,.1);color:#c2410c;border-color:rgba(249,115,22,.25);<?= $isAgendaEdit ? '' : 'display:none' ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Solo agenda — bloquea el día, no afecta ventas ni facturación</div>
 
 <?php foreach ($errors as $e): ?>
   <div class="alert alert-error">&#10007; <?php echo htmlspecialchars($e); ?></div>
 <?php endforeach; ?>
 
-<form method="post" id="quoteForm">
+<!-- ============ FORM AGENDA (solo disponibilidad) ============ -->
+<form method="post" id="agendaForm" style="<?= $isAgendaEdit ? '' : 'display:none' ?>">
 <?= csrfField() ?>
+<input type="hidden" name="modo" value="agenda">
+<input type="hidden" name="agenda_id" value="<?= $isAgendaEdit ? (int)$editAgenda['id'] : 0 ?>">
+
+<div class="card agenda-form-grid">
+  <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><?= $isAgendaEdit ? 'Editar agenda' : 'Evento de agenda' ?></span></div>
+  <div class="card-body">
+    <div class="form-group">
+      <label class="form-required">Título</label>
+      <input type="text" name="titulo" required maxlength="160" placeholder="Ej: Reservado · día no disponible"
+             value="<?= $isAgendaEdit ? clean($editAgenda['titulo']) : '' ?>">
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label class="form-required">Fecha</label>
+        <input type="date" name="fecha" required min="<?= date('Y-m-d') ?>"
+               value="<?= $isAgendaEdit ? clean($editAgenda['fecha']) : '' ?>">
+      </div>
+      <div class="form-group">
+        <label>Hora</label>
+        <input type="time" name="hora" value="<?= $isAgendaEdit ? clean($editAgenda['hora']) : '' ?>">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Lugar</label>
+      <input type="text" name="lugar" maxlength="255" placeholder="Local, dirección..."
+             value="<?= $isAgendaEdit ? clean($editAgenda['lugar']) : '' ?>">
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea name="notas" rows="3" placeholder="Detalles internos..."><?= $isAgendaEdit ? clean($editAgenda['notas']) : '' ?></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button type="submit" class="btn btn-primary btn-lg" style="background:#f97316;border-color:#f97316;color:#fff;gap:8px;flex:1">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Guardar agenda
+      </button>
+      <?php if ($isAgendaEdit): ?>
+      <button type="submit" name="delete_agenda" value="1" class="btn btn-lg" style="background:#fee2e2;border-color:#fecaca;color:#dc2626"
+              onclick="return confirm('¿Eliminar este evento de agenda?')">
+        Eliminar
+      </button>
+      <?php endif; ?>
+    </div>
+    <a href="<?= APP_URL ?>/admin/calendar" class="btn btn-ghost btn-block" style="margin-top:8px">Cancelar</a>
+  </div>
+</div>
+</form>
+
+<!-- ============ FORM VENTA (evento con cotización) ============ -->
+<form method="post" id="quoteForm" style="<?= $isAgendaEdit ? 'display:none' : '' ?>">
+<?= csrfField() ?>
+<input type="hidden" name="modo" value="venta">
 <input type="hidden" name="origin" value="event">
 
 <div class="quoter-grid">
@@ -371,6 +469,15 @@ $extraScripts = '
 <script>
 const API_URL    = "' . APP_URL . '/api/quotes.php";
 const CSRF_TOKEN = "' . csrfToken() . '";
+function setMode(m){
+  var venta = m === "venta";
+  document.getElementById("quoteForm").style.display  = venta ? "" : "none";
+  document.getElementById("agendaForm").style.display = venta ? "none" : "";
+  document.getElementById("badgeVenta").style.display  = venta ? "" : "none";
+  document.getElementById("badgeAgenda").style.display = venta ? "none" : "";
+  document.getElementById("modeBtnVenta").classList.toggle("active", venta);
+  document.getElementById("modeBtnAgenda").classList.toggle("active", !venta);
+}
 </script>
 <script src="' . APP_URL . '/assets/js/quoter.js"></script>
 ';
