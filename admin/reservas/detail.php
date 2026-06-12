@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fromEmail = 'reservas@elgringo.pe';
         $fromName  = '=?UTF-8?B?' . base64_encode($company) . '?=';
 
+        $logoRel = getSetting('company_logo', '');
+        $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
+
         $bodyHtml = '<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -48,11 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <tr><td align="center">
 <table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden">
 
-  <!-- Header -->
+  <!-- Header amarillo con logo -->
   <tr>
-    <td style="background:#C8102E;padding:24px 28px">
-      <p style="margin:0;font-size:20px;font-weight:800;color:#fff">' . htmlspecialchars($company) . '</p>
-      <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.7)">Reservas</p>
+    <td style="background:#FFDF00;padding:26px 28px 22px;text-align:center">
+      ' . ($logoUrl
+          ? '<img src="' . htmlspecialchars($logoUrl) . '" alt="' . htmlspecialchars($company) . '" style="height:46px;width:auto;display:inline-block">'
+          : '<div style="font-size:26px;font-weight:800;color:#1A1A1A">' . htmlspecialchars($company) . '</div>'
+      ) . '
+      <div style="margin-top:12px">
+        <span style="display:inline-block;background:#1A1A1A;color:#FFDF00;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:20px">Reservas</span>
+      </div>
     </td>
   </tr>
 
@@ -61,15 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <td style="padding:28px">
       <p style="margin:0 0 20px;font-size:15px;color:#1a1a1a;line-height:1.6">' . nl2br(htmlspecialchars($mensaje)) . '</p>
       <p style="margin:20px 0 0;font-size:12px;color:#aaa;text-align:center">
-        Para responder a este correo, escribenos a <a href="mailto:' . $fromEmail . '" style="color:#C8102E">' . $fromEmail . '</a>.
+        Para responder a este correo, escribenos a <a href="mailto:' . $fromEmail . '" style="color:#1A1A1A">' . $fromEmail . '</a>.
       </p>
     </td>
   </tr>
 
-  <!-- Footer -->
+  <!-- Footer negro -->
   <tr>
-    <td style="background:#1a1a1a;padding:14px 28px">
-      <p style="margin:0;font-size:11px;color:#555">' . htmlspecialchars($company) . ' &middot; Lima, Peru</p>
+    <td style="background:#1A1A1A;padding:14px 28px">
+      <p style="margin:0;font-size:11px;color:#888">' . htmlspecialchars($company) . ' &middot; Lima, Per&uacute;</p>
     </td>
   </tr>
 
