@@ -855,7 +855,6 @@ a{color:inherit;text-decoration:none}
 <div id="print-snack">
   <span id="print-snack-msg">Venta registrada</span>
   <button id="print-snack-rawbt-btn" title="Imprimir vía RawBT / Bluetooth">Imprimir</button>
-  <button id="print-snack-btn" title="Ver ticket HTML">Ver ticket</button>
   <button id="print-snack-email-btn">Correo</button>
   <span id="print-snack-close" title="Cerrar">✕</span>
 </div>
@@ -2323,10 +2322,22 @@ function printRawBT(ventaId) {
     .then(function(b64) {
       b64 = b64.trim();
       if (!b64) throw new Error('empty');
+      // Si RawBT abre, la página pierde visibilidad/foco. Si NO abre (RawBT no
+      // instalado / nada maneja el esquema rawbt:), avisamos al cajero.
+      var opened = false;
+      var onHide = function() { if (document.hidden) opened = true; };
+      var onBlur = function() { opened = true; };
+      document.addEventListener('visibilitychange', onHide);
+      window.addEventListener('blur', onBlur);
       window.location.href = 'rawbt:base64,' + b64;
+      setTimeout(function() {
+        document.removeEventListener('visibilitychange', onHide);
+        window.removeEventListener('blur', onBlur);
+        if (!opened) toast('No hay impresora conectada', 'err');
+      }, 2000);
     })
-    .catch(function(err) {
-      toast('No se pudo imprimir (' + (err.message || 'error') + ')', 'err');
+    .catch(function() {
+      toast('No se pudo imprimir', 'err');
     });
 }
 
@@ -2336,7 +2347,6 @@ function showPrintSnack(ventaId) {
   var snack    = document.getElementById('print-snack');
   var msg      = document.getElementById('print-snack-msg');
   var rawbtBtn = document.getElementById('print-snack-rawbt-btn');
-  var btn      = document.getElementById('print-snack-btn');
   var emailBtn = document.getElementById('print-snack-email-btn');
   var close    = document.getElementById('print-snack-close');
 
@@ -2347,11 +2357,6 @@ function showPrintSnack(ventaId) {
 
   rawbtBtn.onclick = function() {
     printRawBT(ventaId);
-    snack.classList.remove('show');
-    if (_printSnackTimer) clearTimeout(_printSnackTimer);
-  };
-  btn.onclick = function() {
-    window.open(TICKET_BASE + '?id=' + ventaId, '_blank');
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
   };
