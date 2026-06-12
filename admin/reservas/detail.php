@@ -16,6 +16,17 @@ if (!$reserva) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
+    // Borrar reserva (solo admin)
+    if (isset($_POST['action']) && $_POST['action'] === 'delete') {
+        if (isAdmin()) {
+            Database::execute("DELETE FROM reservas WHERE id = ?", array($id));
+            flashMessage('success', 'Reserva eliminada.');
+        } else {
+            flashMessage('error', 'No tienes permiso para eliminar reservas.');
+        }
+        redirect('/admin/reservas/index.php');
+    }
+
     $nuevo_estado = clean(isset($_POST['nuevo_estado']) ? $_POST['nuevo_estado'] : '');
     $asunto       = clean(isset($_POST['asunto'])       ? $_POST['asunto']       : '');
     $mensaje      = clean(isset($_POST['mensaje'])      ? $_POST['mensaje']      : '');
@@ -214,6 +225,13 @@ include __DIR__ . '/../layout-top.php';
   <a href="<?php echo APP_URL; ?>/admin/reservas/index.php" class="btn btn-ghost btn-sm" style="margin-left:auto">
     &#8592; Volver a reservas
   </a>
+  <?php if (isAdmin()): ?>
+  <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar la reserva de «<?php echo htmlspecialchars(addslashes($reserva['nombre'])); ?>»? Esta acción no se puede deshacer.');">
+    <?php echo csrfField(); ?>
+    <input type="hidden" name="action" value="delete">
+    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar reserva">Eliminar</button>
+  </form>
+  <?php endif; ?>
 </div>
 
 <div class="det-wrap">

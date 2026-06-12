@@ -5,6 +5,18 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requirePermission('reservas');
 
+// Borrar reserva (solo admin)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    verifyCsrf();
+    if (isAdmin()) {
+        Database::execute("DELETE FROM reservas WHERE id = ?", array(cleanInt($_POST['delete_id'])));
+        flashMessage('success', 'Reserva eliminada.');
+    } else {
+        flashMessage('error', 'No tienes permiso para eliminar reservas.');
+    }
+    redirect('/admin/reservas/index.php');
+}
+
 $filter  = clean(isset($_GET['estado']) ? $_GET['estado'] : 'pendiente');
 $page    = max(1, cleanInt(isset($_GET['page']) ? $_GET['page'] : 1));
 $perPage = 20;
@@ -136,6 +148,13 @@ include __DIR__ . '/../layout-top.php';
             <div class="td-actions">
               <a href="<?php echo APP_URL; ?>/admin/reservas/detail.php?id=<?php echo $r['id']; ?>"
                  class="btn btn-ghost btn-sm">Ver detalle</a>
+              <?php if (isAdmin()): ?>
+              <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar la reserva de «<?php echo htmlspecialchars(addslashes($r['nombre'])); ?>»? Esta acción no se puede deshacer.');">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="delete_id" value="<?php echo $r['id']; ?>">
+                <button type="submit" class="btn btn-danger btn-sm" title="Eliminar reserva">Eliminar</button>
+              </form>
+              <?php endif; ?>
             </div>
           </td>
         </tr>
