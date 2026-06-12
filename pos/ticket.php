@@ -70,6 +70,7 @@ $compLabel = ['ticket'=>'TICKET','boleta'=>'BOLETA','factura'=>'FACTURA'];
   <div class="hr"></div>
   <div class="c">¡Gracias por tu compra!</div>
 
+  <?php if (empty($_GET['embed'])): ?>
   <div class="printbar">
     <button class="btn-rawbt" id="btn-rawbt">Imprimir</button>
     <button onclick="window.print()">Ver / Imprimir HTML</button>
@@ -102,4 +103,5 @@ $compLabel = ['ticket'=>'TICKET','boleta'=>'BOLETA','factura'=>'FACTURA'];
   })();
   /* abrir diálogo de impresión automáticamente si se desea: window.print(); */
   </script>
+  <?php endif; ?>
 </body></html>

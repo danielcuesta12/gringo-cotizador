@@ -468,12 +468,18 @@ a{color:inherit;text-decoration:none}
   flex:0 0 auto;transition:all .12s;
 }
 #print-snack-btn:hover{color:var(--text);border-color:var(--muted)}
-#print-snack-email-btn{
+#print-snack-email-btn,#print-snack-view-btn{
   padding:6px 12px;border-radius:var(--radius-sm);background:var(--surface2);
   border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;
   flex:0 0 auto;transition:all .12s;
 }
-#print-snack-email-btn:hover{color:var(--text);border-color:var(--muted)}
+#print-snack-email-btn:hover,#print-snack-view-btn:hover{color:var(--text);border-color:var(--muted)}
+/* ── Ticket embebido en modal ──────────────────────────── */
+.ticket-embed-wrap{
+  background:#fff;border-radius:var(--radius-sm);margin-bottom:12px;
+  max-height:56vh;overflow:auto;display:flex;justify-content:center;padding:6px;
+}
+#ticket-frame{border:none;width:236px;max-width:100%;background:#fff;display:block}
 #print-snack-close{
   font-size:16px;color:var(--muted);cursor:pointer;padding:0 2px;
   transition:color .1s;flex:0 0 auto;
@@ -855,6 +861,7 @@ a{color:inherit;text-decoration:none}
 <div id="print-snack">
   <span id="print-snack-msg">Venta registrada</span>
   <button id="print-snack-rawbt-btn" title="Imprimir vía RawBT / Bluetooth">Imprimir</button>
+  <button id="print-snack-view-btn" title="Ver ticket">Ver</button>
   <button id="print-snack-email-btn">Correo</button>
   <span id="print-snack-close" title="Cerrar">✕</span>
 </div>
@@ -2347,6 +2354,7 @@ function showPrintSnack(ventaId) {
   var snack    = document.getElementById('print-snack');
   var msg      = document.getElementById('print-snack-msg');
   var rawbtBtn = document.getElementById('print-snack-rawbt-btn');
+  var viewBtn  = document.getElementById('print-snack-view-btn');
   var emailBtn = document.getElementById('print-snack-email-btn');
   var close    = document.getElementById('print-snack-close');
 
@@ -2360,6 +2368,11 @@ function showPrintSnack(ventaId) {
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
   };
+  viewBtn.onclick = function() {
+    snack.classList.remove('show');
+    if (_printSnackTimer) clearTimeout(_printSnackTimer);
+    showTicketModal(ventaId);
+  };
   emailBtn.onclick = function() {
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
@@ -2369,6 +2382,29 @@ function showPrintSnack(ventaId) {
     snack.classList.remove('show');
     if (_printSnackTimer) clearTimeout(_printSnackTimer);
   };
+}
+
+// ── Ticket embebido en modal ───────────────────────────
+function showTicketModal(ventaId) {
+  var modal = document.getElementById('modal-content');
+  modal.innerHTML = '<h3>Ticket · Pedido #' + esc(String(ventaId)) + '</h3>'
+    + '<div class="ticket-embed-wrap"><iframe id="ticket-frame" src="' + esc(TICKET_BASE) + '?id=' + ventaId + '&embed=1" title="Ticket"></iframe></div>'
+    + '<div class="modal-row">'
+    + '<button class="btn-modal-cancel" id="tk-close">Cerrar</button>'
+    + '<button class="btn-modal-cancel" id="tk-email">Correo</button>'
+    + '<button class="btn-modal-ok" id="tk-print" style="background:var(--green);color:#000">Imprimir</button>'
+    + '</div>';
+  document.getElementById('overlay').classList.add('active');
+  var fr = document.getElementById('ticket-frame');
+  fr.onload = function() {
+    try {
+      var h = fr.contentDocument.body.scrollHeight;
+      if (h > 0) fr.style.height = (h + 6) + 'px';
+    } catch (e) {}
+  };
+  document.getElementById('tk-close').onclick = closeModal;
+  document.getElementById('tk-email').onclick = function() { closeModal(); showEmailModal(ventaId); };
+  document.getElementById('tk-print').onclick = function() { printRawBT(ventaId); };
 }
 
 // ── Email receipt modal ────────────────────────────────
