@@ -10,17 +10,21 @@ $errors = array();
 // --- Modo agenda (evento sin venta) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['modo']) ? $_POST['modo'] : '') === 'agenda') {
     verifyCsrf();
-    $titulo = clean($_POST['titulo'] ?? '');
-    $fecha  = clean($_POST['fecha'] ?? '');
-    $hora   = clean($_POST['hora'] ?? '');
-    $lugar  = clean($_POST['lugar'] ?? '');
-    $notas  = clean($_POST['notas'] ?? '');
+    $titulo  = clean($_POST['titulo'] ?? '');
+    $fecha   = clean($_POST['fecha'] ?? '');
+    $fechaFin = clean($_POST['fecha_fin'] ?? '');
+    $hora    = clean($_POST['hora'] ?? '');
+    $horaFin = clean($_POST['hora_fin'] ?? '');
+    $lugar   = clean($_POST['lugar'] ?? '');
+    $notas   = clean($_POST['notas'] ?? '');
     $bloquea = !empty($_POST['bloquea']) ? 1 : 0;
-    $aid    = cleanInt($_POST['agenda_id'] ?? 0);
+    $aid     = cleanInt($_POST['agenda_id'] ?? 0);
     if ($titulo === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) { flashMessage('error','Título y fecha son obligatorios.'); redirect('/admin/events/create'); }
+    // fecha_fin: solo válida si es ISO y >= fecha; si no, se trata como un solo día
+    if ($fechaFin === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaFin) || $fechaFin < $fecha) { $fechaFin = ''; }
     if (isset($_POST['delete_agenda'])) { Database::execute("DELETE FROM agenda WHERE id=?", [$aid]); flashMessage('success','Evento de agenda eliminado.'); redirect('/admin/calendar'); }
-    if ($aid > 0) { Database::execute("UPDATE agenda SET fecha=?,titulo=?,hora=?,lugar=?,notas=?,bloquea=? WHERE id=?", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$bloquea,$aid]); }
-    else { Database::insert("INSERT INTO agenda (fecha,titulo,hora,lugar,notas,bloquea,created_by) VALUES (?,?,?,?,?,?,?)", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$bloquea, (int)(currentUser()['id'] ?? 0)]); }
+    if ($aid > 0) { Database::execute("UPDATE agenda SET fecha=?,fecha_fin=?,titulo=?,hora=?,hora_fin=?,lugar=?,notas=?,bloquea=? WHERE id=?", [$fecha,$fechaFin?:null,$titulo,$hora?:null,$horaFin?:null,$lugar?:null,$notas?:null,$bloquea,$aid]); }
+    else { Database::insert("INSERT INTO agenda (fecha,fecha_fin,titulo,hora,hora_fin,lugar,notas,bloquea,created_by) VALUES (?,?,?,?,?,?,?,?,?)", [$fecha,$fechaFin?:null,$titulo,$hora?:null,$horaFin?:null,$lugar?:null,$notas?:null,$bloquea, (int)(currentUser()['id'] ?? 0)]); }
     flashMessage('success','Evento de agenda guardado.');
     redirect('/admin/calendar');
 }
@@ -29,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['modo']) ? $_POST['mo
 $editAgenda = null;
 $agendaIdGet = cleanInt($_GET['agenda'] ?? 0);
 if ($agendaIdGet > 0) {
-    $editAgenda = Database::fetch("SELECT id, fecha, titulo, hora, lugar, notas, bloquea FROM agenda WHERE id=?", array($agendaIdGet));
+    $editAgenda = Database::fetch("SELECT id, fecha, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda WHERE id=?", array($agendaIdGet));
     if (!$editAgenda) { flashMessage('error','Evento de agenda no encontrado.'); redirect('/admin/calendar'); }
 }
 
@@ -199,13 +203,25 @@ include __DIR__ . '/../layout-top.php';
     </div>
     <div class="form-row form-row-2">
       <div class="form-group">
-        <label class="form-required">Fecha</label>
+        <label class="form-required">Fecha (desde)</label>
         <input type="date" name="fecha" required min="<?= date('Y-m-d') ?>"
                value="<?= $isAgendaEdit ? clean($editAgenda['fecha']) : '' ?>">
       </div>
       <div class="form-group">
-        <label>Hora</label>
+        <label>Hasta (opcional)</label>
+        <input type="date" name="fecha_fin"
+               value="<?= ($isAgendaEdit && !empty($editAgenda['fecha_fin'])) ? clean($editAgenda['fecha_fin']) : '' ?>">
+        <div class="form-hint">Para eventos de varios días</div>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Hora desde</label>
         <input type="time" name="hora" value="<?= $isAgendaEdit ? clean($editAgenda['hora']) : '' ?>">
+      </div>
+      <div class="form-group">
+        <label>Hora hasta</label>
+        <input type="time" name="hora_fin" value="<?= ($isAgendaEdit && !empty($editAgenda['hora_fin'])) ? clean($editAgenda['hora_fin']) : '' ?>">
       </div>
     </div>
     <div class="form-group">

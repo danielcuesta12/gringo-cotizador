@@ -39,7 +39,7 @@ foreach ($calQuotes as &$q) {
 unset($q);
 
 // Agenda (eventos sin venta — solo disponibilidad). Tolerante si falta la migración.
-try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC"); }
+try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC"); }
 catch (Exception $e) { $agenda = array(); }
 
 $pageTitle  = 'Calendario';
@@ -156,12 +156,35 @@ var AGENDA = <?php echo json_encode($agenda); ?>;
 var APP    = '<?php echo APP_URL; ?>';
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function agendaByDate(d){ return AGENDA.filter(function(a){ return a.event_date===d; }); }
+// Un evento de agenda aparece en cada día de su rango [fecha, fecha_fin||fecha]
+function agendaEnd(a){ return a.fecha_fin || a.event_date; }
+function agendaByDate(d){ return AGENDA.filter(function(a){ return a.event_date<=d && agendaEnd(a)>=d; }); }
 var today  = new Date();
 var cur    = new Date(today.getFullYear(), today.getMonth(), 1);
 var view   = 'month';
 var MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var DAYS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+var DAYS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+var MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+// "Sáb 13 jun" desde 'YYYY-MM-DD' (parseado en local, sin TZ shift)
+function fmtDayLabel(iso){
+  if(!iso) return '';
+  var p = iso.split('-');
+  var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+  return DAYS_SHORT[dt.getDay()] + ' ' + parseInt(p[2],10) + ' ' + MONTHS_SHORT[parseInt(p[1],10)-1];
+}
+// Rango legible: un día -> "Sáb 13 jun"; varios -> "Sáb 13 – Dom 14 jun"
+function agendaRangeLabel(a){
+  var start = a.event_date, end = a.fecha_fin;
+  if(!end || end===start) return fmtDayLabel(start);
+  return fmtDayLabel(start) + ' – ' + fmtDayLabel(end);
+}
+// Rango de hora legible: "11:00 – 15:00" o solo "11:00"
+function agendaTimeLabel(a){
+  if(!a.hora) return '';
+  return a.hora_fin ? (a.hora + ' – ' + a.hora_fin) : a.hora;
+}
 
 function fmtMoney(n) { return 'S/ ' + parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
@@ -289,9 +312,12 @@ function showAgendaTooltip(e, aid) {
 
   var body = '';
   if (aBlocked) body += '<div class="tt-info-row" style="color:#dc2626;font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span style="color:#dc2626">Día no disponible (bloqueado)</span></div>';
+  var icoCal = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
   var icoClock = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   var icoPin = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
-  if (a.hora) body += '<div class="tt-info-row">'+icoClock+'<span>'+esc(a.hora)+'</span></div>';
+  if (a.fecha_fin && a.fecha_fin!==a.event_date) body += '<div class="tt-info-row">'+icoCal+'<span>'+esc(agendaRangeLabel(a))+'</span></div>';
+  var tLbl = agendaTimeLabel(a);
+  if (tLbl) body += '<div class="tt-info-row">'+icoClock+'<span>'+esc(tLbl)+'</span></div>';
   if (a.lugar) body += '<div class="tt-info-row">'+icoPin+'<span>'+esc(a.lugar)+'</span></div>';
   if (a.notas) body += '<div class="tt-info-row"><span>'+esc(a.notas)+'</span></div>';
   document.getElementById('ttBody').innerHTML = body;
@@ -325,8 +351,8 @@ function renderList() {
   var endS   = endDate.getFullYear()+'-'+String(endDate.getMonth()+1).padStart(2,'0')+'-'+String(endDate.getDate()).padStart(2,'0');
   var filtered = QUOTES.filter(function(q){ return q.event_date>=startS && q.event_date<=endS; })
     .map(function(q){ return q; })
-    .concat(AGENDA.filter(function(a){ return a.event_date>=startS && a.event_date<=endS; })
-      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, titulo:a.titulo, hora:a.hora, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea}; }));
+    .concat(AGENDA.filter(function(a){ return agendaEnd(a)>=startS && a.event_date<=endS; })
+      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, fecha_fin:a.fecha_fin, titulo:a.titulo, hora:a.hora, hora_fin:a.hora_fin, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea}; }));
   filtered.sort(function(a,b){ return a.event_date<b.event_date?-1:(a.event_date>b.event_date?1:0); });
 
   if (!filtered.length) {
@@ -345,11 +371,14 @@ function renderList() {
 
     if (q.__agenda) {
       var aBlk = Number(q.bloquea)===1;
+      var aMulti = q.fecha_fin && q.fecha_fin!==q.event_date;
+      var aTime = agendaTimeLabel(q);
       var aDetail = '';
-      if (q.hora||q.lugar||q.notas) {
+      if (aTime||q.lugar||q.notas||aMulti) {
         aDetail  = '<div class="list-detail" id="ld_a'+q.id+'">';
         aDetail += '<div class="detail-grid2">';
-        if (q.hora)  aDetail += '<div><div class="detail-lbl2">Hora</div><div class="detail-val2">'+esc(q.hora)+'</div></div>';
+        if (aMulti)  aDetail += '<div><div class="detail-lbl2">Fechas</div><div class="detail-val2">'+esc(agendaRangeLabel(q))+'</div></div>';
+        if (aTime)   aDetail += '<div><div class="detail-lbl2">Hora</div><div class="detail-val2">'+esc(aTime)+'</div></div>';
         if (q.lugar) aDetail += '<div style="grid-column:1/-1"><div class="detail-lbl2">Lugar</div><div class="detail-val2">'+esc(q.lugar)+'</div></div>';
         aDetail += '</div>';
         if (q.notas) aDetail += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">'+esc(q.notas)+'</div>';
@@ -360,8 +389,8 @@ function renderList() {
       html += '<div class="list-main" onclick="toggleListDetailA('+q.id+')">';
       html += '<div style="text-align:center;min-width:38px;flex-shrink:0"><div style="font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)">'+d+'</div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">'+dow+'</div></div>';
       html += '<div style="width:3px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0;background:'+(aBlk?'#dc2626':'#f97316')+'"></div>';
-      html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+(aBlk?'#dc2626':'#c2410c')+'">'+(aBlk?'Agenda · bloqueado':'Agenda')+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.titulo)+'</div>';
-      if (q.lugar||q.hora) html += '<div style="font-size:11px;color:var(--text-muted)">'+esc(q.lugar||'')+(q.hora?' · '+esc(q.hora):'')+'</div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+(aBlk?'#dc2626':'#c2410c')+'">'+(aBlk?'Agenda · bloqueado':'Agenda')+(aMulti?' · '+esc(agendaRangeLabel(q)):'')+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.titulo)+'</div>';
+      if (q.lugar||aTime) html += '<div style="font-size:11px;color:var(--text-muted)">'+esc(q.lugar||'')+(aTime?(q.lugar?' · ':'')+esc(aTime):'')+'</div>';
       html += '</div>';
       if (aBlk) html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#fee2e2;color:#dc2626">No disponible</span></div>';
       else html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#ffedd5;color:#9a3412">Sin venta</span></div>';

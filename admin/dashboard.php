@@ -87,7 +87,7 @@ foreach ($calQuotes as $cqItem) {
 }
 
 // Agenda (eventos sin venta) para el mini-calendario. Tolerante si falta la migración.
-try { $agendaDash = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar, bloquea FROM agenda"); }
+try { $agendaDash = Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, bloquea FROM agenda"); }
 catch (Exception $e) { $agendaDash = array(); }
 
 // ============================================================
@@ -1031,7 +1031,9 @@ function mcEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ 
 function mcState(e){ if(e.origin==='event') return 'evento'; return e.status==='aceptada' ? 'aceptada' : 'enviada'; }
 function mcColor(st){ return st==='aceptada' ? '#16a34a' : (st==='evento' ? '#7c3aed' : '#FCDA13'); }
 function mcByDate(ds){ return MC_EVENTS.filter(function(e){ return e.event_date === ds; }); }
-function mcAgendaByDate(ds){ return MC_AGENDA.filter(function(a){ return a.event_date === ds; }); }
+// Un evento de agenda aparece en cada día de su rango [fecha, fecha_fin||fecha]
+function mcAgendaEnd(a){ return a.fecha_fin || a.event_date; }
+function mcAgendaByDate(ds){ return MC_AGENDA.filter(function(a){ return a.event_date<=ds && mcAgendaEnd(a)>=ds; }); }
 function mcPad(n){ return (n<10?'0':'')+n; }
 
 function mcRender(){
@@ -1084,7 +1086,9 @@ function mcShowDay(ev, ds){
   }).join('');
   rows += ags.map(function(a){
     var blk  = Number(a.bloquea)===1;
-    var meta = (blk?'No disponible':'Sin venta') + (a.hora?' · '+a.hora:'') + (a.lugar?' · '+a.lugar:'');
+    var aTime = a.hora ? (a.hora_fin ? (a.hora+' – '+a.hora_fin) : a.hora) : '';
+    var aMulti = a.fecha_fin && a.fecha_fin!==a.event_date;
+    var meta = (blk?'No disponible':'Sin venta') + (aMulti?' · varios días':'') + (aTime?' · '+aTime:'') + (a.lugar?' · '+a.lugar:'');
     var tag  = blk ? '<span style="margin-left:auto;flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#fee2e2;color:#dc2626">No disponible</span>' : '';
     return '<a class="pop-row" href="'+MC_APP+'/admin/events/create?agenda='+a.id+'">'
       + '<span class="pop-dot" style="background:'+(blk?'#dc2626':'#f97316')+'"></span>'
