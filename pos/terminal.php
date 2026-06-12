@@ -210,6 +210,7 @@ a{color:inherit;text-decoration:none}
 .cart-line-sub{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4}
 .cart-line-mods{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cart-line-nota{font-size:11px;color:var(--muted);font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-line-disc{font-size:11px;color:#4ade80;font-weight:600;margin-top:1px;white-space:nowrap}
 .cart-line-price{font-size:14px;font-weight:700;color:var(--yellow);white-space:nowrap}
 .qty-controls{display:flex;align-items:center;gap:6px}
 .qty-btn{
@@ -1400,6 +1401,15 @@ function lineTotal(line) {
   return Math.max(0, base);
 }
 
+// Cuánto se descuenta en una línea (soles), 0 si no hay descuento
+function lineDiscAmount(line) {
+  var modSum = (line.modificadores || []).reduce(function(a, m) { return a + (parseFloat(m.precio) || 0); }, 0);
+  var gross = line.qty * (parseFloat(line.precio) + modSum);
+  if (line.desc_tipo === 'porcentaje') return gross * (parseFloat(line.desc_valor) || 0) / 100;
+  if (line.desc_tipo === 'monto') return Math.min(parseFloat(line.desc_valor) || 0, gross);
+  return 0;
+}
+
 // ── Cart ───────────────────────────────────────────────
 function addToCart(prod) {
   var existing = state.cart.find(function(l) { return l.id === prod.id; });
@@ -1477,6 +1487,11 @@ function renderCart() {
     var subLines = '';
     if (modText) subLines += '<div class="cart-line-mods">' + modText + '</div>';
     if (notaText) subLines += '<div class="cart-line-nota">Nota: ' + esc(notaText) + '</div>';
+    var dAmt = lineDiscAmount(line);
+    if (line.desc_tipo && dAmt > 0) {
+      var dLbl = line.desc_tipo === 'porcentaje' ? ' (' + (parseFloat(line.desc_valor) || 0) + '%)' : '';
+      subLines += '<div class="cart-line-disc">Desc. −' + fmt(dAmt) + dLbl + '</div>';
+    }
     return '<div class="cart-line" data-idx="' + idx + '">'
       + '<div class="cart-line-info" data-idx="' + idx + '">'
       + '<div class="cart-line-name">' + esc(line.nombre) + '</div>'
@@ -1622,6 +1637,7 @@ function abrirItemModal(prod, lineIdx) {
     + '</div>'
     + '<input class="disc-input" type="text" inputmode="decimal" id="im-disc-val" placeholder="0" value="' + (descValor > 0 ? descValor : '') + '">'
     + '</div>'
+    + '<div id="im-disc-amount" style="display:none;margin-top:6px;font-size:13px;font-weight:700;color:#4ade80"></div>'
     + '</div>'
     + '<div id="im-mods-section"></div>'
     + '<div class="modal-row" id="im-buttons">'
@@ -1655,19 +1671,40 @@ function abrirItemModal(prod, lineIdx) {
     return Math.max(0, base);
   }
 
+  // Cuánto se está descontando en el modal (soles), 0 si no hay descuento
+  function modalDiscAmount() {
+    var modSum = modalState.selectedMods.reduce(function(a, m) { return a + (parseFloat(m.precio) || 0); }, 0);
+    var gross = modalState.qty * (parseFloat(prod.precio) + modSum);
+    var dv = parseFloat(document.getElementById('im-disc-val').value) || 0;
+    if (dv <= 0) return 0;
+    if (modalState.descTipo === 'porcentaje') return gross * dv / 100;
+    return Math.min(dv, gross);
+  }
+
   function updateModalPrice() {
     var el = document.getElementById('im-price');
     if (el) el.textContent = fmt(calcLinePriceModal());
+    var da = document.getElementById('im-disc-amount');
+    if (da) {
+      var amt = modalDiscAmount();
+      if (amt > 0) {
+        var dv = parseFloat(document.getElementById('im-disc-val').value) || 0;
+        var lbl = modalState.descTipo === 'porcentaje' ? ' (' + dv + '%)' : '';
+        da.textContent = 'Descuento: −' + fmt(amt) + lbl;
+        da.style.display = 'block';
+      } else {
+        da.style.display = 'none';
+      }
+    }
   }
 
-  // Resalta el toggle de descuento SOLO cuando hay un valor > 0
+  // Toggle tipo radio: siempre refleja el tipo elegido (seleccionable sin valor)
   function syncDiscToggle() {
-    var dv  = parseFloat(document.getElementById('im-disc-val').value) || 0;
     var pct = document.getElementById('im-disc-pct');
     var mnt = document.getElementById('im-disc-mnt');
     if (!pct || !mnt) return;
-    pct.classList.toggle('active', dv > 0 && modalState.descTipo === 'porcentaje');
-    mnt.classList.toggle('active', dv > 0 && modalState.descTipo === 'monto');
+    pct.classList.toggle('active', modalState.descTipo === 'porcentaje');
+    mnt.classList.toggle('active', modalState.descTipo === 'monto');
   }
 
   // Compara modificadores por id (fallback a nombre si falta el id)
