@@ -42,6 +42,12 @@ unset($q);
 try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC"); }
 catch (Exception $e) { $agenda = array(); }
 
+// Token del feed ICS (suscripción desde el celular). Se genera una sola vez.
+$icsToken = getSetting('ics_token', '');
+if ($icsToken === '') { $icsToken = bin2hex(random_bytes(20)); setSetting('ics_token', $icsToken); }
+$icsHttps  = APP_URL . '/calendario.php?token=' . $icsToken;          // URL https
+$icsWebcal = preg_replace('#^https?://#', 'webcal://', $icsHttps);    // webcal:// para suscribir
+
 $pageTitle  = 'Calendario';
 $activePage = 'calendar';
 include __DIR__ . '/layout-top.php';
@@ -52,10 +58,101 @@ include __DIR__ . '/layout-top.php';
     <h1>Calendario de eventos</h1>
     <p>Cotizaciones enviadas, aceptadas y eventos directos</p>
   </div>
-  <a href="<?php echo APP_URL; ?>/admin/events/create" class="btn btn-secondary" style="color:#7c3aed;border-color:#7c3aed;display:inline-flex;align-items:center;gap:7px">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Nuevo evento
-  </a>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button type="button" onclick="openSyncModal()" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:7px">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 9.5 6.9"/><path d="M22 4v5h-5"/><path d="M12 22a10 10 0 0 1-9.5-6.9"/><path d="M2 20v-5h5"/></svg>
+      Sincronizar con mi celular
+    </button>
+    <a href="<?php echo APP_URL; ?>/admin/events/create" class="btn btn-secondary" style="color:#7c3aed;border-color:#7c3aed;display:inline-flex;align-items:center;gap:7px">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Nuevo evento
+    </a>
+  </div>
 </div>
+
+<!-- Modal: Sincronizar con mi celular -->
+<div id="syncOverlay" onclick="closeSyncModal(event)" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);padding:20px;overflow-y:auto">
+  <div onclick="event.stopPropagation()" style="max-width:520px;margin:40px auto;background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+      <h2 style="font-size:17px;font-weight:700;color:var(--text-primary);margin:0">Sincronizar con mi celular</h2>
+      <button type="button" onclick="closeSyncModal()" class="btn btn-ghost btn-sm" style="font-size:18px;line-height:1;padding:4px 9px">&times;</button>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px">Agrega este calendario a tu celular y se actualiza solo. Verás tus cotizaciones, eventos y agenda al día.</p>
+
+      <!-- QR -->
+      <div style="display:flex;justify-content:center;margin-bottom:18px">
+        <div style="background:#fff;padding:12px;border:1px solid var(--border);border-radius:var(--radius)">
+          <div id="syncQr"></div>
+        </div>
+      </div>
+
+      <!-- Suscribir Apple -->
+      <a href="<?php echo htmlspecialchars($icsWebcal, ENT_QUOTES); ?>" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:16px;text-decoration:none">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M12 19v-5M9.5 16.5 12 19l2.5-2.5"/></svg>
+        Suscribirme (Apple)
+      </a>
+
+      <!-- URL para Google -->
+      <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px">Enlace para Google Calendar</label>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="syncUrl" type="text" readonly value="<?php echo htmlspecialchars($icsHttps, ENT_QUOTES); ?>" onclick="this.select()" style="flex:1;min-width:0;padding:9px 11px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input,#f9f9f9);color:var(--text-primary)">
+        <button type="button" id="syncCopyBtn" onclick="copySyncUrl()" class="btn btn-secondary" style="flex-shrink:0">Copiar</button>
+      </div>
+
+      <!-- Instrucciones -->
+      <div style="background:var(--bg-input,#f9f9f9);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">iPhone / iPad</div>
+        <ol style="margin:0 0 14px;padding-left:18px;font-size:12px;color:var(--text-secondary);line-height:1.7">
+          <li>Toca <strong>Suscribirme (Apple)</strong> arriba, o escanea el QR.</li>
+          <li>O manual: Ajustes &rarr; Calendario &rarr; Cuentas &rarr; Añadir cuenta &rarr; Otra &rarr; Añadir calendario suscrito.</li>
+          <li>Pega el enlace y confirma.</li>
+        </ol>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:6px">Google Calendar</div>
+        <ol style="margin:0;padding-left:18px;font-size:12px;color:var(--text-secondary);line-height:1.7">
+          <li>Copia el enlace de arriba.</li>
+          <li>En Google Calendar (web): Otros calendarios &rarr; <strong>+</strong> &rarr; Desde URL.</li>
+          <li>Pega el enlace y agrega.</li>
+        </ol>
+      </div>
+
+      <p style="font-size:11px;color:var(--text-muted);margin:0;display:flex;align-items:flex-start;gap:6px">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>El enlace es privado (token secreto). No lo compartas.</span>
+      </p>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+var SYNC_WEBCAL = <?php echo json_encode($icsWebcal); ?>;
+var _syncQrDone = false;
+function openSyncModal(){
+  document.getElementById('syncOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  if (!_syncQrDone && window.QRCode){
+    try {
+      new QRCode(document.getElementById('syncQr'), { text: SYNC_WEBCAL, width: 168, height: 168, correctLevel: QRCode.CorrectLevel.M });
+      _syncQrDone = true;
+    } catch(e){}
+  }
+}
+function closeSyncModal(ev){
+  if (ev && ev.type==='click' && ev.target.id!=='syncOverlay') return;
+  document.getElementById('syncOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function copySyncUrl(){
+  var inp = document.getElementById('syncUrl');
+  var btn = document.getElementById('syncCopyBtn');
+  var done = function(){ var t=btn.textContent; btn.textContent='Copiado'; setTimeout(function(){ btn.textContent=t; }, 1600); };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(inp.value).then(done).catch(function(){ inp.select(); document.execCommand('copy'); done(); });
+  } else {
+    inp.select(); document.execCommand('copy'); done();
+  }
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSyncModal(); });
+</script>
 
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px">
