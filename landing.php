@@ -110,13 +110,20 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <div class="links" style="margin-top:26px">
     <?php foreach ($links as $l):
       $tab = $l['new_tab'] ? ' target="_blank" rel="noopener"' : '';
-      $isQuote = strpos($l['url'], 'solicitud') !== false;
+      // Tipo de botón: 'cotizacion' | 'reserva' embeben un formulario en un panel desplegable.
+      // Backward-compat: si no hay columna tipo (o es 'link') pero la url apunta a solicitud, tratar como cotización.
+      $tipo = $l['tipo'] ?? 'link';
+      if ($tipo === 'link' && strpos($l['url'], 'solicitud') !== false) $tipo = 'cotizacion';
+      $isEmbed = ($tipo === 'cotizacion' || $tipo === 'reserva');
     ?>
-      <?php if ($isQuote):
+      <?php if ($isEmbed):
         $embedUrl = $l['url'] . (strpos($l['url'], '?') !== false ? '&' : '?') . 'embed=1';
+        $pid = 'panel-' . (int)$l['id'];
+        $fid = 'frame-' . (int)$l['id'];
+        $frameTitle = $tipo === 'reserva' ? 'Reserva tu mesa' : 'Cotiza tu evento';
       ?>
       <div class="lnk-wrap">
-        <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false" data-link-id="<?= (int)$l['id'] ?>" data-label="<?= clean($l['label']) ?>">
+        <button type="button" class="lnk <?= clean($l['style']) ?> lnk-expand" onclick="toggleQuote(this)" aria-expanded="false" data-target="<?= $pid ?>" data-link-id="<?= (int)$l['id'] ?>" data-label="<?= clean($l['label']) ?>">
           <span class="lnk-ico"><?= landingIconSvg($l['icon'], 21) ?></span>
           <span class="lnk-tx">
             <span class="lnk-title"><?= clean($l['label']) ?></span>
@@ -124,7 +131,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
           </span>
           <span class="lnk-arrow lnk-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
         </button>
-        <div class="quote-panel" id="quotePanel"><iframe id="quoteFrame" data-src="<?= clean($embedUrl) ?>" title="Cotiza tu evento" loading="lazy"></iframe></div>
+        <div class="quote-panel" id="<?= $pid ?>"><iframe id="<?= $fid ?>" data-src="<?= clean($embedUrl) ?>" title="<?= clean($frameTitle) ?>" loading="lazy"></iframe></div>
       </div>
       <?php else: ?>
       <a class="lnk <?= clean($l['style']) ?>" href="<?= clean($l['url']) ?>"<?= $tab ?> data-link-id="<?= (int)$l['id'] ?>" data-label="<?= clean($l['label']) ?>">
@@ -142,9 +149,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   <div class="foot">© 2013 El Gringo Burger Joint · Lima, Perú</div>
 </div>
 <script>
-  var quotePoll = null;
-  function fitFrame(){
-    var frame = document.getElementById('quoteFrame');
+  function fitFrame(frame){
     if (!frame || !frame.contentWindow) return;
     try {
       var d = frame.contentWindow.document;
@@ -153,16 +158,19 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
     } catch(e){}
   }
   function toggleQuote(btn){
-    var panel = document.getElementById('quotePanel'), frame = document.getElementById('quoteFrame');
+    // Cada botón desplegable opera sobre su propio panel/iframe (data-target → id; fallback: hermano siguiente).
+    var panel = (btn.dataset.target && document.getElementById(btn.dataset.target)) || btn.nextElementSibling;
+    if (!panel) return;
+    var frame = panel.querySelector('iframe');
     var open = !panel.classList.contains('open');           // estado real del DOM (no variable)
     panel.classList.toggle('open', open);
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', open);
-    clearInterval(quotePoll);
-    if (open){
-      if (!frame.src){ frame.addEventListener('load', fitFrame); frame.src = frame.dataset.src; }
-      else fitFrame();
-      quotePoll = setInterval(fitFrame, 250);  // reajusta al cambiar de paso (mismo dominio = medición directa)
+    if (panel._poll){ clearInterval(panel._poll); panel._poll = null; }
+    if (open && frame){
+      if (!frame.src){ frame.addEventListener('load', function(){ fitFrame(frame); }); frame.src = frame.dataset.src; }
+      else fitFrame(frame);
+      panel._poll = setInterval(function(){ fitFrame(frame); }, 250);  // reajusta al cambiar de paso (mismo dominio = medición directa)
       setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
     }
   }

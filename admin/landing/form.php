@@ -12,15 +12,22 @@ if ($id && !$link) { flashMessage('error', 'Botón no encontrado.'); redirect('/
 
 $isEdit = (bool)$link;
 $errors = [];
-$data   = $link ?? ['label'=>'','sublabel'=>'','url'=>'','icon'=>'link','style'=>'neutral','new_tab'=>1,'active'=>1,'sort_order'=>0];
+$data   = $link ?? ['label'=>'','sublabel'=>'','url'=>'','tipo'=>'link','icon'=>'link','style'=>'neutral','new_tab'=>1,'active'=>1,'sort_order'=>0];
+if (!isset($data['tipo'])) $data['tipo'] = 'link';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $iconKeys = array_keys(landingIcons());
+    $tipo = in_array($_POST['tipo'] ?? '', ['link','cotizacion','reserva'], true) ? $_POST['tipo'] : 'link';
+    $url  = trim($_POST['url'] ?? '');
+    // Los tipos embebidos fuerzan su propia URL (form embebido).
+    if ($tipo === 'cotizacion') $url = 'solicitud.php';
+    elseif ($tipo === 'reserva') $url = 'reserva.php';
     $data = [
         'label'      => clean($_POST['label'] ?? ''),
         'sublabel'   => clean($_POST['sublabel'] ?? ''),
-        'url'        => trim($_POST['url'] ?? ''),
+        'url'        => $url,
+        'tipo'       => $tipo,
         'icon'       => in_array($_POST['icon'] ?? '', $iconKeys) ? $_POST['icon'] : 'link',
         'style'      => in_array($_POST['style'] ?? '', ['primary','wa','dark','pink','neutral']) ? $_POST['style'] : 'neutral',
         'new_tab'    => isset($_POST['new_tab']) ? 1 : 0,
@@ -33,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if ($isEdit) {
             Database::execute(
-                "UPDATE landing_links SET label=?,sublabel=?,url=?,icon=?,style=?,new_tab=?,active=?,sort_order=? WHERE id=?",
-                [$data['label'],$data['sublabel'],$data['url'],$data['icon'],$data['style'],$data['new_tab'],$data['active'],$data['sort_order'],$id]
+                "UPDATE landing_links SET label=?,sublabel=?,url=?,tipo=?,icon=?,style=?,new_tab=?,active=?,sort_order=? WHERE id=?",
+                [$data['label'],$data['sublabel'],$data['url'],$data['tipo'],$data['icon'],$data['style'],$data['new_tab'],$data['active'],$data['sort_order'],$id]
             );
             flashMessage('success', 'Botón actualizado.');
         } else {
             Database::insert(
-                "INSERT INTO landing_links (label,sublabel,url,icon,style,new_tab,active,sort_order) VALUES (?,?,?,?,?,?,?,?)",
-                [$data['label'],$data['sublabel'],$data['url'],$data['icon'],$data['style'],$data['new_tab'],$data['active'],$data['sort_order']]
+                "INSERT INTO landing_links (label,sublabel,url,tipo,icon,style,new_tab,active,sort_order) VALUES (?,?,?,?,?,?,?,?,?)",
+                [$data['label'],$data['sublabel'],$data['url'],$data['tipo'],$data['icon'],$data['style'],$data['new_tab'],$data['active'],$data['sort_order']]
             );
             flashMessage('success', 'Botón creado.');
         }
@@ -87,8 +94,18 @@ include __DIR__ . '/../layout-top.php';
       </div>
 
       <div class="form-group">
+        <label class="form-required">Tipo de botón</label>
+        <select name="tipo" id="tipoSelect" onchange="syncTipo()">
+          <option value="link"       <?= $data['tipo']==='link'?'selected':'' ?>>Enlace normal</option>
+          <option value="cotizacion" <?= $data['tipo']==='cotizacion'?'selected':'' ?>>Formulario de cotización (embebido)</option>
+          <option value="reserva"    <?= $data['tipo']==='reserva'?'selected':'' ?>>Formulario de reserva (embebido)</option>
+        </select>
+        <div class="form-hint">Los formularios embebidos se abren como panel desplegable dentro de la landing (no abren otra página).</div>
+      </div>
+
+      <div class="form-group" id="urlGroup">
         <label class="form-required">Enlace (URL)</label>
-        <input type="text" name="url" value="<?= clean($data['url']) ?>" placeholder="https://...">
+        <input type="text" name="url" id="urlInput" value="<?= clean($data['url']) ?>" placeholder="https://...">
         <div class="form-hint">A dónde lleva el botón (WhatsApp, PedidosYa, /principal/menu, /cotizador/solicitud, Instagram…)</div>
       </div>
 
@@ -137,5 +154,22 @@ include __DIR__ . '/../layout-top.php';
     </form>
   </div>
 </div>
+
+<script>
+function syncTipo(){
+  var tipo  = document.getElementById('tipoSelect').value;
+  var group = document.getElementById('urlGroup');
+  var input = document.getElementById('urlInput');
+  if (tipo === 'cotizacion' || tipo === 'reserva'){
+    input.value = (tipo === 'cotizacion') ? 'solicitud.php' : 'reserva.php';
+    input.readOnly = true;
+    group.style.display = 'none';   // la URL se autocompleta al guardar
+  } else {
+    input.readOnly = false;
+    group.style.display = '';
+  }
+}
+syncTipo();
+</script>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>

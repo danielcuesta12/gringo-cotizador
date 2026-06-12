@@ -65,6 +65,7 @@ $palette       = ['#FFEFBC'=>'Crema', '#FFBBC8'=>'Rosa', '#FFDF00'=>'Amarillo', 
 
 $links = Database::fetchAll("SELECT * FROM landing_links ORDER BY sort_order, id");
 $styleLabel = ['primary'=>'Amarillo','wa'=>'WhatsApp','dark'=>'Oscuro','pink'=>'Rosa','neutral'=>'Neutro'];
+$tipoLabel  = ['link'=>'Enlace','cotizacion'=>'Cotización','reserva'=>'Reserva'];
 
 $pageTitle  = 'Landing';
 $activePage = 'landing';
@@ -184,7 +185,15 @@ include __DIR__ . '/../layout-top.php';
         <?php foreach ($links as $l): ?>
         <tr<?= $l['active'] ? '' : ' style="opacity:.5"' ?>>
           <td><span style="display:inline-flex;color:var(--text-secondary)"><?= landingIconSvg($l['icon'], 22) ?></span></td>
-          <td><strong><?= clean($l['label']) ?></strong><?php if ($l['sublabel']): ?><div style="font-size:12px;color:var(--text-muted)"><?= clean($l['sublabel']) ?></div><?php endif; ?></td>
+          <td>
+            <strong><?= clean($l['label']) ?></strong>
+            <?php $lt = $l['tipo'] ?? 'link'; if ($lt !== 'link'): ?>
+              <span class="badge <?= $lt==='cotizacion'?'badge-success':'badge-warning' ?>" style="margin-left:6px;font-size:10.5px;vertical-align:1px"><?= $tipoLabel[$lt] ?? $lt ?></span>
+            <?php else: ?>
+              <span class="badge badge-secondary" style="margin-left:6px;font-size:10.5px;vertical-align:1px"><?= $tipoLabel['link'] ?></span>
+            <?php endif; ?>
+            <?php if ($l['sublabel']): ?><div style="font-size:12px;color:var(--text-muted)"><?= clean($l['sublabel']) ?></div><?php endif; ?>
+          </td>
           <td style="font-size:12px;color:var(--text-secondary);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= clean($l['url']) ?></td>
           <td><span class="badge badge-secondary"><?= $styleLabel[$l['style']] ?? $l['style'] ?></span></td>
           <td><?= (int)$l['sort_order'] ?></td>

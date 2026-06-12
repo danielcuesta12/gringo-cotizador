@@ -13,6 +13,7 @@ function permissionCatalog(): array {
             'calendar'  => 'Calendario',
             'clients'   => 'Clientes',
             'requests'  => 'Solicitudes',
+            'reservas'  => 'Reservas',
             'analytics' => 'Analítica',
         ],
         'Catálogo' => [
@@ -52,7 +53,7 @@ function permissionTemplates(): array {
     return [
         'cajero'     => ['pos_terminal', 'pos_caja'],
         'cocina'     => ['kds'],
-        'ventas'     => ['dashboard', 'quotes', 'events', 'calendar', 'clients', 'requests'],
+        'ventas'     => ['dashboard', 'quotes', 'events', 'calendar', 'clients', 'requests', 'reservas'],
         'inventario' => ['inv_insumos', 'inv_stock', 'inv_recetas', 'inv_movimientos', 'inv_compras', 'inv_evento'],
         // 'admin' (acceso total) se maneja con role='admin', no con esta lista
     ];
@@ -87,6 +88,7 @@ function permissionPaths(): array {
         'calendar'  => '/admin/calendar.php',
         'clients'   => '/admin/clients/index.php',
         'requests'  => '/admin/requests/index.php',
+        'reservas'  => '/admin/reservas/index.php',
         'analytics' => '/admin/analytics/index.php',
         'products'   => '/admin/products/index.php',
         'categories' => '/admin/categories/index.php',

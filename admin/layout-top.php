@@ -48,7 +48,7 @@ try {
     <?php endif; ?>
 
     <?php /* ===== 2. Cotizaciones ===== */ ?>
-    <?php if (can('quotes') || can('events') || can('calendar') || can('requests') || can('clients')): ?>
+    <?php if (can('quotes') || can('events') || can('calendar') || can('requests') || can('reservas') || can('clients')): ?>
     <div class="sb-group" data-sb-group="cotizaciones">
       <button type="button" class="nav-section-label sb-header" aria-expanded="true">
         <span class="sb-dot sb-dot-pink"></span>Cotizaciones<span class="sb-chevron">&#9662;</span>
@@ -90,6 +90,13 @@ try {
           <?php if ($pendingCount > 0): ?>
             <span class="nav-badge nav-badge-req"><?php echo $pendingCount; ?></span>
           <?php endif; ?>
+        </a>
+        <?php endif; ?>
+
+        <?php if (can('reservas')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/reservas/index.php"
+           class="nav-link <?php echo ($activePage??'')==='reservas'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg></span> Reservas
         </a>
         <?php endif; ?>
 
