@@ -201,5 +201,39 @@ if ($action === 'caja') {
     }
 }
 
+// ── action=cotizaciones ───────────────────────────────────────────────────────
+if ($action === 'cotizaciones') {
+    try {
+        $where = "1=1"; $params = [];
+        if ($desde !== '') { $where .= " AND DATE(q.created_at) >= ?"; $params[] = $desde; }
+        if ($hasta !== '')  { $where .= " AND DATE(q.created_at) <= ?"; $params[] = $hasta; }
+        $rows = Database::fetchAll(
+            "SELECT q.quote_number, COALESCE(c.name,'') cliente, q.status, q.event_type, q.event_date, q.num_people, q.total, q.created_at, q.origin
+             FROM quotes q LEFT JOIN clients c ON c.id = q.client_id
+             WHERE {$where} ORDER BY q.created_at DESC", $params);
+        rout(['ok'=>true, 'cotizaciones'=>$rows]);
+    } catch (Exception $e) { rout(['ok'=>false,'error'=>$e->getMessage()]); }
+}
+
+// ── action=consolidado ────────────────────────────────────────────────────────
+if ($action === 'consolidado') {
+    try {
+        // Eventos = cotizaciones aceptadas cuya event_date cae en el rango
+        $wE = "status='aceptada' AND event_date IS NOT NULL AND event_date<>''"; $pE = [];
+        if ($desde !== '') { $wE .= " AND DATE(event_date) >= ?"; $pE[] = $desde; }
+        if ($hasta !== '')  { $wE .= " AND DATE(event_date) <= ?"; $pE[] = $hasta; }
+        $eventos = (float)(Database::fetch("SELECT COALESCE(SUM(total),0) s FROM quotes WHERE {$wE}", $pE)['s'] ?? 0);
+        // Operación = pedidos no cancelados por created_at en el rango
+        $op = 0.0;
+        try {
+            $wO = "estado<>'cancelado'"; $pO = [];
+            if ($desde !== '') { $wO .= " AND DATE(created_at) >= ?"; $pO[] = $desde; }
+            if ($hasta !== '')  { $wO .= " AND DATE(created_at) <= ?"; $pO[] = $hasta; }
+            $op = (float)(Database::fetch("SELECT COALESCE(SUM(total),0) s FROM pedidos WHERE {$wO}", $pO)['s'] ?? 0);
+        } catch (Exception $e2) { $op = 0.0; }
+        rout(['ok'=>true, 'eventos'=>$eventos, 'operacion'=>$op, 'total'=>$eventos+$op]);
+    } catch (Exception $e) { rout(['ok'=>false,'error'=>$e->getMessage()]); }
+}
+
 // ── Unknown action ────────────────────────────────────────────────────────────
 rout(['ok' => false, 'error' => 'Acción desconocida']);

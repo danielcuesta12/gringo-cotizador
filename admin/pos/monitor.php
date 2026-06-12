@@ -241,6 +241,45 @@ a{color:inherit;text-decoration:none}
 .empty{font-size:13px;color:var(--muted);padding:8px 0}
 .err{font-size:13px;color:var(--red)}
 
+/* ── Ítems vendidos card ──────────────────────────────── */
+.items-summary{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.items-summary .items-sum-money{color:var(--yellow)}
+.items-cat-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 0 4px;
+}
+.items-cat-name{font-size:10px;font-weight:800;color:var(--yellow);text-transform:uppercase;letter-spacing:.07em}
+.items-cat-sub{font-size:11px;color:var(--muted)}
+.items-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.items-qty-pill{
+  flex:0 0 auto;
+  background:var(--yellow);color:#111;
+  font-size:11px;font-weight:800;
+  padding:2px 8px;border-radius:7px;
+  min-width:28px;text-align:center;
+  line-height:1.5;
+}
+.items-name{flex:1;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.items-total{font-size:13px;font-weight:700;color:var(--text2);text-align:right;white-space:nowrap;flex:0 0 auto}
+.items-divider{border:none;border-top:1px solid var(--border);margin:4px 0}
+
+/* ── Modificadores card ───────────────────────────────── */
+.mods-summary{font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;color:var(--green)}
+.mods-col-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:0 0 6px;
+  border-bottom:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+}
+.mods-col-name{flex:1}
+.mods-col-veces{flex:0 0 48px;text-align:center}
+.mods-col-ing{flex:0 0 80px;text-align:right}
+.mods-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.mods-row:last-child{border-bottom:none}
+.mods-mod-name{flex:1;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mods-veces{flex:0 0 48px;text-align:center;font-size:13px;font-weight:800;color:var(--yellow)}
+.mods-ingreso{flex:0 0 80px;text-align:right;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap}
+
 /* ── Updated time ───────────────────────────────────── */
 #mon-updated{font-size:11px;color:var(--muted);text-align:center;padding-top:4px}
 
@@ -370,6 +409,30 @@ a{color:inherit;text-decoration:none}
         <span class="sec-title">Por ubicación</span>
       </div>
       <div class="sec-body" id="mon-ubis">
+        <p class="empty">Cargando...</p>
+      </div>
+    </div>
+
+    <!-- Ítems vendidos -->
+    <div class="sec-card" data-sec="items">
+      <div class="sec-header">
+        <span class="sec-handle"><?= inlineSvgGrip() ?></span>
+        <span class="sec-title">Ítems vendidos · hoy</span>
+        <span class="items-summary" id="items-summary"></span>
+      </div>
+      <div class="sec-body" id="mon-items">
+        <p class="empty">Cargando...</p>
+      </div>
+    </div>
+
+    <!-- Modificadores -->
+    <div class="sec-card" data-sec="mods">
+      <div class="sec-header">
+        <span class="sec-handle"><?= inlineSvgGrip() ?></span>
+        <span class="sec-title">Modificadores · hoy</span>
+        <span class="mods-summary" id="mods-summary"></span>
+      </div>
+      <div class="sec-body" id="mon-mods">
         <p class="empty">Cargando...</p>
       </div>
     </div>
@@ -541,7 +604,11 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
   var elMetodos  = document.getElementById("mon-metodos");
   var elUbisEl   = document.getElementById("mon-ubis");
   var elRecientes= document.getElementById("mon-recientes");
-  var elChartWrap= document.getElementById("chart-wrap");
+  var elChartWrap    = document.getElementById("chart-wrap");
+  var elItemsBody    = document.getElementById("mon-items");
+  var elItemsSummary = document.getElementById("items-summary");
+  var elModsBody     = document.getElementById("mon-mods");
+  var elModsSummary  = document.getElementById("mods-summary");
 
   /* ── State ──────────────────────────────────────────── */
   var pollTimer   = null;
@@ -600,6 +667,8 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
         elUpdated.textContent = "Error al actualizar...";
         if (errorStreak >= 3) stopPoll();
       });
+    /* Items + modificadores — independent fetch, silent on failure */
+    loadCategorias();
   }
 
   /* ── Render ─────────────────────────────────────────── */
@@ -792,6 +861,91 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
     elChartWrap.innerHTML = html;
   }
 
+  /* ── Render: ítems vendidos ─────────────────────────── */
+  function renderItems(data) {
+    var cats = data.categorias || [];
+    if (elItemsSummary) {
+      if (cats.length) {
+        elItemsSummary.innerHTML =
+          esc(data.total_qty || 0) + ' ítems · ' +
+          '<span class="items-sum-money">' + fmtMoney(data.total_monto || 0) + '</span>';
+      } else {
+        elItemsSummary.innerHTML = '';
+      }
+    }
+    if (!cats.length) {
+      elItemsBody.innerHTML = '<p class="empty">Sin ítems para este día</p>';
+      return;
+    }
+    var html = '';
+    cats.forEach(function (cat, ci) {
+      if (ci > 0) html += '<hr class="items-divider">';
+      html +=
+        '<div class="items-cat-hdr">' +
+          '<span class="items-cat-name">' + esc(cat.categoria) + '</span>' +
+          '<span class="items-cat-sub">' + esc(cat.qty) + ' und · ' + fmtMoney(cat.monto) + '</span>' +
+        '</div>';
+      (cat.items || []).forEach(function (it) {
+        html +=
+          '<div class="items-row">' +
+            '<span class="items-qty-pill">' + esc(it.qty) + '</span>' +
+            '<span class="items-name" title="' + esc(it.nombre) + '">' + esc(it.nombre) + '</span>' +
+            '<span class="items-total">' + fmtMoney(it.total) + '</span>' +
+          '</div>';
+      });
+    });
+    elItemsBody.innerHTML = html;
+  }
+
+  /* ── Render: modificadores ───────────────────────────── */
+  function renderMods(data) {
+    var mods = data.modificadores || [];
+    if (elModsSummary) {
+      elModsSummary.textContent = mods.length
+        ? '+ ' + fmtMoney(data.mod_total_ingreso || 0)
+        : '';
+    }
+    if (!mods.length) {
+      elModsBody.innerHTML = '<p class="empty">Sin modificadores</p>';
+      return;
+    }
+    var html =
+      '<div class="mods-col-hdr">' +
+        '<span class="mods-col-name">Modificador</span>' +
+        '<span class="mods-col-veces">Veces</span>' +
+        '<span class="mods-col-ing">Ingreso</span>' +
+      '</div>';
+    mods.forEach(function (m) {
+      html +=
+        '<div class="mods-row">' +
+          '<span class="mods-mod-name" title="' + esc(m.nombre) + '">' + esc(m.nombre) + '</span>' +
+          '<span class="mods-veces">' + esc(m.qty) + '</span>' +
+          '<span class="mods-ingreso">+ ' + fmtMoney(m.ingreso) + '</span>' +
+        '</div>';
+    });
+    elModsBody.innerHTML = html;
+  }
+
+  /* ── Fetch categorias (ítems + modificadores) ─────────── */
+  function loadCategorias() {
+    var fecha = getDate();
+    var ubi   = elUbi ? elUbi.value : "0";
+    var url   = REPORTES_API + "?action=categorias"
+              + "&desde=" + encodeURIComponent(fecha)
+              + "&hasta=" + encodeURIComponent(fecha);
+    if (ubi && ubi !== "0") {
+      url += "&ubicacion_id=" + encodeURIComponent(ubi);
+    }
+    fetch(url, { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return; /* leave cards as-is */
+        renderItems(data);
+        renderMods(data);
+      })
+      .catch(function () { /* silent — don't break the monitor */ });
+  }
+
   /* ── Polling ─────────────────────────────────────────── */
   function isToday() { return getDate() === TODAY; }
 
@@ -835,8 +989,14 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
     var cards = Array.from(wrap.querySelectorAll(".sec-card[data-sec]"));
     var map = {};
     cards.forEach(function (c) { map[c.getAttribute("data-sec")] = c; });
+    /* Append sections that exist in the saved order */
     order.forEach(function (key) {
       if (map[key]) wrap.appendChild(map[key]);
+    });
+    /* Append any new sections not yet in the saved order */
+    cards.forEach(function (c) {
+      var key = c.getAttribute("data-sec");
+      if (order.indexOf(key) === -1) wrap.appendChild(c);
     });
   }
 

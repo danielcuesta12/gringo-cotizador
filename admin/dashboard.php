@@ -158,8 +158,13 @@ function dashStateLabel(array $q): string {
     return ($q['status'] ?? '') === 'aceptada' ? 'Aceptada' : 'Enviada';
 }
 
+// Rango del mes para exportaciones
+$desde = $mes . '-01';
+$hasta = date('Y-m-t', strtotime($desde));
+
 $pageTitle  = 'Dashboard';
 $activePage = 'dashboard';
+$extraHead  = '<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>';
 include __DIR__ . '/layout-top.php';
 ?>
 
@@ -600,10 +605,10 @@ if (isAdmin()):
         </option>
       <?php endforeach; ?>
     </select>
-    <a class="btn-export" href="<?php echo APP_URL; ?>/admin/export.php?type=consolidado&mes=<?php echo urlencode($mes); ?>">
+    <button class="btn-export" type="button" onclick="exportConsolidado()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Exportar a Excel
-    </a>
+    </button>
   </div>
 </div>
 <?php endif; ?>
@@ -625,10 +630,10 @@ if (can('quotes') || can('events') || can('calendar') || can('requests')):
     </div>
     <div class="world-actions">
       <?php if (can('quotes')): ?>
-        <a class="btn-export-sm" href="<?php echo APP_URL; ?>/admin/export.php?type=cotizaciones&mes=<?php echo urlencode($mes); ?>">
+        <button class="btn-export-sm" type="button" onclick="exportCotizaciones()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Excel
-        </a>
+        </button>
       <?php endif; ?>
     </div>
   </div>
@@ -768,10 +773,10 @@ if (can('pedidos') || can('pos_terminal') || can('kds') || can('pos_monitor')):
     </div>
     <div class="world-actions">
       <?php if (can('pedidos') || can('pos_terminal')): ?>
-        <a class="btn-export-sm" href="<?php echo APP_URL; ?>/admin/export.php?type=operacion&mes=<?php echo urlencode($mes); ?>">
+        <button class="btn-export-sm" type="button" onclick="exportOperacion()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Excel
-        </a>
+        </button>
       <?php endif; ?>
     </div>
   </div>
@@ -884,6 +889,128 @@ if (can('pedidos') || can('pos_terminal') || can('kds') || can('pos_monitor')):
   </div><!-- /world-body-yellow -->
 </div><!-- /world-section operación -->
 <?php endif; ?>
+
+<script>
+// ── Export config (injected from PHP) ─────────────────────────────────────────
+var REP_DESDE = '<?php echo $desde; ?>';
+var REP_HASTA = '<?php echo $hasta; ?>';
+var REP_API   = '<?php echo APP_URL; ?>/api/reportes.php';
+var REP_MES   = '<?php echo $mes; ?>';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtFechaJS(s) {
+  if (!s) return '';
+  var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : s;
+}
+function fmtHoraJS(s) {
+  if (!s) return '';
+  var m = String(s).match(/(\d{2}:\d{2})/);
+  return m ? m[1] : '';
+}
+function dlWb(wb, name) {
+  if (typeof XLSX === 'undefined') { alert('SheetJS no está disponible. Recargue la página.'); return; }
+  XLSX.writeFile(wb, name);
+}
+
+// ── Exportar Consolidado ──────────────────────────────────────────────────────
+function exportConsolidado() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS no está disponible. Recargue la página.'); return; }
+  fetch(REP_API + '?action=consolidado&desde=' + REP_DESDE + '&hasta=' + REP_HASTA)
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { alert('Error al obtener datos: ' + (d.error || 'desconocido')); return; }
+      var wb  = XLSX.utils.book_new();
+      var rows = [
+        ['Periodo',                        REP_MES],
+        ['Eventos (cotizaciones aceptadas)', d.eventos],
+        ['Operación (POS + Cartas)',          d.operacion],
+        ['TOTAL NEGOCIO',                    d.total]
+      ];
+      var ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
+      dlWb(wb, 'consolidado-' + REP_MES + '.xlsx');
+    })
+    .catch(function(e){ alert('Error de red: ' + e.message); });
+}
+
+// ── Exportar Cotizaciones ─────────────────────────────────────────────────────
+function exportCotizaciones() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS no está disponible. Recargue la página.'); return; }
+  fetch(REP_API + '?action=cotizaciones&desde=' + REP_DESDE + '&hasta=' + REP_HASTA)
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { alert('Error al obtener datos: ' + (d.error || 'desconocido')); return; }
+      if (!d.cotizaciones || d.cotizaciones.length === 0) {
+        alert('No hay datos para este mes.'); return;
+      }
+      var headers = ['N° Cotización','Cliente','Estado','Tipo de evento','Fecha del evento','Personas','Total','Creada'];
+      var rows = [headers];
+      d.cotizaciones.forEach(function(q) {
+        rows.push([
+          q.quote_number,
+          q.cliente,
+          q.status,
+          q.event_type || '',
+          fmtFechaJS(q.event_date),
+          q.num_people ? parseInt(q.num_people, 10) : '',
+          parseFloat(q.total) || 0,
+          fmtFechaJS(q.created_at)
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Cotizaciones');
+      dlWb(wb, 'cotizaciones-' + REP_MES + '.xlsx');
+    })
+    .catch(function(e){ alert('Error de red: ' + e.message); });
+}
+
+// ── Exportar Operación ────────────────────────────────────────────────────────
+function exportOperacion() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS no está disponible. Recargue la página.'); return; }
+  fetch(REP_API + '?action=pedidos&desde=' + REP_DESDE + '&hasta=' + REP_HASTA)
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if (!d.ok) { alert('Error al obtener datos: ' + (d.error || 'desconocido')); return; }
+      if (!d.pedidos || d.pedidos.length === 0) {
+        alert('No hay datos para este mes.'); return;
+      }
+      var headers = ['#Pedido','Fecha','Hora','Origen','Ubicación','Cliente','Productos','Total','Método pago','Estado'];
+      var rows = [headers];
+      d.pedidos.forEach(function(p) {
+        var items = [];
+        try {
+          var parsed = typeof p.items_json === 'string' ? JSON.parse(p.items_json) : (p.items_json || []);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(function(it) {
+              var qty    = parseInt(it.qty || 1, 10);
+              var nombre = String(it.nombre || it.name || '?');
+              items.push(qty + 'x ' + nombre);
+            });
+          }
+        } catch(e2) {}
+        rows.push([
+          p.id,
+          fmtFechaJS(p.created_at),
+          fmtHoraJS(p.created_at),
+          p.origen || '',
+          p.ubicacion || '',
+          p.cliente || '',
+          items.join('; '),
+          parseFloat(p.total) || 0,
+          p.metodo_pago || '',
+          p.estado || ''
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(rows);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+      dlWb(wb, 'operacion-' + REP_MES + '.xlsx');
+    })
+    .catch(function(e){ alert('Error de red: ' + e.message); });
+}
+</script>
 
 <script>
 var MC_EVENTS = <?php echo json_encode($calQuotes); ?>;
