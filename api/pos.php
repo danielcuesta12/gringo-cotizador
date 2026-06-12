@@ -249,7 +249,15 @@ case 'monitor':
     $metodos = Database::fetchAll("SELECT p.metodo_pago nombre, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $w GROUP BY p.metodo_pago ORDER BY t DESC", $params);
     $ubis = Database::fetchAll("SELECT COALESCE(u.nombre,'—') nombre, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id = p.ubicacion_id WHERE $w GROUP BY p.ubicacion_id ORDER BY t DESC", $params);
     $recientes = Database::fetchAll("SELECT p.id, p.total, p.metodo_pago, p.created_at, COALESCE(u.nombre,'—') ubi FROM pedidos p LEFT JOIN ubicaciones u ON u.id = p.ubicacion_id WHERE $w ORDER BY p.id DESC LIMIT 40", $params);
-    pout(['ok'=>true, 'fecha'=>$fecha, 'total'=>$tot, 'metodos'=>$metodos, 'ubicaciones'=>$ubis, 'recientes'=>$recientes]);
+    $porHora = Database::fetchAll("SELECT HOUR(p.created_at) h, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $w GROUP BY HOUR(p.created_at) ORDER BY h", $params);
+    $compFecha = date('Y-m-d', strtotime($fecha . ' -7 days'));
+    $wc = "p.origen='pos' AND p.estado <> 'cancelado' AND DATE(p.created_at) = ?";
+    $pc = [$compFecha];
+    if ($ubi) { $wc .= " AND p.ubicacion_id = ?"; $pc[] = $ubi; }
+    $compTot  = Database::fetch("SELECT COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $wc", $pc);
+    $compHora = Database::fetchAll("SELECT HOUR(p.created_at) h, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $wc GROUP BY HOUR(p.created_at) ORDER BY h", $pc);
+    pout(['ok'=>true, 'fecha'=>$fecha, 'total'=>$tot, 'metodos'=>$metodos, 'ubicaciones'=>$ubis, 'recientes'=>$recientes,
+          'por_hora'=>$porHora, 'comp'=>['fecha'=>$compFecha, 'total'=>$compTot, 'por_hora'=>$compHora]]);
 
 default:
     pout(['ok'=>false,'error'=>'Acción no válida']);

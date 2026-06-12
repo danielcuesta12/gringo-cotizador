@@ -17,6 +17,13 @@ $csrf    = csrfToken();
 ?>
 <!DOCTYPE html><html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KDS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#161412">
+<link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
+<link rel="manifest" href="<?= APP_URL ?>/manifest.php?app=kds">
 <title>KDS · El Gringo</title>
 <link rel="icon" href="<?= APP_URL ?>/assets/img/favicon.png">
 <style>
@@ -183,4 +190,5 @@ function toggleHistCard(idx){const detail=document.getElementById("hd-"+idx);if(
 
 init();
 </script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('<?= APP_URL ?>/sw.js').catch(function(){});}</script>
 </body></html>

@@ -172,8 +172,8 @@ try {
        class="nav-link">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span> POS · Terminal
     </a>
-    <a href="<?php echo APP_URL; ?>/admin/pos/monitor.php"
-       class="nav-link <?php echo ($activePage??'')==='pos-monitor'?'active':''; ?>">
+    <a href="<?php echo APP_URL; ?>/admin/pos/monitor.php" target="_blank"
+       class="nav-link">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> POS · En vivo
     </a>
     <a href="<?php echo APP_URL; ?>/admin/pos/caja.php"
