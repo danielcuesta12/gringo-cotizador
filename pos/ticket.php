@@ -28,8 +28,10 @@ $compLabel = ['ticket'=>'TICKET','boleta'=>'BOLETA','factura'=>'FACTURA'];
   .it-name { font-weight:bold; }
   .it-mod { font-size:8pt; padding-left:3mm; }
   .tot { font-size:12pt; font-weight:bold; }
-  .printbar { text-align:center; margin-top:4mm; }
-  .printbar button { padding:8px 16px; font-size:11pt; }
+  .printbar { text-align:center; margin-top:4mm; display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
+  .printbar button { padding:8px 16px; font-size:11pt; cursor:pointer; border:1px solid #ccc; border-radius:4px; background:#fff; }
+  .printbar .btn-rawbt { background:#16a34a; color:#fff; border-color:#16a34a; }
+  .printbar .btn-rawbt:hover { background:#147040; }
   @media print { .printbar { display:none !important; } }
 </style></head>
 <body>
@@ -68,6 +70,36 @@ $compLabel = ['ticket'=>'TICKET','boleta'=>'BOLETA','factura'=>'FACTURA'];
   <div class="hr"></div>
   <div class="c">¡Gracias por tu compra!</div>
 
-  <div class="printbar"><button onclick="window.print()">Imprimir</button></div>
-  <script>window.addEventListener('load', function(){ /* abrir diálogo de impresión automáticamente si se desea: window.print(); */ });</script>
+  <div class="printbar">
+    <button class="btn-rawbt" id="btn-rawbt">Imprimir</button>
+    <button onclick="window.print()">Ver / Imprimir HTML</button>
+  </div>
+  <script>
+  (function(){
+    var ESCPOS_URL = '<?= APP_URL ?>/pos/escpos.php?id=<?= (int)$p['id'] ?>';
+    document.getElementById('btn-rawbt').addEventListener('click', function() {
+      var btn = this;
+      btn.textContent = 'Cargando…';
+      btn.disabled = true;
+      fetch(ESCPOS_URL, { credentials: 'same-origin' })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function(b64) {
+          b64 = b64.trim();
+          if (!b64) throw new Error('empty');
+          window.location.href = 'rawbt:base64,' + b64;
+          btn.textContent = 'Imprimir';
+          btn.disabled = false;
+        })
+        .catch(function(err) {
+          alert('No se pudo imprimir (' + (err.message || 'error') + '). Verifica que RawBT este instalado y la impresora conectada.');
+          btn.textContent = 'Imprimir';
+          btn.disabled = false;
+        });
+    });
+  })();
+  /* abrir diálogo de impresión automáticamente si se desea: window.print(); */
+  </script>
 </body></html>

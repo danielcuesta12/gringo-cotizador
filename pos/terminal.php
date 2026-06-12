@@ -449,19 +449,27 @@ a{color:inherit;text-decoration:none}
   display:none;position:fixed;bottom:calc(var(--btmbar-h) + 16px);left:50%;
   transform:translateX(-50%);z-index:301;
   background:var(--surface);border:1px solid rgba(22,163,74,.4);border-radius:var(--radius);
-  padding:10px 14px;display:none;align-items:center;gap:10px;
-  font-size:13px;font-weight:600;color:#4ade80;white-space:nowrap;max-width:90vw;
+  padding:10px 14px;display:none;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:#4ade80;white-space:nowrap;max-width:95vw;
   box-shadow:0 4px 16px rgba(0,0,0,.4);
 }
 #print-snack.show{display:flex}
-#print-snack-btn{
+/* Botón primario: Imprimir vía RawBT */
+#print-snack-rawbt-btn{
   padding:6px 14px;border-radius:var(--radius-sm);background:var(--green);
   color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;
   flex:0 0 auto;transition:background .12s;
 }
-#print-snack-btn:hover{background:var(--green-dk)}
+#print-snack-rawbt-btn:hover{background:var(--green-dk)}
+/* Botón secundario: Ver ticket HTML */
+#print-snack-btn{
+  padding:6px 12px;border-radius:var(--radius-sm);background:var(--surface2);
+  border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;
+  flex:0 0 auto;transition:all .12s;
+}
+#print-snack-btn:hover{color:var(--text);border-color:var(--muted)}
 #print-snack-email-btn{
-  padding:6px 14px;border-radius:var(--radius-sm);background:var(--surface2);
+  padding:6px 12px;border-radius:var(--radius-sm);background:var(--surface2);
   border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;
   flex:0 0 auto;transition:all .12s;
 }
@@ -846,15 +854,17 @@ a{color:inherit;text-decoration:none}
 <!-- ── Print snackbar ─────────────────────────────────── -->
 <div id="print-snack">
   <span id="print-snack-msg">Venta registrada</span>
-  <button id="print-snack-btn">Imprimir ticket</button>
-  <button id="print-snack-email-btn">Enviar por correo</button>
+  <button id="print-snack-rawbt-btn" title="Imprimir vía RawBT / Bluetooth">Imprimir</button>
+  <button id="print-snack-btn" title="Ver ticket HTML">Ver ticket</button>
+  <button id="print-snack-email-btn">Correo</button>
   <span id="print-snack-close" title="Cerrar">✕</span>
 </div>
 
 <script>
 var CSRF = <?= json_encode(csrfToken()) ?>;
 var API  = '<?= APP_URL ?>/api/pos.php';
-var TICKET_BASE = '<?= APP_URL ?>/pos/ticket.php';
+var TICKET_BASE  = '<?= APP_URL ?>/pos/ticket.php';
+var ESCPOS_BASE  = '<?= APP_URL ?>/pos/escpos.php';
 var UPLOAD_URL = <?= json_encode(UPLOAD_URL) ?>;
 var UBIS  = <?= json_encode($ubis) ?>;
 var CAJERO = <?= json_encode($cajero['name'] ?? 'Cajero') ?>;
@@ -2303,18 +2313,43 @@ function cerrarTurno(cajaReal, ingreso, gastos) {
   }).catch(function() { toast('Error de red', 'err'); });
 }
 
+// ── RawBT thermal print ────────────────────────────────
+function printRawBT(ventaId) {
+  fetch(ESCPOS_BASE + '?id=' + ventaId, { credentials: 'same-origin' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(b64) {
+      b64 = b64.trim();
+      if (!b64) throw new Error('empty');
+      window.location.href = 'rawbt:base64,' + b64;
+    })
+    .catch(function(err) {
+      toast('No se pudo imprimir (' + (err.message || 'error') + ')', 'err');
+    });
+}
+
 // ── Print snackbar ─────────────────────────────────────
 var _printSnackTimer = null;
 function showPrintSnack(ventaId) {
-  var snack = document.getElementById('print-snack');
-  var msg   = document.getElementById('print-snack-msg');
-  var btn   = document.getElementById('print-snack-btn');
+  var snack    = document.getElementById('print-snack');
+  var msg      = document.getElementById('print-snack-msg');
+  var rawbtBtn = document.getElementById('print-snack-rawbt-btn');
+  var btn      = document.getElementById('print-snack-btn');
   var emailBtn = document.getElementById('print-snack-email-btn');
-  var close = document.getElementById('print-snack-close');
+  var close    = document.getElementById('print-snack-close');
+
   msg.textContent = 'Venta #' + ventaId + ' registrada';
   snack.classList.add('show');
   if (_printSnackTimer) clearTimeout(_printSnackTimer);
-  _printSnackTimer = setTimeout(function() { snack.classList.remove('show'); }, 8000);
+  _printSnackTimer = setTimeout(function() { snack.classList.remove('show'); }, 10000);
+
+  rawbtBtn.onclick = function() {
+    printRawBT(ventaId);
+    snack.classList.remove('show');
+    if (_printSnackTimer) clearTimeout(_printSnackTimer);
+  };
   btn.onclick = function() {
     window.open(TICKET_BASE + '?id=' + ventaId, '_blank');
     snack.classList.remove('show');
