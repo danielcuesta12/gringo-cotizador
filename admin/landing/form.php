@@ -106,7 +106,7 @@ include __DIR__ . '/../layout-top.php';
       <div class="form-group" id="urlGroup">
         <label class="form-required">Enlace (URL)</label>
         <input type="text" name="url" id="urlInput" value="<?= clean($data['url']) ?>" placeholder="https://...">
-        <div class="form-hint">A dónde lleva el botón (WhatsApp, PedidosYa, /principal/menu, /cotizador/solicitud, Instagram…)</div>
+        <div class="form-hint">A dónde lleva el botón (WhatsApp, PedidosYa, /principal/menu, /solicitud, Instagram…)</div>
       </div>
 
       <div class="form-group">

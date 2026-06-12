@@ -20,5 +20,5 @@ CREATE TABLE IF NOT EXISTS `landing_links` (
 INSERT IGNORE INTO `landing_links` (`id`,`label`,`sublabel`,`url`,`icon`,`style`,`sort_order`) VALUES
 (1, 'Pedir delivery',    'PedidosYa · llega a tu casa',   '#', 'delivery',  'primary', 1),
 (2, 'Ver la carta',      'Todo el menú y precios',        'https://elgringo.pe/principal/menu', 'carta', 'neutral', 2),
-(3, 'Cotizar un evento', 'Catering, fiestas, food truck', 'https://elgringo.pe/cotizador/solicitud', 'evento', 'pink', 3),
+(3, 'Cotizar un evento', 'Catering, fiestas, food truck', 'solicitud', 'evento', 'pink', 3),
 (4, 'Instagram',         '@elgringoburger',               '#', 'instagram', 'neutral', 4);

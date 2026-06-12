@@ -17,7 +17,7 @@ function isLoggedIn(): bool
 function requireLogin(): void
 {
     if (!isLoggedIn()) {
-        // Quitar el prefijo /cotizador de REQUEST_URI para que redirect() lo reconstruya bien
+        // Quitar el prefijo del path de APP_URL (si lo hay) de REQUEST_URI para que redirect() lo reconstruya bien
         $appPrefix = parse_url(APP_URL, PHP_URL_PATH); // ej: '/cotizador'
         $requestUri = $_SERVER['REQUEST_URI'];
         // Si REQUEST_URI empieza con el prefijo, quitarlo

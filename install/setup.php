@@ -321,7 +321,7 @@ foreach ($checks as $c) { if (!$c[1]) { $allOk = false; break; } }
     <div class="section-title">Sistema</div>
 
     <label>URL del sistema (sin slash al final)</label>
-    <input type="text" name="app_url" value="<?php echo isset($_POST['app_url']) ? htmlspecialchars($_POST['app_url']) : 'https://elgringo.pe/cotizador'; ?>" required>
+    <input type="text" name="app_url" value="<?php echo isset($_POST['app_url']) ? htmlspecialchars($_POST['app_url']) : 'https://elgringo.pe'; ?>" required>
 
     <label>Clave secreta (dejar vacio para generar automaticamente)</label>
     <input type="text" name="app_secret" placeholder="Se genera automaticamente si lo dejas vacio">

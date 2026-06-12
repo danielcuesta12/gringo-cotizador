@@ -1,6 +1,6 @@
 <?php
 // IPN server-to-server de Izipay. Configurar en el Back Office:
-//   https://elgringo.pe/cotizador/api/izipay_ipn.php
+//   https://elgringo.pe/api/izipay_ipn.php
 // Se firma con la PASSWORD REST (no con la HMAC).
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
