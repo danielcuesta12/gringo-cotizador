@@ -39,7 +39,7 @@ foreach ($calQuotes as &$q) {
 unset($q);
 
 // Agenda (eventos sin venta — solo disponibilidad). Tolerante si falta la migración.
-try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar, notas FROM agenda ORDER BY fecha ASC"); }
+try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC"); }
 catch (Exception $e) { $agenda = array(); }
 
 $pageTitle  = 'Calendario';
@@ -99,6 +99,9 @@ include __DIR__ . '/layout-top.php';
     <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)">
       <span style="width:10px;height:10px;border-radius:2px;background:#ffedd5;display:inline-block"></span>Agenda · sin venta
     </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)">
+      <span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span>No disponible (bloqueado)
+    </div>
   </div>
 </div>
 
@@ -130,6 +133,9 @@ include __DIR__ . '/layout-top.php';
 .cal-ev-a { background:#dcfce7;color:#166534 }
 .cal-ev-v { background:#ede9fe;color:#5b21b6 }
 .cal-ev-g { background:#ffedd5;color:#9a3412 }
+.cal-day-cell.blocked { box-shadow:inset 0 0 0 2px #dc2626;background:#fee2e2!important }
+.cal-blocked-tag { display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:1px 5px;line-height:1.4;white-space:nowrap }
+.cal-blocked-tag svg { width:9px;height:9px;flex-shrink:0 }
 .list-item { display:flex;align-items:stretch;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s }
 .list-item:last-child{ border-bottom:none }
 .list-item:hover { background:var(--bg-input) }
@@ -210,15 +216,18 @@ function renderMonth() {
     var dateS = year+'-'+mm+'-'+dd;
     var isT   = dateS===todayStr;
     var qs    = quotesByDate(dateS);
+    var ags   = agendaByDate(dateS);
+    var blocked = ags.some(function(a){ return Number(a.bloquea)===1; });
     var bg    = isT ? 'background:#eff6ff' : '';
     var nc    = isT ? 'color:#1d4ed8;font-weight:600' : 'color:#999';
-    html += '<div class="cal-day-cell" style="'+bg+'">';
+    html += '<div class="cal-day-cell'+(blocked?' blocked':'')+'" style="'+bg+'">';
     html += '<div style="font-size:11px;'+nc+';padding-left:2px;margin-bottom:2px">'+d+'</div>';
+    if (blocked) html += '<div class="cal-blocked-tag" style="margin-bottom:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>No disponible</div>';
     qs.forEach(function(q) {
       var ec = evClass(q);
       html += '<button class="cal-ev '+ec+'" onclick="showTooltip(event,'+q.id+')">'+q.quote_number+'</button>';
     });
-    agendaByDate(dateS).forEach(function(a) {
+    ags.forEach(function(a) {
       html += '<button class="cal-ev cal-ev-g" onclick="showAgendaTooltip(event,'+a.id+')">'+esc(a.titulo)+'</button>';
     });
     html += '</div>';
@@ -268,11 +277,18 @@ function showAgendaTooltip(e, aid) {
   var a = AGENDA.find(function(x){ return x.id===aid; });
   if (!a) return;
 
+  var aBlocked = Number(a.bloquea)===1;
   document.getElementById('ttName').textContent = a.titulo;
-  document.getElementById('ttBadge').setAttribute('style', 'background:#ffedd5;color:#9a3412');
-  document.getElementById('ttBadge').textContent = 'Agenda';
+  if (aBlocked) {
+    document.getElementById('ttBadge').setAttribute('style', 'background:#fee2e2;color:#dc2626');
+    document.getElementById('ttBadge').textContent = 'No disponible';
+  } else {
+    document.getElementById('ttBadge').setAttribute('style', 'background:#ffedd5;color:#9a3412');
+    document.getElementById('ttBadge').textContent = 'Agenda';
+  }
 
   var body = '';
+  if (aBlocked) body += '<div class="tt-info-row" style="color:#dc2626;font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span style="color:#dc2626">Día no disponible (bloqueado)</span></div>';
   var icoClock = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   var icoPin = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
   if (a.hora) body += '<div class="tt-info-row">'+icoClock+'<span>'+esc(a.hora)+'</span></div>';
@@ -310,7 +326,7 @@ function renderList() {
   var filtered = QUOTES.filter(function(q){ return q.event_date>=startS && q.event_date<=endS; })
     .map(function(q){ return q; })
     .concat(AGENDA.filter(function(a){ return a.event_date>=startS && a.event_date<=endS; })
-      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, titulo:a.titulo, hora:a.hora, lugar:a.lugar, notas:a.notas}; }));
+      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, titulo:a.titulo, hora:a.hora, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea}; }));
   filtered.sort(function(a,b){ return a.event_date<b.event_date?-1:(a.event_date>b.event_date?1:0); });
 
   if (!filtered.length) {
@@ -328,6 +344,7 @@ function renderList() {
     var dow = DAYS[new Date(q.event_date).getDay()];
 
     if (q.__agenda) {
+      var aBlk = Number(q.bloquea)===1;
       var aDetail = '';
       if (q.hora||q.lugar||q.notas) {
         aDetail  = '<div class="list-detail" id="ld_a'+q.id+'">';
@@ -342,11 +359,12 @@ function renderList() {
       html += '<div class="list-item" id="li_a'+q.id+'">';
       html += '<div class="list-main" onclick="toggleListDetailA('+q.id+')">';
       html += '<div style="text-align:center;min-width:38px;flex-shrink:0"><div style="font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)">'+d+'</div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">'+dow+'</div></div>';
-      html += '<div style="width:3px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0;background:#f97316"></div>';
-      html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:#c2410c">Agenda</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.titulo)+'</div>';
+      html += '<div style="width:3px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0;background:'+(aBlk?'#dc2626':'#f97316')+'"></div>';
+      html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+(aBlk?'#dc2626':'#c2410c')+'">'+(aBlk?'Agenda · bloqueado':'Agenda')+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.titulo)+'</div>';
       if (q.lugar||q.hora) html += '<div style="font-size:11px;color:var(--text-muted)">'+esc(q.lugar||'')+(q.hora?' · '+esc(q.hora):'')+'</div>';
       html += '</div>';
-      html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#ffedd5;color:#9a3412">Sin venta</span></div>';
+      if (aBlk) html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#fee2e2;color:#dc2626">No disponible</span></div>';
+      else html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#ffedd5;color:#9a3412">Sin venta</span></div>';
       html += '<span style="font-size:16px;color:var(--text-muted);margin-left:8px;transition:transform .2s" id="ch_a'+q.id+'">&#8250;</span>';
       html += '</div>';
       html += aDetail;

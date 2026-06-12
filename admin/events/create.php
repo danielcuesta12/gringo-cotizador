@@ -15,11 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['modo']) ? $_POST['mo
     $hora   = clean($_POST['hora'] ?? '');
     $lugar  = clean($_POST['lugar'] ?? '');
     $notas  = clean($_POST['notas'] ?? '');
+    $bloquea = !empty($_POST['bloquea']) ? 1 : 0;
     $aid    = cleanInt($_POST['agenda_id'] ?? 0);
     if ($titulo === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) { flashMessage('error','Título y fecha son obligatorios.'); redirect('/admin/events/create'); }
     if (isset($_POST['delete_agenda'])) { Database::execute("DELETE FROM agenda WHERE id=?", [$aid]); flashMessage('success','Evento de agenda eliminado.'); redirect('/admin/calendar'); }
-    if ($aid > 0) { Database::execute("UPDATE agenda SET fecha=?,titulo=?,hora=?,lugar=?,notas=? WHERE id=?", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$aid]); }
-    else { Database::insert("INSERT INTO agenda (fecha,titulo,hora,lugar,notas,created_by) VALUES (?,?,?,?,?,?)", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null, (int)(currentUser()['id'] ?? 0)]); }
+    if ($aid > 0) { Database::execute("UPDATE agenda SET fecha=?,titulo=?,hora=?,lugar=?,notas=?,bloquea=? WHERE id=?", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$bloquea,$aid]); }
+    else { Database::insert("INSERT INTO agenda (fecha,titulo,hora,lugar,notas,bloquea,created_by) VALUES (?,?,?,?,?,?,?)", [$fecha,$titulo,$hora?:null,$lugar?:null,$notas?:null,$bloquea, (int)(currentUser()['id'] ?? 0)]); }
     flashMessage('success','Evento de agenda guardado.');
     redirect('/admin/calendar');
 }
@@ -28,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['modo']) ? $_POST['mo
 $editAgenda = null;
 $agendaIdGet = cleanInt($_GET['agenda'] ?? 0);
 if ($agendaIdGet > 0) {
-    $editAgenda = Database::fetch("SELECT id, fecha, titulo, hora, lugar, notas FROM agenda WHERE id=?", array($agendaIdGet));
+    $editAgenda = Database::fetch("SELECT id, fecha, titulo, hora, lugar, notas, bloquea FROM agenda WHERE id=?", array($agendaIdGet));
     if (!$editAgenda) { flashMessage('error','Evento de agenda no encontrado.'); redirect('/admin/calendar'); }
 }
 
@@ -176,7 +177,7 @@ include __DIR__ . '/../layout-top.php';
 </div>
 
 <div class="event-badge" id="badgeVenta" style="<?= $isAgendaEdit ? 'display:none' : '' ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg> Evento directo — se registra como aceptado inmediatamente</div>
-<div class="event-badge" id="badgeAgenda" style="background:rgba(249,115,22,.1);color:#c2410c;border-color:rgba(249,115,22,.25);<?= $isAgendaEdit ? '' : 'display:none' ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Solo agenda — bloquea el día, no afecta ventas ni facturación</div>
+<div class="event-badge" id="badgeAgenda" style="background:rgba(249,115,22,.1);color:#c2410c;border-color:rgba(249,115,22,.25);<?= $isAgendaEdit ? '' : 'display:none' ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Solo agenda — no afecta ventas ni facturación (bloquea el día solo si lo marcas)</div>
 
 <?php foreach ($errors as $e): ?>
   <div class="alert alert-error">&#10007; <?php echo htmlspecialchars($e); ?></div>
@@ -217,7 +218,19 @@ include __DIR__ . '/../layout-top.php';
       <textarea name="notas" rows="3" placeholder="Detalles internos..."><?= $isAgendaEdit ? clean($editAgenda['notas']) : '' ?></textarea>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #fecaca;background:#fef2f2;border-radius:10px;cursor:pointer;margin-top:4px">
+      <input type="checkbox" name="bloquea" value="1" style="margin-top:2px;accent-color:#dc2626;width:16px;height:16px;flex-shrink:0"
+             <?= ($isAgendaEdit && !empty($editAgenda['bloquea'])) ? 'checked' : '' ?>>
+      <span style="display:flex;flex-direction:column;gap:2px">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#dc2626">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Bloquear el día (marcarlo como NO disponible)
+        </span>
+        <span style="font-size:11.5px;color:var(--text-muted)">Si lo dejas sin marcar, es solo un evento; el día sigue disponible para más eventos.</span>
+      </span>
+    </label>
+
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button type="submit" class="btn btn-primary btn-lg" style="background:#f97316;border-color:#f97316;color:#fff;gap:8px;flex:1">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         Guardar agenda

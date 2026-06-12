@@ -87,7 +87,7 @@ foreach ($calQuotes as $cqItem) {
 }
 
 // Agenda (eventos sin venta) para el mini-calendario. Tolerante si falta la migración.
-try { $agendaDash = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar FROM agenda"); }
+try { $agendaDash = Database::fetchAll("SELECT id, fecha AS event_date, titulo, hora, lugar, bloquea FROM agenda"); }
 catch (Exception $e) { $agendaDash = array(); }
 
 // ============================================================
@@ -545,6 +545,7 @@ include __DIR__ . '/layout-top.php';
    ============================================================ */
 .mc-day.has-ev { cursor: pointer; }
 .mc-day.has-ev:hover { background: var(--brand-soft, #fef2f2); }
+.mc-day.mc-blocked { box-shadow: inset 0 0 0 1.5px #dc2626; background: #fee2e2; color: #dc2626; font-weight: 700; }
 .mc-legend { display:flex; gap:12px; padding:8px 14px 14px; flex-wrap:wrap; }
 .mc-legend span { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text-muted); }
 .mc-legend i { width:9px; height:9px; border-radius:2px; display:inline-block; }
@@ -753,6 +754,7 @@ if (can('quotes') || can('events') || can('calendar') || can('requests')):
             <span><i style="background:#16a34a"></i>Aceptada</span>
             <span><i style="background:#7c3aed"></i>Evento</span>
             <span><i style="background:#f97316"></i>Agenda</span>
+            <span><i style="background:#dc2626;border-radius:50%"></i>No disponible</span>
           </div>
         </div>
       </div>
@@ -1046,8 +1048,9 @@ function mcRender(){
     var evs = mcByDate(ds);
     var ags = mcAgendaByDate(ds);
     var hasAny = evs.length || ags.length;
-    var cls = 'mc-day' + (ds===todayS?' today':'') + (hasAny?' has-ev':'');
-    var dotColor = evs.length ? mcColor(mcState(evs[0])) : '#f97316';
+    var blocked = ags.some(function(a){ return Number(a.bloquea)===1; });
+    var cls = 'mc-day' + (ds===todayS?' today':'') + (hasAny?' has-ev':'') + (blocked?' mc-blocked':'');
+    var dotColor = blocked ? '#dc2626' : (evs.length ? mcColor(mcState(evs[0])) : '#f97316');
     var dot = hasAny ? '<span class="mk" style="background:'+dotColor+'"></span>' : '';
     var clk = hasAny ? ' onclick="mcShowDay(event,\''+ds+'\')"' : '';
     html += '<div class="'+cls+'"'+clk+'>'+d+dot+'</div>';
@@ -1080,10 +1083,12 @@ function mcShowDay(ev, ds){
       + '<span class="pop-amt">'+amt+'</span></a>';
   }).join('');
   rows += ags.map(function(a){
-    var meta = 'Sin venta' + (a.hora?' · '+a.hora:'') + (a.lugar?' · '+a.lugar:'');
+    var blk  = Number(a.bloquea)===1;
+    var meta = (blk?'No disponible':'Sin venta') + (a.hora?' · '+a.hora:'') + (a.lugar?' · '+a.lugar:'');
+    var tag  = blk ? '<span style="margin-left:auto;flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#fee2e2;color:#dc2626">No disponible</span>' : '';
     return '<a class="pop-row" href="'+MC_APP+'/admin/events/create?agenda='+a.id+'">'
-      + '<span class="pop-dot" style="background:#f97316"></span>'
-      + '<span class="pop-info"><span class="pop-name">'+mcEsc(a.titulo)+'</span><span class="pop-meta">'+mcEsc(meta)+'</span></span></a>';
+      + '<span class="pop-dot" style="background:'+(blk?'#dc2626':'#f97316')+'"></span>'
+      + '<span class="pop-info"><span class="pop-name">'+mcEsc(a.titulo)+'</span><span class="pop-meta">'+mcEsc(meta)+'</span></span>'+tag+'</a>';
   }).join('');
   var n = evs.length + ags.length;
   p.innerHTML = '<div class="pop-head"><span>'+head+' &middot; '+n+' evento'+(n>1?'s':'')+'</span>'
