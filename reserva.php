@@ -29,7 +29,7 @@ $errors  = array();
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
+    // Form público embebido en iframe: sin CSRF (igual que solicitud.php); el honeypot protege de bots.
 
     $nombre      = clean(isset($_POST['nombre'])       ? $_POST['nombre']       : '');
     $code        = preg_replace('/\D/', '', isset($_POST['country_code'])  ? $_POST['country_code']  : '51');
@@ -219,7 +219,6 @@ $countryCodes = array(
 
   <form method="post" id="resForm">
     <div class="hp" style="position:absolute;left:-9999px"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-    <?php echo csrfField(); ?>
 
     <div class="prog"><span class="seg done"></span><span class="seg"></span><span class="seg"></span></div>
     <div class="step-lbl" id="stepLbl">Paso 1 de 3 · Tus datos</div>
