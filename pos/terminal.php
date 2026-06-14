@@ -419,10 +419,9 @@ a{color:inherit;text-decoration:none}
 
 /* ── Caja panel ────────────────────────────────────────── */
 #panel-caja, #panel-historial, #panel-clientes{
-  display:none;position:absolute;bottom:var(--btmbar-h);left:0;right:0;
+  display:none;position:fixed;top:var(--topbar-h);bottom:var(--btmbar-h);left:0;right:0;
   background:var(--surface);border-top:1px solid var(--border);z-index:97;
-  padding:18px 20px;flex-direction:column;gap:14px;
-  max-height:calc(100vh - var(--topbar-h) - var(--btmbar-h));overflow-y:auto;
+  padding:18px 20px;flex-direction:column;gap:14px;overflow-y:auto;
 }
 #panel-caja.active, #panel-historial.active, #panel-clientes.active{display:flex}
 /* Mientras un panel está abierto, oculta la barra verde "Ver pedido / COBRAR". */
