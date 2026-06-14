@@ -23,9 +23,11 @@ if (!function_exists('izipayCfg')) {
             return (string) ($env[$eKey] ?? $def);
         };
 
-        $mode = strtoupper($get('izipay_mode', 'IZIPAY_MODE', 'TEST'));
-        if (!in_array($mode, ['TEST', 'PROD'], true)) $mode = 'TEST';
-        $t = $mode === 'TEST';
+        // Solo 'TEST' es modo prueba; cualquier otra cosa (PROD, PRODUCTION, …) = producción.
+        // (Conserva el comportamiento previo: el .env de Lima usa IZIPAY_MODE=PRODUCTION.)
+        $rawMode = strtoupper($get('izipay_mode', 'IZIPAY_MODE', 'TEST'));
+        $t = ($rawMode === 'TEST');
+        $mode = $t ? 'TEST' : 'PROD';
 
         $cfg = [
             'mode'        => $mode,
