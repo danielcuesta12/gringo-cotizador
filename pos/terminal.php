@@ -439,6 +439,7 @@ a{color:inherit;text-decoration:none}
 .hist-total{font-size:15px;font-weight:700;color:var(--yellow);white-space:nowrap}
 .hist-actions{display:flex;gap:6px;flex-shrink:0}
 .hist-actions button,.hist-actions a{font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;text-decoration:none}
+.hist-actions .hist-retry{background:var(--yellow);color:#1E1E1E;border-color:var(--yellow)}
 .hist-comp{font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px}
 .hist-comp.emitido{background:rgba(74,222,128,.15);color:#4ade80}
 .hist-comp.pend{background:rgba(255,223,0,.15);color:var(--yellow)}
@@ -2003,6 +2004,7 @@ function showModalCobro(metodo) {
     + '<button class="btn-buscar-cliente" disabled title="Próximamente (RENIEC/SUNAT)">Buscar</button>'
     + '</div>'
     + '<input type="text" id="cl-nombre" placeholder="Nombre / Razón social">'
+    + '<input type="email" id="cl-email" placeholder="Correo (opcional — recibe el comprobante)" inputmode="email" autocomplete="email">'
     + '</div>'
     + '</div>'
     // Efectivo fields (conditionally shown)
@@ -2065,6 +2067,7 @@ function showModalCobro(metodo) {
       extraData.cliente_tipo = document.getElementById('cl-tipo').value;
       extraData.cliente_documento = document.getElementById('cl-doc').value.trim();
       extraData.cliente_nombre = document.getElementById('cl-nombre').value.trim();
+      extraData.cliente_email = document.getElementById('cl-email').value.trim();
     }
     if (comprobanteTipo === 'factura') {
       extraData.cliente_razon_social = document.getElementById('cl-nombre').value.trim();
@@ -2118,6 +2121,17 @@ function confirmarVenta(metodo, extraData) {
     state.notas = '';
     renderCart();
     refreshTurno();
+    // Feedback de emisión del comprobante electrónico (boleta/factura).
+    var c = res.comprobante;
+    if (c) {
+      if (c.estado === 'emitido') {
+        toast((c.tipo === 'factura' ? 'Factura' : 'Boleta') + ' ' + c.serie + '-' + c.numero + ' emitida', 'ok');
+      } else if (c.estado === 'pendiente') {
+        toast('Comprobante pendiente: ' + (c.error || 'reintenta desde Historial'), 'err');
+      } else if (c.estado === 'error') {
+        toast('Error al emitir: ' + (c.error || 'revisa los datos en Historial'), 'err');
+      }
+    }
     showPrintSnack(res.id);
   }).catch(function() {
     btn.disabled = false;
@@ -2188,6 +2202,9 @@ function renderHistorial(ventas) {
       comp = '<span class="hist-comp ticket">Ticket</span>';
     }
     var pdf = (v.comprobante_estado === 'emitido' && v.comprobante_pdf) ? '<a href="' + esc(v.comprobante_pdf) + '" target="_blank">PDF</a>' : '';
+    var esComp = (v.comprobante_tipo === 'boleta' || v.comprobante_tipo === 'factura');
+    var reintentar = (esComp && (v.comprobante_estado === 'pendiente' || v.comprobante_estado === 'error'))
+      ? '<button class="hist-retry" onclick="reintentarComprobante(' + v.id + ', this)">Reintentar</button>' : '';
     return '<div class="hist-row">'
       + '<div class="hist-info">'
       + '<div class="hist-top"><span class="hist-id">#' + v.id + '</span><span class="hist-hora">' + esc(hora) + '</span></div>'
@@ -2195,11 +2212,26 @@ function renderHistorial(ventas) {
       + '</div>'
       + '<span class="hist-total">' + fmt(v.total) + '</span>'
       + '<div class="hist-actions">'
+      + reintentar
       + '<button onclick="printRawBT(' + v.id + ')">Imprimir</button>'
       + '<button onclick="showTicketModal(' + v.id + ')">Ver</button>'
       + pdf
       + '</div></div>';
   }).join('');
+}
+function reintentarComprobante(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  apiPost('emitir', { pedido_id: id }).then(function(res) {
+    if (res.ok && res.estado === 'emitido') {
+      toast('Emitido: ' + res.serie + '-' + res.numero, 'ok');
+    } else {
+      toast('No se pudo emitir: ' + (res.error || 'reintenta'), 'err');
+    }
+    loadHistorial();
+  }).catch(function() {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reintentar'; }
+    toast('Error de red', 'err');
+  });
 }
 
 function closeCajaPanel() {

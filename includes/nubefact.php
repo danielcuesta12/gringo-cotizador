@@ -239,6 +239,10 @@ if (!function_exists('nubefactEmitir')) {
                 }
             }
 
+            // Correo del cliente: si existe, NubeFact envía el PDF+XML oficial.
+            $clienteEmail = trim((string) ($pedido['cliente_email'] ?? ''));
+            $enviarCliente = $clienteEmail !== '' && filter_var($clienteEmail, FILTER_VALIDATE_EMAIL);
+
             // ---- 6. Payload NubeFact -----------------------------------
             $payload = [
                 'operacion'                            => 'generar_comprobante',
@@ -250,7 +254,7 @@ if (!function_exists('nubefactEmitir')) {
                 'cliente_numero_de_documento'          => $cldoc,
                 'cliente_denominacion'                 => $cldenom,
                 'cliente_direccion'                    => '',
-                'cliente_email'                        => '',
+                'cliente_email'                        => $enviarCliente ? $clienteEmail : '',
                 'fecha_de_emision'                     => date('d-m-Y'),
                 'moneda'                               => 1,
                 'porcentaje_de_igv'                    => round($igvPct, 2),
@@ -258,7 +262,7 @@ if (!function_exists('nubefactEmitir')) {
                 'total_igv'                            => $total_igv,
                 'total'                                => $total,
                 'enviar_automaticamente_a_la_sunat'    => true,
-                'enviar_automaticamente_al_cliente'    => false,
+                'enviar_automaticamente_al_cliente'    => $enviarCliente,
                 'items'                                => $itemsPayload,
             ];
 

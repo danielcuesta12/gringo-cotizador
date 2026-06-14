@@ -72,6 +72,23 @@ function centerLine(string $s): string {
     return str_repeat(' ', $pad) . $s . "\n";
 }
 
+/**
+ * Código QR nativo ESC/POS (GS ( k, modelo 2) — para el QR SUNAT.
+ * $data = cadena_para_codigo_qr que devuelve NubeFact.
+ */
+function escposQR(string $data): string {
+    if ($data === '') return '';
+    $len = strlen($data) + 3;
+    $pL  = $len & 0xFF;
+    $pH  = ($len >> 8) & 0xFF;
+    $out  = "\x1d\x28\x6b\x04\x00\x31\x41\x32\x00"; // modelo 2
+    $out .= "\x1d\x28\x6b\x03\x00\x31\x43\x06";     // tamaño de módulo 6
+    $out .= "\x1d\x28\x6b\x03\x00\x31\x45\x30";     // corrección de errores L
+    $out .= "\x1d\x28\x6b" . chr($pL) . chr($pH) . "\x31\x50\x30" . $data; // almacenar
+    $out .= "\x1d\x28\x6b\x03\x00\x31\x51\x30";     // imprimir
+    return $out;
+}
+
 // ── Logo como imagen raster ESC/POS ─────────────────────────────────────────
 
 function escposLogo(): string {
@@ -209,8 +226,18 @@ if ($numDoc || $nombre) {
 
 // Comprobante
 $compLabels = ['ticket' => 'Ticket', 'boleta' => 'Boleta', 'factura' => 'Factura'];
-$compLabel  = $compLabels[$p['comprobante_tipo'] ?? 'ticket'] ?? 'Ticket';
-$esc .= $compLabel . "\n";
+$compTipoP  = $p['comprobante_tipo'] ?? 'ticket';
+$esComp     = in_array($compTipoP, ['boleta','factura'], true) && ($p['comprobante_estado'] ?? '') === 'emitido';
+if ($esComp) {
+    $titulo   = $compTipoP === 'factura' ? 'FACTURA ELECTRONICA' : 'BOLETA DE VENTA ELECTRONICA';
+    $serieNum = ($p['comprobante_serie'] ?? '') . '-' . str_pad((string)($p['comprobante_numero'] ?? ''), 6, '0', STR_PAD_LEFT);
+    $esc .= ESC_CENTER . ESC_BOLD_ON;
+    $esc .= centerLine($titulo);
+    $esc .= centerLine($serieNum);
+    $esc .= ESC_BOLD_OFF . ESC_LEFT;
+} else {
+    $esc .= ($compLabels[$compTipoP] ?? 'Ticket') . "\n";
+}
 
 // 5. Separador
 $esc .= separator();
@@ -267,6 +294,23 @@ if ($descMonto > 0) {
     $esc .= twoCol('Descuento', '-' . formatMoney($descMonto));
 }
 
+// 8b. Desglose tributario (comprobante electrónico emitido)
+if ($esComp) {
+    $igvPctP   = (float) getSetting('igv_pct', '18'); if ($igvPctP <= 0) $igvPctP = 18.0;
+    $incluidoP = getSetting('igv_incluido', '1') == '1';
+    $totP      = (float) $p['total'];
+    if ($incluidoP) {
+        $gravP = round($totP / (1 + $igvPctP / 100), 2);
+        $igvP  = round($totP - $gravP, 2);
+    } else {
+        $gravP = $totP;
+        $igvP  = round($totP * $igvPctP / 100, 2);
+    }
+    $pctTxt = rtrim(rtrim(number_format($igvPctP, 2, '.', ''), '0'), '.');
+    $esc .= twoCol('GRAVADA', formatMoney($gravP));
+    $esc .= twoCol('IGV (' . $pctTxt . '%)', formatMoney($igvP));
+}
+
 // 9. TOTAL (bold + double height+width)
 $totalStr = formatMoney((float)$p['total']);
 $esc .= ESC_BOLD_ON . ESC_DBLHW;
@@ -285,6 +329,23 @@ if ($notas) {
     $notasAscii = asciiSafe($notas);
     $wrapped    = wordwrap($notasAscii, LINE_WIDTH, "\n", true);
     $esc .= $wrapped . "\n";
+}
+
+// 10b. QR + hash SUNAT (comprobante electrónico emitido)
+if ($esComp) {
+    $esc .= separator();
+    $hashP = trim((string)($p['comprobante_hash'] ?? ''));
+    if ($hashP !== '') $esc .= ESC_LEFT . 'Resumen: ' . asciiSafe($hashP) . "\n";
+    $qrP = trim((string)($p['comprobante_qr'] ?? ''));
+    if ($qrP !== '') {
+        $esc .= "\x1b\x64\x01" . ESC_CENTER . escposQR($qrP) . "\n";
+    }
+    $esc .= ESC_CENTER;
+    $esc .= centerLine('Representacion impresa del');
+    $esc .= centerLine('comprobante electronico');
+    $rucComp = getSetting('company_ruc', '');
+    if ($rucComp) $esc .= centerLine('nubefact.com/' . asciiSafe($rucComp));
+    $esc .= ESC_LEFT;
 }
 
 // 11. Feed + footer centrado

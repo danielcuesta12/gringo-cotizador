@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/nubefact.php';
 
 requireLogin();
 header('Content-Type: application/json; charset=utf-8');
@@ -9,7 +10,7 @@ function pout($d){ echo json_encode($d); exit; }
 
 $action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear','enviar_recibo'];
+$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear','enviar_recibo','emitir'];
 if (in_array($action, $writes, true)) { if (!$isPost) pout(['ok'=>false,'error'=>'Método']); verifyCsrf(); }
 $uid = (int)(currentUser()['id'] ?? 0);
 
@@ -139,6 +140,7 @@ case 'registrar_venta':
     $cNom  = clean($_POST['cliente_nombre'] ?? '');
     $cDoc  = preg_replace('/[^0-9A-Za-z]/', '', (string)($_POST['cliente_documento'] ?? ''));
     $cRaz  = clean($_POST['cliente_razon_social'] ?? '');
+    $cEmail = cleanEmail($_POST['cliente_email'] ?? '');
     $compro = clean($_POST['comprobante_tipo'] ?? 'ticket');
     if (!in_array($compro, ['ticket','boleta','factura'], true)) $compro = 'ticket';
     $notas = clean($_POST['notas_pos'] ?? '');
@@ -149,12 +151,40 @@ case 'registrar_venta':
     $pid = Database::insert(
         "INSERT INTO pedidos (ubicacion_id, nombre, tipo_entrega, items_json, total, estado, metodo_pago, origen, turno_id,
             comprobante_tipo, descuento_tipo, descuento_valor, descuento_monto,
-            cliente_tipo, cliente_nombre, cliente_documento, cliente_razon_social, notas_pos, aceptado_at, horario)
-         VALUES (?,?, 'recojo', ?, ?, 'en_preparacion', ?, 'pos', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'En salón')",
+            cliente_tipo, cliente_nombre, cliente_documento, cliente_razon_social, cliente_email, notas_pos, aceptado_at, horario)
+         VALUES (?,?, 'recojo', ?, ?, 'en_preparacion', ?, 'pos', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'En salón')",
         [$ubi, $nombre, json_encode($clean, JSON_UNESCAPED_UNICODE), $total, $metodo, $tid,
-         $compro, $gdt, $gdv, $gMonto, $cTipo, ($cNom ?: null), ($cDoc ?: null), ($cRaz ?: null), ($notas ?: null)]);
+         $compro, $gdt, $gdv, $gMonto, $cTipo, ($cNom ?: null), ($cDoc ?: null), ($cRaz ?: null), ($cEmail ?: null), ($notas ?: null)]);
     Database::execute("UPDATE pos_turnos SET total_ventas=total_ventas+?, total_pedidos=total_pedidos+1, $bucket=$bucket+? WHERE id=?", [$total, $total, $tid]);
-    pout(['ok'=>true,'id'=>$pid,'total'=>$total]);
+
+    // Auto-emisión del comprobante electrónico (boleta/factura) si NubeFact está configurado.
+    $comp = null;
+    if (in_array($compro, ['boleta','factura'], true) && nubefactConfigurado()) {
+        $r = nubefactEmitir($pid);
+        $comp = [
+            'tipo'   => $compro,
+            'estado' => $r['estado'] ?? ($r['ok'] ? 'emitido' : 'error'),
+            'serie'  => $r['serie'] ?? '',
+            'numero' => $r['numero'] ?? 0,
+            'error'  => $r['error'] ?? '',
+        ];
+    }
+    pout(['ok'=>true,'id'=>$pid,'total'=>$total,'comprobante'=>$comp]);
+
+case 'emitir':
+    $pid = cleanInt($_POST['pedido_id'] ?? 0);
+    if (!$pid) pout(['ok'=>false,'error'=>'Pedido inválido']);
+    $own = Database::fetch("SELECT id FROM pedidos WHERE id=? AND origen='pos'", [$pid]);
+    if (!$own) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
+    if (!nubefactConfigurado()) pout(['ok'=>false,'error'=>'NubeFact no está configurado']);
+    $r = nubefactEmitir($pid);
+    pout([
+        'ok'     => (bool)($r['ok'] ?? false),
+        'estado' => $r['estado'] ?? '',
+        'serie'  => $r['serie'] ?? '',
+        'numero' => $r['numero'] ?? 0,
+        'error'  => $r['error'] ?? '',
+    ]);
 
 case 'producto_mods':
     $pid = cleanInt($_GET['producto_id'] ?? 0);
@@ -219,9 +249,25 @@ case 'enviar_recibo':
         elseif ($dt === 'monto')  $lineTot -= min($lineTot,max(0,$dv));
         $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #eee"><strong>' . $qty . 'x ' . clean($it['nombre'] ?? '') . '</strong>' . $modsHtml . '</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">' . formatMoney($lineTot) . '</td></tr>';
     }
-    $compLabel = ['ticket'=>'Ticket','boleta'=>'Boleta','factura'=>'Factura'][$p['comprobante_tipo']] ?? 'Ticket';
     $num = str_pad((string)$p['id'], 4, '0', STR_PAD_LEFT);
-    $subject = 'Tu comprobante — ' . $emp . ' · Pedido #' . $num;
+    // Si el comprobante electrónico ya está emitido, usamos su título y serie oficiales.
+    $compEmitido = in_array($p['comprobante_tipo'], ['boleta','factura'], true) && ($p['comprobante_estado'] ?? '') === 'emitido';
+    if ($compEmitido) {
+        $serieNum  = ($p['comprobante_serie'] ?? '') . '-' . str_pad((string)($p['comprobante_numero'] ?? ''), 6, '0', STR_PAD_LEFT);
+        $compLabel = ($p['comprobante_tipo'] === 'factura' ? 'Factura Electrónica' : 'Boleta de Venta Electrónica') . ' ' . $serieNum;
+        $subject   = $compLabel . ' — ' . $emp;
+    } else {
+        $compLabel = ['ticket'=>'Ticket','boleta'=>'Boleta','factura'=>'Factura'][$p['comprobante_tipo']] ?? 'Ticket';
+        $subject   = 'Tu comprobante — ' . $emp . ' · Pedido #' . $num;
+    }
+    // Botón al PDF oficial de SUNAT (solo si está emitido y hay enlace).
+    $pdfBtn = '';
+    if ($compEmitido && !empty($p['comprobante_pdf'])) {
+        $pdfBtn = '<div style="margin:22px 0 0;text-align:center">'
+            . '<a href="' . htmlspecialchars($p['comprobante_pdf'], ENT_QUOTES) . '" '
+            . 'style="display:inline-block;background:#FFDF00;color:#1E1E1E;font-weight:800;font-size:14px;'
+            . 'text-decoration:none;padding:13px 26px;border-radius:10px">Descargar comprobante (PDF SUNAT)</a></div>';
+    }
     $descHtml = ((float)($p['descuento_monto'] ?? 0) > 0)
         ? '<tr><td style="padding:4px 0;color:#666">Descuento</td><td style="padding:4px 0;text-align:right;color:#666">- ' . formatMoney((float)$p['descuento_monto']) . '</td></tr>' : '';
     $bodyHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
@@ -238,7 +284,7 @@ case 'enviar_recibo':
     <table width="100%" style="font-size:14px;margin-top:8px">' . $descHtml . '
       <tr><td style="padding:8px 0;font-size:18px;font-weight:800">TOTAL</td><td style="padding:8px 0;text-align:right;font-size:18px;font-weight:800">' . formatMoney((float)$p['total']) . '</td></tr>
       <tr><td style="padding:2px 0;color:#666">Pago</td><td style="padding:2px 0;text-align:right;color:#666">' . clean($p['metodo_pago']) . '</td></tr>
-    </table>
+    </table>' . $pdfBtn . '
     <p style="margin:22px 0 0;font-size:12px;color:#999;line-height:1.5">Este es un correo automático, por favor no respondas a esta dirección.<br>' . clean($emp) . ' · Lima, Perú</p>
   </td></tr>
 </table></td></tr></table></body></html>';
