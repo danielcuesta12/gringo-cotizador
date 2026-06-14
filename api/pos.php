@@ -49,6 +49,12 @@ case 'historial_turno':
          ORDER BY id DESC", [$tid]);
     pout(['ok'=>true,'ventas'=>$ventas]);
 
+case 'consultar_doc':
+    require_once __DIR__ . '/../includes/consulta_doc.php';
+    $tipoDoc = clean($_GET['tipo'] ?? '');
+    $numDoc  = preg_replace('/\D/', '', (string)($_GET['numero'] ?? ''));
+    pout(consultarDocumento($tipoDoc, $numDoc));
+
 case 'clientes_buscar':
     $q = trim((string)($_GET['q'] ?? ''));
     $where  = "origen='pos' AND cliente_documento IS NOT NULL AND cliente_documento <> '' AND estado <> 'cancelado'";

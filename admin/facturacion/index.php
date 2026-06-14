@@ -31,6 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     setSetting('igv_pct',     (string) ($igvPct > 0 ? $igvPct : 18));
     setSetting('igv_incluido', isset($_POST['igv_incluido']) ? '1' : '0');
 
+    // Consulta DNI/RUC (RENIEC/SUNAT) — token + endpoints (crudos, sin htmlspecialchars).
+    setSetting('doc_api_token', trim((string)($_POST['doc_api_token'] ?? '')));
+    $dniUrl = trim((string)($_POST['doc_api_dni_url'] ?? ''));
+    $rucUrl = trim((string)($_POST['doc_api_ruc_url'] ?? ''));
+    setSetting('doc_api_dni_url', $dniUrl !== '' ? $dniUrl : 'https://api.apis.net.pe/v2/reniec/dni?numero={n}');
+    setSetting('doc_api_ruc_url', $rucUrl !== '' ? $rucUrl : 'https://api.apis.net.pe/v2/sunat/ruc?numero={n}');
+
     flashMessage('success', 'Configuración de facturación guardada correctamente.');
     redirect('/admin/facturacion/index.php');
 }
@@ -45,6 +52,10 @@ $numBol      = getSetting('nubefact_num_boleta', '1');
 $numFac      = getSetting('nubefact_num_factura', '1');
 $igvPct      = getSetting('igv_pct', '18');
 $igvIncluido = getSetting('igv_incluido', '1');
+
+$docToken    = getSetting('doc_api_token', '');
+$docDniUrl   = getSetting('doc_api_dni_url', 'https://api.apis.net.pe/v2/reniec/dni?numero={n}');
+$docRucUrl   = getSetting('doc_api_ruc_url', 'https://api.apis.net.pe/v2/sunat/ruc?numero={n}');
 
 $companyRuc   = getSetting('company_ruc', '');
 $companyName  = getSetting('company_name', '');
@@ -139,6 +150,39 @@ include __DIR__ . '/../layout-top.php';
           El emisor real de los comprobantes es la cuenta configurada en NubeFact.
           Estos datos provienen de <a href="<?= APP_URL ?>/admin/settings/index.php">Configuración</a>.
         </div>
+      </div>
+    </div>
+
+    <!-- Consulta DNI / RUC -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Consulta DNI / RUC (RENIEC · SUNAT)</span></div>
+      <div class="card-body">
+
+        <div class="form-group">
+          <label>Token de <a href="https://apis.net.pe" target="_blank" rel="noopener">apis.net.pe</a></label>
+          <input type="password" name="doc_api_token"
+                 value="<?= clean($docToken) ?>"
+                 placeholder="Token de tu cuenta apis.net.pe" autocomplete="off">
+          <div class="form-hint">
+            Crea una cuenta en apis.net.pe, genera un token y pégalo aquí. Con esto el POS
+            autocompleta el nombre al escribir el DNI/RUC en el cobro. Las consultas de DNI
+            tienen costo según tu plan del proveedor.
+          </div>
+        </div>
+
+        <details>
+          <summary style="cursor:pointer;font-size:13px;color:var(--text-muted)">Endpoints (avanzado)</summary>
+          <div class="form-group" style="margin-top:12px">
+            <label>URL consulta DNI</label>
+            <input type="text" name="doc_api_dni_url" value="<?= clean($docDniUrl) ?>">
+          </div>
+          <div class="form-group">
+            <label>URL consulta RUC</label>
+            <input type="text" name="doc_api_ruc_url" value="<?= clean($docRucUrl) ?>">
+          </div>
+          <div class="form-hint">Usa <code>{n}</code> donde va el número. Cámbialos solo si usas otro proveedor.</div>
+        </details>
+
       </div>
     </div>
 

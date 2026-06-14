@@ -2021,7 +2021,7 @@ function showModalCobro(metodo) {
     + '<div class="cf-row">'
     + '<select id="cl-tipo" style="flex:0 0 80px"><option value="dni">DNI</option><option value="ruc">RUC</option></select>'
     + '<input type="text" id="cl-doc" placeholder="Número de documento" inputmode="numeric" maxlength="11">'
-    + '<button class="btn-buscar-cliente" disabled title="Próximamente (RENIEC/SUNAT)">Buscar</button>'
+    + '<button class="btn-buscar-cliente" id="cl-buscar" type="button" title="Consultar RENIEC/SUNAT">Buscar</button>'
     + '</div>'
     + '<input type="text" id="cl-nombre" placeholder="Nombre / Razón social">'
     + '<input type="email" id="cl-email" placeholder="Correo (opcional — recibe el comprobante)" inputmode="email" autocomplete="email">'
@@ -2073,6 +2073,36 @@ function showModalCobro(metodo) {
     var clNom = document.getElementById('cl-nombre'); if (clNom) clNom.value = cs.nombre || '';
     var clEmail = document.getElementById('cl-email'); if (clEmail) clEmail.value = cs.email || '';
   }
+
+  // Consulta RENIEC/SUNAT: autocompleta nombre/razón social desde DNI/RUC.
+  var docInput = document.getElementById('cl-doc');
+  var buscarBtn = document.getElementById('cl-buscar');
+  function consultarDoc(silent) {
+    var tipo = document.getElementById('cl-tipo').value;
+    var num = docInput.value.replace(/\D/g, '');
+    var len = (tipo === 'ruc') ? 11 : 8;
+    if (num.length !== len) { if (!silent) toast('Documento incompleto', 'err'); return; }
+    var key = tipo + ':' + num;
+    if (docInput.dataset.last === key) return; // ya consultado
+    docInput.dataset.last = key;
+    buscarBtn.disabled = true; buscarBtn.textContent = '…';
+    apiGet('consultar_doc', { tipo: tipo, numero: num }).then(function(res) {
+      buscarBtn.disabled = false; buscarBtn.textContent = 'Buscar';
+      if (!res.ok) { docInput.dataset.last = ''; toast(res.error || 'No encontrado', 'err'); return; }
+      document.getElementById('cl-nombre').value = res.nombre || '';
+      toast('Datos cargados', 'ok');
+    }).catch(function() {
+      buscarBtn.disabled = false; buscarBtn.textContent = 'Buscar';
+      docInput.dataset.last = '';
+      toast('Error de red', 'err');
+    });
+  }
+  buscarBtn.addEventListener('click', function() { consultarDoc(false); });
+  docInput.addEventListener('input', function() {
+    var tipo = document.getElementById('cl-tipo').value;
+    var num = docInput.value.replace(/\D/g, '');
+    if ((tipo === 'ruc' && num.length === 11) || (tipo === 'dni' && num.length === 8)) consultarDoc(true);
+  });
 
   if (isEfectivo) {
     var input = document.getElementById('modal-recibido');
