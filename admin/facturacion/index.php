@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     setSetting('nubefact_num_boleta',  (string) ($numBol >= 1 ? $numBol : 1));
     setSetting('nubefact_num_factura', (string) ($numFac >= 1 ? $numFac : 1));
 
-    $igvPct = cleanInt($_POST['igv_pct'] ?? 18);
+    $igvPct = cleanFloat($_POST['igv_pct'] ?? 18);
     setSetting('igv_pct',     (string) ($igvPct > 0 ? $igvPct : 18));
     setSetting('igv_incluido', isset($_POST['igv_incluido']) ? '1' : '0');
 
@@ -193,7 +193,7 @@ include __DIR__ . '/../layout-top.php';
 
         <div class="form-group">
           <label>Porcentaje de IGV (%)</label>
-          <input type="number" name="igv_pct" min="0" step="1"
+          <input type="number" name="igv_pct" min="0" max="18" step="0.01" inputmode="decimal"
                  value="<?= clean($igvPct) ?>">
         </div>
 
