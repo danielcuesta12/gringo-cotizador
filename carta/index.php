@@ -4,8 +4,17 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
 $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['slug'] ?? '');
-$ubi  = $slug ? Database::fetch("SELECT * FROM ubicaciones WHERE slug = ? AND activa = 1", [$slug]) : null;
-if (!$ubi) { http_response_code(404); echo 'Carta no encontrada.'; exit; }
+// Sin slug → selector de tienda.
+if ($slug === '') { header('Location: ' . APP_URL . '/carta/selector.php'); exit; }
+$ubi  = Database::fetch("SELECT * FROM ubicaciones WHERE slug = ? AND activa = 1", [$slug]);
+if (!$ubi) {
+    // Slug inválido: limpia la elección recordada y manda al selector (sin loop).
+    http_response_code(404);
+    $selUrl = APP_URL . '/carta/selector.php';
+    echo '<!DOCTYPE html><meta charset="utf-8"><script>try{localStorage.removeItem("carta_ubi")}catch(e){}location.replace(' . json_encode($selUrl) . ');</script>'
+       . 'Carta no encontrada. <a href="' . htmlspecialchars($selUrl) . '">Elegir tienda</a>';
+    exit;
+}
 $ubiId     = (int) $ubi['id'];
 $salesMode = $ubi['sales_mode'];
 $base      = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
@@ -621,10 +630,18 @@ if ($salesMode === 'izipay') {
 <script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>
 <script src="<?= APP_URL ?>/assets/js/track.js?v=<?= @filemtime(__DIR__ . '/../assets/js/track.js') ?>"></script>
 
+  <script>try{localStorage.setItem('carta_ubi','<?= htmlspecialchars($ubi['slug'], ENT_QUOTES) ?>')}catch(e){}</script>
   <header>
     <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
     <div id="schedule-badge" class="schedule-badge"></div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <a href="<?= APP_URL ?>/carta/selector.php"
+         onclick="try{localStorage.removeItem('carta_ubi')}catch(e){}"
+         title="Cambiar de tienda"
+         style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:inherit;text-decoration:none;opacity:.85;border:1px solid currentColor;border-radius:999px;padding:5px 11px;white-space:nowrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+        <?= clean($ubi['nombre']) ?>
+      </a>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" type="button">
         <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
