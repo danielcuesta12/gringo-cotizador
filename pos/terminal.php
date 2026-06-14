@@ -1610,6 +1610,9 @@ function renderCart() {
       var dLbl = line.desc_tipo === 'porcentaje' ? ' (' + (parseFloat(line.desc_valor) || 0) + '%)' : '';
       subLines += '<div class="cart-line-disc">Desc. −' + fmt(dAmt) + dLbl + '</div>';
     }
+    if (line.precio_custom) {
+      subLines += '<div class="cart-line-disc">Precio especial · normal ' + fmt(line.precio_normal) + '</div>';
+    }
     return '<div class="cart-line" data-idx="' + idx + '">'
       + '<div class="cart-line-info" data-idx="' + idx + '">'
       + '<div class="cart-line-name">' + esc(line.nombre) + '</div>'
@@ -1734,6 +1737,12 @@ function abrirItemModal(prod, lineIdx) {
   var descValor = isEditing ? (prod.desc_valor || 0) : 0;
   var selectedMods = isEditing ? (prod.modificadores || []) : [];
 
+  // Precio de catálogo (fijo) y precio actual de la línea (puede ser personalizado).
+  var precioCatalogo = parseFloat(prod.precio);
+  var _cat = (state.productos || []).find(function(p) { return p.id == prod.id; });
+  if (_cat && _cat.precio != null) precioCatalogo = parseFloat(_cat.precio);
+  var precioActual = parseFloat(prod.precio);
+
   var modal = document.getElementById('modal-content');
   modal.innerHTML = '<div class="item-modal-name">' + esc(prod.nombre) + '</div>'
     + '<div class="item-qty-row">'
@@ -1741,6 +1750,17 @@ function abrirItemModal(prod, lineIdx) {
     + '<span class="item-qty-val" id="im-qty">' + qty + '</span>'
     + '<button class="item-qty-btn" id="im-plus">+</button>'
     + '<span class="item-price-live" id="im-price">' + fmt(qty * parseFloat(prod.precio)) + '</span>'
+    + '</div>'
+    + '<div>'
+    + '<label style="display:block;margin-bottom:6px">Precio unitario</label>'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<div style="position:relative;flex:1">'
+    + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--text2)">S/</span>'
+    + '<input id="im-precio" type="text" inputmode="decimal" value="' + precioActual.toFixed(2) + '" style="width:100%;padding:11px 13px 11px 36px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text);font-size:17px;font-weight:700;outline:none">'
+    + '</div>'
+    + '<button type="button" id="im-precio-reset" title="Volver al precio normal" style="flex:0 0 auto;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:9px;padding:11px 14px;font-weight:800;cursor:pointer">Normal</button>'
+    + '</div>'
+    + '<div id="im-precio-normal" style="font-size:12px;color:var(--text2);margin-top:5px;display:none"></div>'
     + '</div>'
     + '<div>'
     + '<label style="display:block;margin-bottom:6px">Nota del ítem</label>'
@@ -1775,11 +1795,21 @@ function abrirItemModal(prod, lineIdx) {
     selectedMods: selectedMods.slice()
   };
 
+  // Precio unitario vigente (input editable; vuelve al catálogo si está vacío/ inválido).
+  function currentUnitPrice() {
+    var el = document.getElementById('im-precio');
+    var v = el ? parseFloat(el.value) : NaN;
+    return (isNaN(v) || v < 0) ? precioCatalogo : v;
+  }
+  function isPrecioCustom() {
+    return Math.abs(currentUnitPrice() - precioCatalogo) > 0.001;
+  }
+
   function calcLinePriceModal() {
     var modSum = modalState.selectedMods.reduce(function(a, m) {
       return a + (parseFloat(m.precio) || 0);
     }, 0);
-    var base = modalState.qty * (parseFloat(prod.precio) + modSum);
+    var base = modalState.qty * (currentUnitPrice() + modSum);
     var dv = parseFloat(document.getElementById('im-disc-val').value) || 0;
     if (modalState.descTipo === 'porcentaje') {
       base = base * (1 - dv / 100);
@@ -1792,7 +1822,7 @@ function abrirItemModal(prod, lineIdx) {
   // Cuánto se está descontando en el modal (soles), 0 si no hay descuento
   function modalDiscAmount() {
     var modSum = modalState.selectedMods.reduce(function(a, m) { return a + (parseFloat(m.precio) || 0); }, 0);
-    var gross = modalState.qty * (parseFloat(prod.precio) + modSum);
+    var gross = modalState.qty * (currentUnitPrice() + modSum);
     var dv = parseFloat(document.getElementById('im-disc-val').value) || 0;
     if (dv <= 0) return 0;
     if (modalState.descTipo === 'porcentaje') return gross * dv / 100;
@@ -1860,6 +1890,27 @@ function abrirItemModal(prod, lineIdx) {
   });
   syncDiscToggle(); // estado inicial: activo solo si el ítem ya trae descuento
 
+  // ── Precio personalizado (excluyente con el descuento) ──
+  function updatePrecioUI() {
+    var custom = isPrecioCustom();
+    var hint = document.getElementById('im-precio-normal');
+    if (hint) {
+      if (custom) { hint.textContent = 'Precio especial · normal ' + fmt(precioCatalogo); hint.style.display = 'block'; }
+      else { hint.style.display = 'none'; }
+    }
+    var dval = document.getElementById('im-disc-val');
+    [document.getElementById('im-disc-pct'), document.getElementById('im-disc-mnt'), dval].forEach(function(el) { if (el) el.disabled = custom; });
+    var discRow = document.querySelector('.item-disc-row');
+    if (discRow) discRow.style.opacity = custom ? '.4' : '1';
+    if (custom && dval) dval.value = '';
+  }
+  document.getElementById('im-precio').addEventListener('input', function() { updateModalPrice(); updatePrecioUI(); });
+  document.getElementById('im-precio-reset').addEventListener('click', function() {
+    document.getElementById('im-precio').value = precioCatalogo.toFixed(2);
+    updateModalPrice(); updatePrecioUI();
+  });
+  updatePrecioUI();
+
   if (isEditing) {
     document.getElementById('im-del').addEventListener('click', function() {
       state.cart.splice(lineIdx, 1);
@@ -1869,13 +1920,17 @@ function abrirItemModal(prod, lineIdx) {
   }
   document.getElementById('im-cancel').addEventListener('click', closeModal);
   document.getElementById('im-confirm').addEventListener('click', function() {
-    var dv = parseFloat(document.getElementById('im-disc-val').value) || 0;
+    var unit = currentUnitPrice();
+    var custom = isPrecioCustom();
+    var dv = custom ? 0 : (parseFloat(document.getElementById('im-disc-val').value) || 0);
     var notaVal = document.getElementById('im-nota').value.trim();
     var line = {
       id: prod.id,
       qty: modalState.qty,
       nombre: prod.nombre,
-      precio: parseFloat(prod.precio),
+      precio: unit,
+      precio_normal: precioCatalogo,
+      precio_custom: custom,
       modificadores: modalState.selectedMods.slice(),
       nota: notaVal,
       desc_tipo: dv > 0 ? modalState.descTipo : null,
