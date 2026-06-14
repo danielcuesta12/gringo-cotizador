@@ -287,13 +287,31 @@ function brandHead(): string
     $d = brandColor('brand_dark');       // oscuro (negro/tinta)
     if ($p === '' && $s === '' && $d === '') return '';
 
+    // hex → "r,g,b" (para tints rgba) y oscurecido (para hovers).
+    $rgb = function (string $hex): string {
+        $hex = ltrim($hex, '#');
+        return hexdec(substr($hex, 0, 2)) . ',' . hexdec(substr($hex, 2, 2)) . ',' . hexdec(substr($hex, 4, 2));
+    };
+    $dark = function (string $hex, float $f = 0.82): string {
+        $hex = ltrim($hex, '#');
+        return sprintf('#%02x%02x%02x',
+            (int) round(hexdec(substr($hex, 0, 2)) * $f),
+            (int) round(hexdec(substr($hex, 2, 2)) * $f),
+            (int) round(hexdec(substr($hex, 4, 2)) * $f));
+    };
+
     $root = '';
-    if ($p !== '') $root .= "--yellow:$p;--brand:$p;--accent:$p;";
-    if ($s !== '') $root .= "--pink:$s;--accent-pink:$s;";
+    if ($p !== '') {
+        $pr = $rgb($p); $pd = $dark($p);
+        $root .= "--yellow:$p;--yellow-dk:$pd;";                                    // POS
+        $root .= "--brand:$p;--brand-dark:$pd;--brand-soft:rgba($pr,.12);--brand-border:rgba($pr,.30);"; // admin
+        $root .= "--accent:$p;--accent-ink:#fff;--accent-tint:rgba($pr,.15);--accent-tint-strong:rgba($pr,.7);"; // carta
+    }
+    if ($s !== '') { $sr = $rgb($s); $root .= "--pink:$s;--accent-pink:$s;--pink-tint:rgba($sr,.2);"; }
     if ($d !== '') $root .= "--black:$d;";
     $css = ":root{{$root}}";
     // Carta: --accent y --pink están definidos por tema (más específico que :root).
-    if ($p !== '') $css .= "html[data-theme=\"noche\"]{--accent:$p}";
+    if ($p !== '') $css .= "html[data-theme=\"noche\"]{--accent:$p;--accent-tint:rgba(" . $rgb($p) . ",.15);--accent-tint-strong:rgba(" . $rgb($p) . ",.7)}";
     if ($d !== '') $css .= "html[data-theme=\"dia\"]{--accent:$d}";
     if ($s !== '') $css .= "html[data-theme=\"noche\"]{--pink:$s}html[data-theme=\"dia\"]{--pink:$s}";
 
