@@ -15,14 +15,18 @@ if (empty($estados)) $estados = ['pendiente', 'en_preparacion'];
 
 $ph = implode(',', array_fill(0, count($estados), '?'));
 try {
+    // Gating: los pedidos de WhatsApp (carta) sin pagar no entran a cocina hasta
+    // que el cajero los acepte (pasan a 'en_preparacion'). Izipay y POS nacen ya
+    // en 'en_preparacion', así que no se ven afectados.
+    $gate = " AND NOT (p.metodo_pago = 'whatsapp' AND p.estado = 'pendiente')";
     if ($ubi > 0) {
         $sql = "SELECT p.*, TIMESTAMPDIFF(SECOND, p.aceptado_at, NOW()) AS elapsed_seconds
-                FROM pedidos p WHERE p.estado IN ($ph) AND p.ubicacion_id = ?
+                FROM pedidos p WHERE p.estado IN ($ph)$gate AND p.ubicacion_id = ?
                 ORDER BY p.created_at ASC LIMIT $limite";
         $rows = Database::fetchAll($sql, array_merge($estados, [$ubi]));
     } else {
         $sql = "SELECT p.*, TIMESTAMPDIFF(SECOND, p.aceptado_at, NOW()) AS elapsed_seconds
-                FROM pedidos p WHERE p.estado IN ($ph)
+                FROM pedidos p WHERE p.estado IN ($ph)$gate
                 ORDER BY p.created_at ASC LIMIT $limite";
         $rows = Database::fetchAll($sql, $estados);
     }
