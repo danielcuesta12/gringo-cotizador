@@ -18,7 +18,7 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 <meta name="apple-mobile-web-app-title" content="POS">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#161412">
-<link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
+<link rel="apple-touch-icon" href="<?= appIcon(APP_URL.'/assets/img/favicon-180.png') ?>">
 <link rel="manifest" href="<?= APP_URL ?>/manifest.php?app=pos">
 <title>EL GRINGO · POS</title>
 <style>

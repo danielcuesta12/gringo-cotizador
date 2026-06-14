@@ -64,6 +64,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setSetting('company_logo_b', '');
     }
 
+    // Ícono de la app (favicon / PWA) — cuadrado, idealmente 512x512.
+    if (!empty($_FILES['app_icon']['name'])) {
+        $uploaded = uploadImage($_FILES['app_icon'], 'logos');
+        if ($uploaded) {
+            $old = getSetting('app_icon');
+            if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+            setSetting('app_icon', $uploaded);
+        } else {
+            $errors[] = 'Error al subir el ícono. Usa JPG, PNG o WebP (máx. 2MB).';
+        }
+    }
+    if (isset($_POST['remove_app_icon'])) {
+        $old = getSetting('app_icon');
+        if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+        setSetting('app_icon', '');
+    }
+
     // Guardar cuentas bancarias
     Database::execute("DELETE FROM bank_accounts WHERE 1=1");
     $bankNames = isset($_POST['bank_name']) ? $_POST['bank_name'] : array();
@@ -380,6 +397,36 @@ include __DIR__ . '/../layout-top.php';
               <div style="font-size:11px;color:var(--text-muted)">PNG transparente · Máx. 2MB</div>
               <input type="file" id="logoInputB" name="company_logo_b" accept="image/*" style="display:none"
                      onchange="previewLogo(this,'logoBPreview','logoBEmpty')">
+            </label>
+          </div>
+        </div>
+
+        <!-- Ícono de la app (favicon / PWA) -->
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:10px 14px;background:#fafafa;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:600">Ícono de la app (favicon / PWA)</span>
+            <?php if ($cfg['app_icon'] ?? ''): ?>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#dc2626">
+              <input type="checkbox" name="remove_app_icon" value="1" style="accent-color:#dc2626"> Eliminar
+            </label>
+            <?php endif; ?>
+          </div>
+          <div style="padding:12px 14px">
+            <?php if ($cfg['app_icon'] ?? ''): ?>
+            <div style="background:#f5f5f0;border-radius:8px;padding:12px;text-align:center;margin-bottom:10px">
+              <img src="<?= UPLOAD_URL . clean($cfg['app_icon']) ?>" style="max-height:60px;max-width:60px;object-fit:contain;border-radius:10px" id="iconPreview">
+            </div>
+            <?php else: ?>
+            <div style="background:#f5f5f0;border-radius:8px;padding:12px;text-align:center;margin-bottom:10px;min-height:50px">
+              <img id="iconPreview" src="" style="max-height:60px;max-width:60px;object-fit:contain;display:none">
+              <span id="iconEmpty" style="font-size:12px;color:#aaa">Usa el ícono por defecto</span>
+            </div>
+            <?php endif; ?>
+            <label class="img-upload-box" for="iconInput" style="padding:10px">
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary)"><span class="upload-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></span>Subir ícono</div>
+              <div style="font-size:11px;color:var(--text-muted)">Cuadrado (512×512) · PNG · Máx. 2MB · favicon + ícono al instalar</div>
+              <input type="file" id="iconInput" name="app_icon" accept="image/*" style="display:none"
+                     onchange="previewLogo(this,'iconPreview','iconEmpty')">
             </label>
           </div>
         </div>

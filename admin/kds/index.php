@@ -22,10 +22,10 @@ $csrf    = csrfToken();
 <meta name="apple-mobile-web-app-title" content="KDS">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#161412">
-<link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
+<link rel="apple-touch-icon" href="<?= appIcon(APP_URL.'/assets/img/favicon-180.png') ?>">
 <link rel="manifest" href="<?= APP_URL ?>/manifest.php?app=kds">
 <title>KDS · El Gringo</title>
-<link rel="icon" href="<?= APP_URL ?>/assets/img/favicon.png">
+<link rel="icon" href="<?= appIcon(APP_URL.'/assets/img/favicon.png') ?>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}body{background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
 #ks{display:flex;flex-direction:column;min-height:100vh}

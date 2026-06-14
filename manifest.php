@@ -1,19 +1,22 @@
 <?php
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 header('Content-Type: application/manifest+json; charset=utf-8');
 
 $app = $_GET['app'] ?? 'pos';
+$marca = getSetting('company_name', 'Mi Restaurante');
 
 $apps = [
     'pos' => [
-        'name'        => 'El Gringo POS',
+        'name'        => $marca . ' POS',
         'short_name'  => 'POS',
         'start_url'   => APP_URL . '/pos/terminal.php',
         'theme_color' => '#161412',
     ],
     'kds' => [
-        'name'        => 'El Gringo KDS',
+        'name'        => $marca . ' KDS',
         'short_name'  => 'KDS',
         'start_url'   => APP_URL . '/admin/kds/index.php',
         'theme_color' => '#161412',
@@ -42,9 +45,9 @@ $manifest = [
     'theme_color'      => $cfg['theme_color'],
     'scope'            => APP_URL . '/',
     'icons'            => [
-        ['src' => APP_URL . '/assets/img/favicon-180.png', 'sizes' => '180x180', 'type' => 'image/png', 'purpose' => 'any'],
-        ['src' => APP_URL . '/assets/img/favicon-180.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-        ['src' => APP_URL . '/assets/img/favicon-180.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+        ['src' => appIcon(APP_URL . '/assets/img/favicon-180.png'), 'sizes' => '180x180', 'type' => 'image/png', 'purpose' => 'any'],
+        ['src' => appIcon(APP_URL . '/assets/img/favicon-180.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+        ['src' => appIcon(APP_URL . '/assets/img/favicon-180.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
     ],
 ];
 

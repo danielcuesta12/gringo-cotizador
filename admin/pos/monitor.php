@@ -29,7 +29,7 @@ function inlineSvgGrip() {
 <meta name="apple-mobile-web-app-title" content="Ventas">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#161412">
-<link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
+<link rel="apple-touch-icon" href="<?= appIcon(APP_URL.'/assets/img/favicon-180.png') ?>">
 <link rel="manifest" href="<?= APP_URL ?>/manifest.php?app=monitor">
 <title>Ventas en vivo · El Gringo</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

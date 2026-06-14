@@ -257,6 +257,17 @@ function mailFrom(string $area): string
     return $area . '@' . mailDomain();
 }
 
+/**
+ * URL del ícono de la app (favicon / apple-touch / PWA). Configurable en Ajustes
+ * vía 'app_icon'; si no hay, devuelve el $fallback (el ícono original de la página)
+ * para que la instancia base se vea idéntica.
+ */
+function appIcon(string $fallback): string
+{
+    $rel = trim((string) getSetting('app_icon', ''));
+    return $rel !== '' ? UPLOAD_URL . $rel : $fallback;
+}
+
 // ------------------------------------------------------------
 // TOKENS PÚBLICOS
 // ------------------------------------------------------------

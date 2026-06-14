@@ -31,7 +31,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FCDA13">
-<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
 <title>El Gringo Burger Joint</title>
 <style>
   :root{ --bg:<?= htmlspecialchars($bgColor) ?>; --card:<?= htmlspecialchars($cardColor) ?>; --line:rgba(0,0,0,.14); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:<?= htmlspecialchars($textColor) ?>; --muted:<?= $mutedRgba ?>; }

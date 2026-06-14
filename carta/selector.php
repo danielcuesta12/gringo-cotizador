@@ -26,7 +26,7 @@ function horaLabel(int $h): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>El Gringo — Elige tu tienda</title>
-<link rel="icon" href="<?= APP_URL ?>/assets/img/favicon-180.png">
+<link rel="icon" href="<?= appIcon(APP_URL.'/assets/img/favicon-180.png') ?>">
 <script>
   // Tema (compartido con la carta) + auto-salto si ya eligió tienda antes.
   (function () {

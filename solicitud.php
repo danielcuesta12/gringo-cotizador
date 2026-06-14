@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
 <title>Cotiza tu evento — El Gringo</title>
 <?php
 require_once __DIR__ . '/config/config.php';
