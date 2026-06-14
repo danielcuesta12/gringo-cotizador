@@ -638,7 +638,7 @@ if ($salesMode === 'izipay') {
       <a href="<?= APP_URL ?>/carta/selector.php"
          onclick="try{localStorage.removeItem('carta_ubi')}catch(e){}"
          title="Cambiar de tienda"
-         style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:inherit;text-decoration:none;opacity:.85;border:1px solid currentColor;border-radius:999px;padding:5px 11px;white-space:nowrap">
+         style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--header-text);text-decoration:none;border:1.5px solid var(--header-text);border-radius:999px;padding:5px 11px;white-space:nowrap">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
         <?= clean($ubi['nombre']) ?>
       </a>
