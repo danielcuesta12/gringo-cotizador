@@ -1,6 +1,6 @@
 # Facturación de pedidos de la carta + multi-local — Diseño
 
-> Estado: **aprobado, pendiente de implementar.** Fecha: 2026-06-14.
+> Estado: **IMPLEMENTADO** (6 fases). Fecha: 2026-06-14.
 > Resume toda la conversación de diseño. Es la fuente de verdad para construir.
 
 ## Objetivo
