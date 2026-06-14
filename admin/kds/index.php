@@ -82,7 +82,8 @@ $csrf    = csrfToken();
 @media(min-width:769px){body.hist-open #kg{margin-right:320px}}
 @media(max-width:768px){#hist-panel{top:auto;bottom:0;left:0;right:0;width:100%;height:70vh;border-left:none;border-top:1px solid #2a2a2a;border-radius:16px 16px 0 0;transform:translateY(100%)}#hist-panel.open{transform:translateY(0)}.hist-handle{display:block;width:40px;height:4px;border-radius:2px;background:#444;margin:8px auto 0}}
 @media(prefers-reduced-motion:reduce){#hist-panel,#hist-overlay,#kg{transition:none}}
-</style></head><body>
+</style><?= brandHead() ?>
+</head><body>
 <div id="ks">
   <div class="kt">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

@@ -751,6 +751,7 @@ body.panel-open #ver-pedido-bar{display:none !important}
 .picker-item-precio{font-size:12px;color:var(--yellow);font-weight:700}
 .picker-empty{font-size:13px;color:var(--muted);text-align:center;padding:20px 0}
 </style>
+<?= brandHead() ?>
 </head>
 <body>
 

@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'default_terms','default_observations','whatsapp_number',
         'pdf_primary_color','pdf_secondary_color',
         'mail_domain','mail_cotizaciones_replyto',
+        'brand_primary','brand_secondary','brand_dark',
     ];
 
     foreach ($fields as $k) {
@@ -542,6 +543,32 @@ include __DIR__ . '/../layout-top.php';
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Colores de la app (white-label) -->
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></span>Colores de la app</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Colores de marca de la carta, POS y panel. <strong>Déjalos vacíos para usar los colores por defecto.</strong></p>
+        <?php
+          $brandRows = [
+            ['brand_primary',   'Color primario',   '#FFDF00', 'Botones, acentos, resaltados'],
+            ['brand_secondary', 'Color secundario', '#FFBBC8', 'Rosa de marca'],
+            ['brand_dark',      'Color oscuro',     '#1E1E1E', 'Texto / cabeceras'],
+          ];
+          foreach ($brandRows as [$k, $lbl, $def, $hint]):
+            $cur = clean($cfg[$k] ?? '');
+        ?>
+        <div class="form-group">
+          <label><?= $lbl ?></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" value="<?= $cur ?: $def ?>" oninput="this.nextElementSibling.value=this.value.toUpperCase()" style="width:46px;height:40px;padding:3px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+            <input type="text" name="<?= $k ?>" value="<?= $cur ?>" placeholder="<?= $def ?> (default)" style="flex:1" maxlength="7">
+          </div>
+          <div class="form-hint"><?= $hint ?></div>
+        </div>
+        <?php endforeach; ?>
       </div>
     </div>
 

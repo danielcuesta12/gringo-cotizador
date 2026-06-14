@@ -98,6 +98,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 </style>
 <?php endif; ?>
 <style>.foot{color:<?= htmlspecialchars($footColor) ?>}</style>
+<?= brandHead() ?>
 </head>
 <body>
 <div class="wrap">

@@ -268,6 +268,38 @@ function appIcon(string $fallback): string
     return $rel !== '' ? UPLOAD_URL . $rel : $fallback;
 }
 
+/** Devuelve un color de marca configurado solo si es un hex válido (#RRGGBB), o ''. */
+function brandColor(string $key): string
+{
+    $v = trim((string) getSetting($key, ''));
+    return preg_match('/^#[0-9A-Fa-f]{6}$/', $v) ? $v : '';
+}
+
+/**
+ * Bloque <style> que sobreescribe las variables de color de marca (POS/admin/carta)
+ * SOLO si el cliente configuró colores. Si no hay ninguno, devuelve '' → la instancia
+ * base (El Gringo) se ve EXACTAMENTE igual. Se incluye al final del <head>.
+ */
+function brandHead(): string
+{
+    $p = brandColor('brand_primary');    // primario (amarillo)
+    $s = brandColor('brand_secondary');  // secundario (rosa)
+    $d = brandColor('brand_dark');       // oscuro (negro/tinta)
+    if ($p === '' && $s === '' && $d === '') return '';
+
+    $root = '';
+    if ($p !== '') $root .= "--yellow:$p;--brand:$p;--accent:$p;";
+    if ($s !== '') $root .= "--pink:$s;--accent-pink:$s;";
+    if ($d !== '') $root .= "--black:$d;";
+    $css = ":root{{$root}}";
+    // Carta: --accent y --pink están definidos por tema (más específico que :root).
+    if ($p !== '') $css .= "html[data-theme=\"noche\"]{--accent:$p}";
+    if ($d !== '') $css .= "html[data-theme=\"dia\"]{--accent:$d}";
+    if ($s !== '') $css .= "html[data-theme=\"noche\"]{--pink:$s}html[data-theme=\"dia\"]{--pink:$s}";
+
+    return "<style id=\"brand-override\">$css</style>\n";
+}
+
 // ------------------------------------------------------------
 // TOKENS PÚBLICOS
 // ------------------------------------------------------------

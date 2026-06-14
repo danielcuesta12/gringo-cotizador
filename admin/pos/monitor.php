@@ -303,6 +303,7 @@ a{color:inherit;text-decoration:none}
 }
 #mon-toast.show{opacity:1}
 </style>
+<?= brandHead() ?>
 </head>
 <body>
 

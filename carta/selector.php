@@ -130,6 +130,7 @@ function horaLabel(int $h): string {
   .foot{ text-align:center; font-size:12px; color:var(--muted); margin-top:26px; line-height:1.5; }
   .empty{ text-align:center; color:var(--text-soft); padding:40px 0; }
 </style>
+<?= brandHead() ?>
 </head>
 <body>
   <header>

@@ -212,6 +212,7 @@ input::placeholder { color: #333; }
 .btn-submit:hover { background: #e6c400; }
 .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #333; }
 </style>
+<?= brandHead() ?>
 </head>
 <body>
 

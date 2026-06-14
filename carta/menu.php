@@ -480,6 +480,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
     #carta-content { animation: fadeIn .35s ease; }
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
   </style>
+<?= brandHead() ?>
 </head>
 <body>
 <script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>

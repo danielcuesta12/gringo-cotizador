@@ -129,6 +129,7 @@ $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
   body.embed .nav{position:static;background:none;padding:8px 22px 16px}
   @media(min-width:520px){ body.embed{padding:0}body.embed .wrap{box-shadow:none} }
 </style>
+<?= brandHead() ?>
 </head>
 <body class="<?php echo $embed ? 'embed' : ''; ?>">
 <script>window.TRACK_URL = '<?php echo APP_URL; ?>/api/track.php';</script>

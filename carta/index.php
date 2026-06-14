@@ -625,6 +625,7 @@ if ($salesMode === 'izipay') {
     #izipay-container .kr-payment-button:hover { background:#000!important; }
   </style>
 <?php endif; ?>
+<?= brandHead() ?>
 </head>
 <body>
 <script>window.TRACK_URL = '<?= APP_URL ?>/api/track.php';</script>
