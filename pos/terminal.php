@@ -418,12 +418,37 @@ a{color:inherit;text-decoration:none}
 .nota-general-area:focus{outline:none;border-color:var(--yellow)}
 
 /* ── Caja panel ────────────────────────────────────────── */
-#panel-caja, #panel-historial, #panel-clientes{
+#panel-caja, #panel-historial, #panel-clientes, #panel-pedidos{
   display:none;position:fixed;top:var(--topbar-h);bottom:var(--btmbar-h);left:0;right:0;
   background:var(--surface);border-top:1px solid var(--border);z-index:97;
   padding:18px 20px;flex-direction:column;gap:14px;overflow-y:auto;
 }
-#panel-caja.active, #panel-historial.active, #panel-clientes.active{display:flex}
+#panel-caja.active, #panel-historial.active, #panel-clientes.active, #panel-pedidos.active{display:flex}
+/* Badge del nav Pedidos */
+.nav-btn{position:relative}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;
+  border-radius:9px;background:var(--red,#e23744);color:#fff;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;line-height:1}
+/* Tarjetas de pedidos de carta */
+.ped-empty{color:var(--text2);font-size:13px;text-align:center;padding:24px}
+.ped-card{border:1px solid var(--border);border-radius:13px;padding:13px;background:var(--surface2);display:flex;flex-direction:column;gap:9px}
+.ped-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ped-id{font-size:14px;font-weight:800}
+.ped-hora{font-size:11px;color:var(--text2);margin-left:6px;font-weight:600}
+.ped-total{font-size:16px;font-weight:800;color:var(--yellow);white-space:nowrap}
+.ped-cli{font-size:13px;font-weight:600}
+.ped-items{font-size:12px;color:var(--text2);line-height:1.4}
+.ped-tags{display:flex;gap:6px;flex-wrap:wrap}
+.ped-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--surface);color:var(--text2)}
+.ped-tag.izipay{background:rgba(74,222,128,.15);color:#4ade80}
+.ped-tag.whatsapp{background:rgba(37,211,102,.15);color:#25d366}
+.ped-tag.poraceptar{background:rgba(255,223,0,.15);color:var(--yellow)}
+.ped-tag.cocina{background:rgba(96,165,250,.15);color:#60a5fa}
+.ped-tag.comp{background:rgba(255,187,200,.18);color:var(--pink,#ef7da6)}
+.ped-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ped-actions button{flex:1;min-width:90px;font-size:13px;font-weight:800;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.ped-actions .ped-aceptar{background:var(--green);color:#fff;border-color:var(--green)}
+.ped-actions .ped-emitir{background:var(--yellow);color:#1E1E1E;border-color:var(--yellow)}
 /* Mientras un panel está abierto, oculta la barra verde "Ver pedido / COBRAR". */
 body.panel-open #ver-pedido-bar{display:none !important}
 /* Clientes */
@@ -866,6 +891,15 @@ body.panel-open #ver-pedido-bar{display:none !important}
     <div id="clientes-lista"><div class="cli-empty">Cargando…</div></div>
   </div>
 
+  <!-- Panel pedidos de la carta (bandeja del cajero) -->
+  <div id="panel-pedidos">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <h3 style="font-size:16px;font-weight:700">Pedidos de la carta</h3>
+      <button id="ped-refresh" type="button" onclick="loadPedidos()" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer">↻ Actualizar</button>
+    </div>
+    <div id="pedidos-lista"><div class="ped-empty">Cargando…</div></div>
+  </div>
+
 </div><!-- /app -->
 
 <!-- ── Ver pedido bar (phone only) ────────────────────── -->
@@ -878,6 +912,11 @@ body.panel-open #ver-pedido-bar{display:none !important}
   <button class="nav-btn active" id="nav-vender" title="Vender">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.962-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
     Vender
+  </button>
+  <button class="nav-btn" id="nav-pedidos" title="Pedidos" disabled>
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z"/></svg>
+    Pedidos
+    <span class="nav-badge" id="nav-pedidos-badge" style="display:none">0</span>
   </button>
   <button class="nav-btn" id="nav-caja" title="Caja" disabled>
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
@@ -1061,6 +1100,9 @@ function init() {
   document.getElementById('nav-clientes').addEventListener('click', function() {
     showPanel(state.clientesOpen ? null : 'clientes');
   });
+  document.getElementById('nav-pedidos').addEventListener('click', function() {
+    showPanel(state.pedidosOpen ? null : 'pedidos');
+  });
   document.getElementById('btn-cerrar-turno').addEventListener('click', function() {
     promptCerrarTurno();
   });
@@ -1144,6 +1186,8 @@ function openTerminal() {
   setNavActive('nav-vender');
   if (!state.productos.length) loadProductos();
   if (!state.metodos.length) loadMetodos();
+  refreshPedidosBadge();
+  if (!state._pedidosPoll) state._pedidosPoll = setInterval(refreshPedidosBadge, 60000);
 }
 
 function updateCajaEstado(turno) {
@@ -1161,6 +1205,7 @@ function disableNavCaja(off) {
   document.getElementById('nav-caja').disabled = off;
   document.getElementById('nav-historial').disabled = off;
   document.getElementById('nav-clientes').disabled = off;
+  document.getElementById('nav-pedidos').disabled = off;
 }
 
 // ── Abrir caja ─────────────────────────────────────────
@@ -2209,19 +2254,24 @@ function showPanel(name) {
   state.cajaOpen     = (name === 'caja');
   state.histOpen     = (name === 'historial');
   state.clientesOpen = (name === 'clientes');
+  state.pedidosOpen  = (name === 'pedidos');
   document.getElementById('panel-caja').classList.toggle('active', name === 'caja');
   document.getElementById('panel-historial').classList.toggle('active', name === 'historial');
   var pcl = document.getElementById('panel-clientes');
   if (pcl) pcl.classList.toggle('active', name === 'clientes');
+  var ppd = document.getElementById('panel-pedidos');
+  if (ppd) ppd.classList.toggle('active', name === 'pedidos');
   setNavActive(name === 'caja' ? 'nav-caja'
     : name === 'historial' ? 'nav-historial'
     : name === 'clientes' ? 'nav-clientes'
+    : name === 'pedidos' ? 'nav-pedidos'
     : 'nav-vender');
   // Oculta la barra "Ver pedido / COBRAR" mientras haya un panel abierto.
   document.body.classList.toggle('panel-open', !!name);
   if (name === 'caja')      renderCajaDetalle();
   if (name === 'historial') loadHistorial();
   if (name === 'clientes')  loadClientes();
+  if (name === 'pedidos')   loadPedidos();
 }
 // Compat: otros flujos (cerrar turno, cambio de ubicación) cierran cualquier panel.
 function closeCajaPanel() { showPanel(null); }
@@ -2271,6 +2321,165 @@ function usarCliente(i) {
   toast('Cliente: ' + (c.nombre || c.doc), 'ok');
   showPanel(null);
   showScreen('sell');
+}
+
+// ── Bandeja de pedidos de la carta ─────────────────────
+function setPedidosBadge(n) {
+  var b = document.getElementById('nav-pedidos-badge');
+  if (!b) return;
+  if (n > 0) { b.textContent = n > 99 ? '99+' : n; b.style.display = 'flex'; }
+  else { b.style.display = 'none'; }
+}
+function refreshPedidosBadge() {
+  if (!state.turno) { setPedidosBadge(0); return; }
+  apiGet('pedidos_carta', { ubicacion_id: state.ubicacionId }).then(function(res) {
+    if (res.ok) { state._pedidos = res.pedidos || []; setPedidosBadge(state._pedidos.length); }
+  }).catch(function(){});
+}
+function loadPedidos() {
+  if (!state.turno) return;
+  document.getElementById('pedidos-lista').innerHTML = '<div class="ped-empty">Cargando…</div>';
+  apiGet('pedidos_carta', { ubicacion_id: state.ubicacionId }).then(function(res) {
+    if (!res.ok) { document.getElementById('pedidos-lista').innerHTML = '<div class="ped-empty">Error al cargar</div>'; return; }
+    state._pedidos = res.pedidos || [];
+    setPedidosBadge(state._pedidos.length);
+    renderPedidos(state._pedidos);
+  }).catch(function() {
+    document.getElementById('pedidos-lista').innerHTML = '<div class="ped-empty">Error de red</div>';
+  });
+}
+function pedidoItemsResumen(p) {
+  try {
+    var items = JSON.parse(p.items_json || '[]');
+    return items.map(function(i){ return (i.qty || 1) + 'x ' + (i.nombre || ''); }).join(', ');
+  } catch (e) { return ''; }
+}
+function renderPedidos(peds) {
+  var box = document.getElementById('pedidos-lista');
+  if (!peds.length) { box.innerHTML = '<div class="ped-empty">No hay pedidos pendientes.</div>'; return; }
+  box.innerHTML = peds.map(function(p, i) {
+    var hora = (String(p.created_at || '').substr(11, 5)) || '';
+    var esWa = (p.metodo_pago === 'whatsapp');
+    var porAceptar = esWa && p.estado === 'pendiente';
+    var metodoTag = esWa ? '<span class="ped-tag whatsapp">WhatsApp</span>' : '<span class="ped-tag izipay">Izipay · pagado</span>';
+    var estadoTag = porAceptar ? '<span class="ped-tag poraceptar">Por aceptar</span>' : '<span class="ped-tag cocina">En cocina</span>';
+    var compReq = (p.comprobante_tipo === 'boleta' || p.comprobante_tipo === 'factura') ? '<span class="ped-tag comp">Pidió ' + p.comprobante_tipo + '</span>' : '';
+    var entrega = '<span class="ped-tag">' + (p.tipo_entrega === 'delivery' ? 'Delivery' : 'Recojo') + '</span>';
+    var acts = '';
+    if (porAceptar) acts += '<button class="ped-aceptar" onclick="aceptarPedido(' + p.id + ')">Aceptar → cocina</button>';
+    acts += '<button class="ped-emitir" onclick="abrirComprobantePedido(' + i + ')">Emitir comprobante</button>';
+    return '<div class="ped-card">'
+      + '<div class="ped-top"><div><span class="ped-id">#' + p.id + '</span><span class="ped-hora">' + esc(hora) + '</span></div>'
+      + '<span class="ped-total">' + fmt(p.total) + '</span></div>'
+      + '<div class="ped-cli">' + esc(p.nombre || 'Cliente') + (p.telefono ? ' · ' + esc(p.telefono) : '') + '</div>'
+      + '<div class="ped-items">' + esc(pedidoItemsResumen(p)) + '</div>'
+      + '<div class="ped-tags">' + metodoTag + estadoTag + entrega + compReq + '</div>'
+      + '<div class="ped-actions">' + acts + '</div>'
+      + '</div>';
+  }).join('');
+}
+function aceptarPedido(id) {
+  apiPost('aceptar_pedido', { pedido_id: id }).then(function(res) {
+    if (res.ok) { toast('Pedido enviado a cocina', 'ok'); loadPedidos(); }
+    else toast(res.error || 'No se pudo aceptar', 'err');
+  }).catch(function(){ toast('Error de red', 'err'); });
+}
+function abrirComprobantePedido(i) {
+  var p = (state._pedidos || [])[i];
+  if (p) showComprobanteModal(p);
+}
+function showComprobanteModal(p) {
+  var modal = document.getElementById('modal-content');
+  var reqTipo = (p.comprobante_tipo === 'boleta' || p.comprobante_tipo === 'factura') ? p.comprobante_tipo : 'ticket';
+  var doc = p.cliente_documento || '';
+  var nom = p.cliente_razon_social || p.cliente_nombre || '';
+  var email = p.cliente_email || '';
+  modal.innerHTML = '<h3>Comprobante · Pedido #' + esc(String(p.id)) + '</h3>'
+    + '<div style="font-size:13px;color:var(--text2);margin-bottom:10px">' + esc(p.nombre || '') + ' · ' + fmt(p.total) + '</div>'
+    + '<div><label style="display:block;margin-bottom:6px">Comprobante</label>'
+    + '<div class="comp-tabs">'
+    + '<button class="comp-tab" data-tipo="ticket">Ticket</button>'
+    + '<button class="comp-tab" data-tipo="boleta">Boleta</button>'
+    + '<button class="comp-tab" data-tipo="factura">Factura</button>'
+    + '</div></div>'
+    + '<div id="cobro-cliente" style="display:none">'
+    + '<label style="display:block;margin:10px 0 6px">Datos del cliente</label>'
+    + '<div class="cliente-fields">'
+    + '<div class="cf-row">'
+    + '<select id="cl-tipo" style="flex:0 0 80px"><option value="dni">DNI</option><option value="ruc">RUC</option></select>'
+    + '<input type="text" id="cl-doc" placeholder="Número de documento" inputmode="numeric" maxlength="11" value="' + esc(doc) + '">'
+    + '<button class="btn-buscar-cliente" id="cl-buscar" type="button" title="Consultar RENIEC/SUNAT">Buscar</button>'
+    + '</div>'
+    + '<input type="text" id="cl-nombre" placeholder="Nombre / Razón social" value="' + esc(nom) + '">'
+    + '<input type="email" id="cl-email" placeholder="Correo (opcional)" inputmode="email" value="' + esc(email) + '">'
+    + '</div></div>'
+    + '<div class="modal-row">'
+    + '<button class="btn-modal-cancel" id="comp-cancel">Cancelar</button>'
+    + '<button class="btn-modal-ok" id="comp-ok">Emitir e imprimir</button>'
+    + '</div>';
+  document.getElementById('overlay').classList.add('active');
+
+  var compTipo = 'ticket';
+  function selTab(t) {
+    compTipo = t;
+    modal.querySelectorAll('.comp-tab').forEach(function(x){ x.classList.toggle('active', x.dataset.tipo === t); });
+    var cd = document.getElementById('cobro-cliente');
+    if (t === 'boleta' || t === 'factura') {
+      cd.style.display = 'block';
+      document.getElementById('cl-tipo').value = (t === 'factura') ? 'ruc' : 'dni';
+    } else { cd.style.display = 'none'; }
+  }
+  modal.querySelectorAll('.comp-tab').forEach(function(tab){ tab.addEventListener('click', function(){ selTab(this.dataset.tipo); }); });
+  selTab(reqTipo);
+
+  // Consulta RENIEC/SUNAT (el cajero está logueado)
+  var docInput = document.getElementById('cl-doc');
+  var buscarBtn = document.getElementById('cl-buscar');
+  function consultarDoc(silent) {
+    var tipo = document.getElementById('cl-tipo').value;
+    var num = docInput.value.replace(/\D/g, '');
+    var len = tipo === 'ruc' ? 11 : 8;
+    if (num.length !== len) { if (!silent) toast('Documento incompleto', 'err'); return; }
+    if (docInput.dataset.last === tipo + ':' + num) return;
+    docInput.dataset.last = tipo + ':' + num;
+    buscarBtn.disabled = true; buscarBtn.textContent = '…';
+    apiGet('consultar_doc', { tipo: tipo, numero: num }).then(function(res){
+      buscarBtn.disabled = false; buscarBtn.textContent = 'Buscar';
+      if (!res.ok) { docInput.dataset.last = ''; toast(res.error || 'No encontrado', 'err'); return; }
+      document.getElementById('cl-nombre').value = res.nombre || '';
+      toast('Datos cargados', 'ok');
+    }).catch(function(){ buscarBtn.disabled = false; buscarBtn.textContent = 'Buscar'; docInput.dataset.last = ''; toast('Error de red', 'err'); });
+  }
+  buscarBtn.addEventListener('click', function(){ consultarDoc(false); });
+  docInput.addEventListener('input', function(){
+    var tipo = document.getElementById('cl-tipo').value;
+    var num = docInput.value.replace(/\D/g, '');
+    if ((tipo === 'ruc' && num.length === 11) || (tipo === 'dni' && num.length === 8)) consultarDoc(true);
+  });
+
+  document.getElementById('comp-cancel').addEventListener('click', closeModal);
+  document.getElementById('comp-ok').addEventListener('click', function() {
+    var data = { pedido_id: p.id, turno_id: state.turno.id, comprobante_tipo: compTipo };
+    if (compTipo === 'boleta' || compTipo === 'factura') {
+      data.cliente_documento = document.getElementById('cl-doc').value.trim();
+      data.cliente_nombre = document.getElementById('cl-nombre').value.trim();
+      data.cliente_email = document.getElementById('cl-email').value.trim();
+    }
+    var okBtn = document.getElementById('comp-ok');
+    okBtn.disabled = true; okBtn.textContent = 'Emitiendo…';
+    apiPost('atender_pedido', data).then(function(res) {
+      if (!res.ok) { okBtn.disabled = false; okBtn.textContent = 'Emitir e imprimir'; toast(res.error || 'Error', 'err'); return; }
+      closeModal();
+      var c = res.comprobante;
+      if (c) {
+        if (c.estado === 'emitido') toast((c.tipo === 'factura' ? 'Factura' : 'Boleta') + ' ' + c.serie + '-' + c.numero + ' emitida', 'ok');
+        else if (c.estado === 'pendiente') toast('Comprobante pendiente: ' + (c.error || 'reintenta'), 'err');
+        else if (c.estado === 'error') toast('Error al emitir: ' + (c.error || ''), 'err');
+      } else { toast('Pedido atendido', 'ok'); }
+      printRawBT(p.id);
+      loadPedidos();
+    }).catch(function(){ okBtn.disabled = false; okBtn.textContent = 'Emitir e imprimir'; toast('Error de red', 'err'); });
+  });
 }
 
 function loadHistorial() {

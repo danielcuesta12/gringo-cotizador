@@ -10,7 +10,7 @@ function pout($d){ echo json_encode($d); exit; }
 
 $action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear','enviar_recibo','emitir'];
+$writes = ['abrir_turno','cerrar_turno','registrar_venta','fav_set','fav_clear','enviar_recibo','emitir','aceptar_pedido','atender_pedido'];
 if (in_array($action, $writes, true)) { if (!$isPost) pout(['ok'=>false,'error'=>'Método']); verifyCsrf(); }
 $uid = (int)(currentUser()['id'] ?? 0);
 
@@ -54,6 +54,72 @@ case 'consultar_doc':
     $tipoDoc = clean($_GET['tipo'] ?? '');
     $numDoc  = preg_replace('/\D/', '', (string)($_GET['numero'] ?? ''));
     pout(consultarDocumento($tipoDoc, $numDoc));
+
+// Bandeja de pedidos de la carta para el local del cajero (pendientes de atender).
+case 'pedidos_carta':
+    $ubi = cleanInt($_GET['ubicacion_id'] ?? 0);
+    if (!$ubi) pout(['ok'=>true,'pedidos'=>[]]);
+    $cols = "id, nombre, telefono, tipo_entrega, total, estado, metodo_pago, items_json, created_at, comprobante_tipo, cliente_documento, cliente_nombre, cliente_razon_social";
+    try {
+        $rows = Database::fetchAll(
+            "SELECT $cols, cliente_email FROM pedidos
+             WHERE origen='carta' AND ubicacion_id=? AND turno_id IS NULL AND estado <> 'cancelado'
+             ORDER BY id DESC LIMIT 50", [$ubi]);
+    } catch (\Throwable $e) {
+        $rows = Database::fetchAll(
+            "SELECT $cols FROM pedidos
+             WHERE origen='carta' AND ubicacion_id=? AND turno_id IS NULL AND estado <> 'cancelado'
+             ORDER BY id DESC LIMIT 50", [$ubi]);
+    }
+    pout(['ok'=>true,'pedidos'=>$rows]);
+
+// Aceptar un pedido de WhatsApp (pendiente) → entra a cocina (KDS).
+case 'aceptar_pedido':
+    $pid = cleanInt($_POST['pedido_id'] ?? 0);
+    $row = Database::fetch("SELECT id, estado FROM pedidos WHERE id=? AND origen='carta'", [$pid]);
+    if (!$row) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
+    if ($row['estado'] === 'pendiente') {
+        Database::execute("UPDATE pedidos SET estado='en_preparacion', aceptado_at=NOW() WHERE id=?", [$pid]);
+    }
+    pout(['ok'=>true]);
+
+// Atender fiscalmente un pedido de carta: guarda comprobante+cliente, lo marca
+// atendido en el turno (turno_id) y, si es boleta/factura, lo emite.
+case 'atender_pedido':
+    require_once __DIR__ . '/../includes/nubefact.php';
+    $pid = cleanInt($_POST['pedido_id'] ?? 0);
+    $tid = cleanInt($_POST['turno_id'] ?? 0);
+    $row = Database::fetch("SELECT id FROM pedidos WHERE id=? AND origen='carta'", [$pid]);
+    if (!$row) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
+    $compro = clean($_POST['comprobante_tipo'] ?? 'ticket');
+    if (!in_array($compro, ['ticket','boleta','factura'], true)) $compro = 'ticket';
+    $cDoc   = preg_replace('/[^0-9A-Za-z]/', '', (string)($_POST['cliente_documento'] ?? ''));
+    $cNom   = clean($_POST['cliente_nombre'] ?? '');
+    $cEmail = cleanEmail($_POST['cliente_email'] ?? '');
+    $cTipo   = $compro === 'factura' ? 'ruc' : ($cDoc !== '' ? 'dni' : null);
+    $cNombre = $compro === 'factura' ? null : ($cNom ?: null);
+    $cRazon  = $compro === 'factura' ? ($cNom ?: null) : null;
+    try {
+        Database::execute(
+            "UPDATE pedidos SET comprobante_tipo=?, cliente_tipo=?, cliente_documento=?, cliente_nombre=?, cliente_razon_social=?, cliente_email=?, turno_id=? WHERE id=?",
+            [$compro, $cTipo, ($cDoc ?: null), $cNombre, $cRazon, ($cEmail ?: null), ($tid ?: null), $pid]);
+    } catch (\Throwable $e) {
+        Database::execute(
+            "UPDATE pedidos SET comprobante_tipo=?, cliente_tipo=?, cliente_documento=?, cliente_nombre=?, cliente_razon_social=?, turno_id=? WHERE id=?",
+            [$compro, $cTipo, ($cDoc ?: null), $cNombre, $cRazon, ($tid ?: null), $pid]);
+    }
+    $comp = null;
+    if (in_array($compro, ['boleta','factura'], true) && nubefactConfigurado()) {
+        $r = nubefactEmitir($pid);
+        $comp = [
+            'tipo'   => $compro,
+            'estado' => $r['estado'] ?? ($r['ok'] ? 'emitido' : 'error'),
+            'serie'  => $r['serie'] ?? '',
+            'numero' => $r['numero'] ?? 0,
+            'error'  => $r['error'] ?? '',
+        ];
+    }
+    pout(['ok'=>true,'comprobante'=>$comp]);
 
 case 'clientes_buscar':
     $q = trim((string)($_GET['q'] ?? ''));
@@ -204,7 +270,7 @@ case 'registrar_venta':
 case 'emitir':
     $pid = cleanInt($_POST['pedido_id'] ?? 0);
     if (!$pid) pout(['ok'=>false,'error'=>'Pedido inválido']);
-    $own = Database::fetch("SELECT id FROM pedidos WHERE id=? AND origen='pos'", [$pid]);
+    $own = Database::fetch("SELECT id FROM pedidos WHERE id=?", [$pid]);
     if (!$own) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
     if (!nubefactConfigurado()) pout(['ok'=>false,'error'=>'NubeFact no está configurado']);
     $r = nubefactEmitir($pid);
@@ -260,7 +326,7 @@ case 'enviar_recibo':
     $pid   = cleanInt($_POST['pedido_id'] ?? 0);
     $email = cleanEmail($_POST['email'] ?? '');
     if (!$pid || !$email) pout(['ok'=>false,'error'=>'Correo inválido']);
-    $p = Database::fetch("SELECT * FROM pedidos WHERE id=? AND origen='pos'", [$pid]);
+    $p = Database::fetch("SELECT * FROM pedidos WHERE id=?", [$pid]);
     if (!$p) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
     $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
     $emp = getSetting('company_name', 'El Gringo Burger Joint');

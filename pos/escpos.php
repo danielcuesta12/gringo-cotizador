@@ -10,7 +10,8 @@ require_once __DIR__ . '/../includes/helpers.php';
 requirePermission('pos_terminal');
 
 $id = cleanInt($_GET['id'] ?? 0);
-$p  = $id ? Database::fetch("SELECT * FROM pedidos WHERE id = ? AND origen = 'pos'", [$id]) : null;
+// Imprime tanto ventas POS como pedidos de carta (el cajero los atiende en su bandeja).
+$p  = $id ? Database::fetch("SELECT * FROM pedidos WHERE id = ?", [$id]) : null;
 if (!$p) { http_response_code(404); echo ''; exit; }
 
 $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
