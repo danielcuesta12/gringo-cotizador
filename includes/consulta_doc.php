@@ -50,7 +50,9 @@ if (!function_exists('consultarDocumento')) {
             $urlTpl = trim((string) getSetting('doc_api_ruc_url', $defRuc));
             if ($urlTpl === '') $urlTpl = $defRuc;
         }
-        $url = str_replace('{n}', urlencode($numero), $urlTpl);
+        // {n} = número de documento; {token} = token (para proveedores que lo
+        // pasan en la query, como apiperu.dev). El token también va en el header.
+        $url = str_replace(['{n}', '{token}'], [urlencode($numero), urlencode($token)], $urlTpl);
 
         try {
             $ch = curl_init($url);
@@ -85,6 +87,10 @@ if (!function_exists('consultarDocumento')) {
             if ($code >= 400) {
                 $m = $d['message'] ?? $d['error'] ?? ('Error ' . $code);
                 return ['ok' => false, 'error' => (string) $m];
+            }
+            // Algunos proveedores (apiperu.dev) responden HTTP 200 con success=false.
+            if (isset($d['success']) && $d['success'] === false) {
+                return ['ok' => false, 'error' => (string) ($d['message'] ?? 'No encontrado')];
             }
 
             if ($tipo === 'dni') {
