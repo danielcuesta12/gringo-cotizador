@@ -418,13 +418,25 @@ a{color:inherit;text-decoration:none}
 .nota-general-area:focus{outline:none;border-color:var(--yellow)}
 
 /* ── Caja panel ────────────────────────────────────────── */
-#panel-caja, #panel-historial{
+#panel-caja, #panel-historial, #panel-clientes{
   display:none;position:absolute;bottom:var(--btmbar-h);left:0;right:0;
-  background:var(--surface);border-top:1px solid var(--border);z-index:90;
+  background:var(--surface);border-top:1px solid var(--border);z-index:97;
   padding:18px 20px;flex-direction:column;gap:14px;
   max-height:calc(100vh - var(--topbar-h) - var(--btmbar-h));overflow-y:auto;
 }
-#panel-caja.active, #panel-historial.active{display:flex}
+#panel-caja.active, #panel-historial.active, #panel-clientes.active{display:flex}
+/* Mientras un panel está abierto, oculta la barra verde "Ver pedido / COBRAR". */
+body.panel-open #ver-pedido-bar{display:none !important}
+/* Clientes */
+#cli-search{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
+#cli-search:focus{outline:none;border-color:var(--yellow)}
+.cli-empty{color:var(--text2);font-size:13px;text-align:center;padding:20px}
+.cli-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cli-row:last-of-type{border:none}
+.cli-info{flex:1;min-width:0}
+.cli-nombre{font-size:14px;font-weight:700}
+.cli-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.cli-use{font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;border:1px solid var(--yellow);background:var(--yellow);color:#1E1E1E;cursor:pointer;flex-shrink:0}
 .caja-row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px}
 .caja-row:last-of-type{border:none}
 .caja-row span:first-child{font-size:13px;color:var(--text2)}
@@ -848,6 +860,13 @@ a{color:inherit;text-decoration:none}
     <div id="historial-lista"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Cargando…</div></div>
   </div>
 
+  <!-- Panel clientes (slide up sobre bottombar) -->
+  <div id="panel-clientes">
+    <h3 style="font-size:16px;font-weight:700">Clientes</h3>
+    <input type="text" id="cli-search" placeholder="Buscar por nombre o documento…" oninput="onClienteSearch()" autocomplete="off">
+    <div id="clientes-lista"><div class="cli-empty">Cargando…</div></div>
+  </div>
+
 </div><!-- /app -->
 
 <!-- ── Ver pedido bar (phone only) ────────────────────── -->
@@ -1031,17 +1050,17 @@ function init() {
     cobrar();
   });
   document.getElementById('nav-vender').addEventListener('click', function() {
-    setNavActive('nav-vender');
-    closeCajaPanel();
+    showPanel(null);
     showScreen('sell');
   });
   document.getElementById('nav-caja').addEventListener('click', function() {
-    setNavActive('nav-caja');
-    toggleCajaPanel();
+    showPanel(state.cajaOpen ? null : 'caja');
   });
   document.getElementById('nav-historial').addEventListener('click', function() {
-    setNavActive('nav-historial');
-    toggleHistorialPanel();
+    showPanel(state.histOpen ? null : 'historial');
+  });
+  document.getElementById('nav-clientes').addEventListener('click', function() {
+    showPanel(state.clientesOpen ? null : 'clientes');
   });
   document.getElementById('btn-cerrar-turno').addEventListener('click', function() {
     promptCerrarTurno();
@@ -1090,8 +1109,9 @@ function onUbiChange(ubiId) {
   state.favMap = {};
   state.favEditMode = false;
   state.activeCat = 'Todos';
+  state.clienteSel = null;
   hideFavBoard();
-  closeCajaPanel();
+  showPanel(null);
   if (!ubiId) {
     showScreen('pick');
     updateCajaEstado(null);
@@ -1141,6 +1161,7 @@ function updateCajaEstado(turno) {
 function disableNavCaja(off) {
   document.getElementById('nav-caja').disabled = off;
   document.getElementById('nav-historial').disabled = off;
+  document.getElementById('nav-clientes').disabled = off;
 }
 
 // ── Abrir caja ─────────────────────────────────────────
@@ -2043,6 +2064,17 @@ function showModalCobro(metodo) {
     });
   });
 
+  // Prefill desde un cliente seleccionado en el panel Clientes.
+  if (state.clienteSel) {
+    var cs = state.clienteSel;
+    var tab = modal.querySelector('.comp-tab[data-tipo="' + (cs.tipo === 'ruc' ? 'factura' : 'boleta') + '"]');
+    if (tab) tab.click();
+    var clTipo = document.getElementById('cl-tipo'); if (clTipo) clTipo.value = cs.tipo;
+    var clDoc = document.getElementById('cl-doc'); if (clDoc) clDoc.value = cs.doc || '';
+    var clNom = document.getElementById('cl-nombre'); if (clNom) clNom.value = cs.nombre || '';
+    var clEmail = document.getElementById('cl-email'); if (clEmail) clEmail.value = cs.email || '';
+  }
+
   if (isEfectivo) {
     var input = document.getElementById('modal-recibido');
     input.focus();
@@ -2119,6 +2151,7 @@ function confirmarVenta(metodo, extraData) {
     state.cart = [];
     state.descuento = null;
     state.notas = '';
+    state.clienteSel = null;
     renderCart();
     refreshTurno();
     // Feedback de emisión del comprobante electrónico (boleta/factura).
@@ -2140,40 +2173,77 @@ function confirmarVenta(metodo, extraData) {
   });
 }
 
-// ── Panel caja ─────────────────────────────────────────
-function toggleCajaPanel() {
-  state.cajaOpen = !state.cajaOpen;
-  if (state.cajaOpen) openCajaPanel(); else closeCajaPanel();
+// ── Paneles (única fuente de verdad) ───────────────────
+// name: 'caja' | 'historial' | 'clientes' | null (null = volver a venta)
+function showPanel(name) {
+  if (name && !state.turno) return;
+  state.cajaOpen     = (name === 'caja');
+  state.histOpen     = (name === 'historial');
+  state.clientesOpen = (name === 'clientes');
+  document.getElementById('panel-caja').classList.toggle('active', name === 'caja');
+  document.getElementById('panel-historial').classList.toggle('active', name === 'historial');
+  var pcl = document.getElementById('panel-clientes');
+  if (pcl) pcl.classList.toggle('active', name === 'clientes');
+  setNavActive(name === 'caja' ? 'nav-caja'
+    : name === 'historial' ? 'nav-historial'
+    : name === 'clientes' ? 'nav-clientes'
+    : 'nav-vender');
+  // Oculta la barra "Ver pedido / COBRAR" mientras haya un panel abierto.
+  document.body.classList.toggle('panel-open', !!name);
+  if (name === 'caja')      renderCajaDetalle();
+  if (name === 'historial') loadHistorial();
+  if (name === 'clientes')  loadClientes();
+}
+// Compat: otros flujos (cerrar turno, cambio de ubicación) cierran cualquier panel.
+function closeCajaPanel() { showPanel(null); }
+
+// ── Panel clientes ─────────────────────────────────────
+var _clientesTimer = null;
+function loadClientes() {
+  var inp = document.getElementById('cli-search');
+  var q = inp ? inp.value.trim() : '';
+  document.getElementById('clientes-lista').innerHTML = '<div class="cli-empty">Cargando…</div>';
+  apiGet('clientes_buscar', { q: q }).then(function(res) {
+    if (!res.ok) { document.getElementById('clientes-lista').innerHTML = '<div class="cli-empty">Error al cargar</div>'; return; }
+    renderClientes(res.clientes || []);
+  }).catch(function() {
+    document.getElementById('clientes-lista').innerHTML = '<div class="cli-empty">Error de red</div>';
+  });
+}
+function onClienteSearch() {
+  if (_clientesTimer) clearTimeout(_clientesTimer);
+  _clientesTimer = setTimeout(loadClientes, 300);
+}
+function clienteEsRuc(c) { return c.tipo === 'ruc' || (c.doc && String(c.doc).length === 11); }
+function renderClientes(cli) {
+  var box = document.getElementById('clientes-lista');
+  state._clientes = cli;
+  if (!cli.length) { box.innerHTML = '<div class="cli-empty">Sin clientes que coincidan.</div>'; return; }
+  box.innerHTML = cli.map(function(c, i) {
+    var docLabel = clienteEsRuc(c) ? 'RUC' : 'DNI';
+    return '<div class="cli-row">'
+      + '<div class="cli-info">'
+      + '<div class="cli-nombre">' + esc(c.nombre || 'Cliente') + '</div>'
+      + '<div class="cli-meta">' + docLabel + ' ' + esc(c.doc || '—') + ' · ' + (c.n || 0) + ' compra' + ((c.n || 0) == 1 ? '' : 's') + ' · ' + fmt(c.total || 0) + (c.email ? ' · ' + esc(c.email) : '') + '</div>'
+      + '</div>'
+      + '<button class="cli-use" onclick="usarCliente(' + i + ')">Usar</button>'
+      + '</div>';
+  }).join('');
+}
+function usarCliente(i) {
+  var c = (state._clientes || [])[i];
+  if (!c) return;
+  state.clienteSel = {
+    tipo: clienteEsRuc(c) ? 'ruc' : 'dni',
+    doc: c.doc || '',
+    nombre: c.nombre || '',
+    email: c.email || ''
+  };
+  toast('Cliente: ' + (c.nombre || c.doc), 'ok');
+  showPanel(null);
+  showScreen('sell');
 }
 
-function openCajaPanel() {
-  if (!state.turno) return;
-  closeHistorialPanel();
-  state.cajaOpen = true;
-  renderCajaDetalle();
-  document.getElementById('panel-caja').classList.add('active');
-}
-
-// ── Panel historial ────────────────────────────────────
-function toggleHistorialPanel() {
-  state.histOpen = !state.histOpen;
-  if (state.histOpen) openHistorialPanel(); else closeHistorialPanel();
-}
-function openHistorialPanel() {
-  if (!state.turno) return;
-  closeCajaPanel();
-  state.histOpen = true;
-  document.getElementById('panel-historial').classList.add('active');
-  loadHistorial();
-}
-function closeHistorialPanel() {
-  state.histOpen = false;
-  var p = document.getElementById('panel-historial');
-  if (p) p.classList.remove('active');
-  if (document.getElementById('nav-historial').classList.contains('active')) {
-    setNavActive('nav-vender');
-  }
-}
 function loadHistorial() {
   if (!state.turno) return;
   document.getElementById('historial-lista').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Cargando…</div>';
@@ -2234,13 +2304,6 @@ function reintentarComprobante(id, btn) {
   });
 }
 
-function closeCajaPanel() {
-  state.cajaOpen = false;
-  document.getElementById('panel-caja').classList.remove('active');
-  if (document.getElementById('nav-caja').classList.contains('active')) {
-    setNavActive('nav-vender');
-  }
-}
 
 function renderCajaDetalle() {
   if (!state.turno) return;

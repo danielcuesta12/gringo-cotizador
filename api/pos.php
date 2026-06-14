@@ -49,6 +49,30 @@ case 'historial_turno':
          ORDER BY id DESC", [$tid]);
     pout(['ok'=>true,'ventas'=>$ventas]);
 
+case 'clientes_buscar':
+    $q = trim((string)($_GET['q'] ?? ''));
+    $where  = "origen='pos' AND cliente_documento IS NOT NULL AND cliente_documento <> '' AND estado <> 'cancelado'";
+    $params = [];
+    if ($q !== '') {
+        $like = '%' . $q . '%';
+        $where .= " AND (cliente_documento LIKE ? OR cliente_nombre LIKE ? OR cliente_razon_social LIKE ?)";
+        $params = [$like, $like, $like];
+    }
+    $base = "SELECT cliente_documento AS doc,
+                    COALESCE(MAX(NULLIF(cliente_razon_social,'')), MAX(NULLIF(cliente_nombre,''))) AS nombre,
+                    MAX(cliente_tipo) AS tipo, %EMAIL%
+                    COUNT(*) AS n, COALESCE(SUM(total),0) AS total
+             FROM pedidos WHERE $where
+             GROUP BY cliente_documento
+             ORDER BY MAX(created_at) DESC LIMIT 50";
+    try {
+        $rows = Database::fetchAll(str_replace('%EMAIL%', "MAX(NULLIF(cliente_email,'')) AS email,", $base), $params);
+    } catch (\Throwable $e) {
+        // La columna cliente_email aún no existe (migración pendiente): seguir sin email.
+        $rows = Database::fetchAll(str_replace('%EMAIL%', "NULL AS email,", $base), $params);
+    }
+    pout(['ok'=>true,'clientes'=>$rows]);
+
 case 'abrir_turno':
     $ubi = cleanInt($_POST['ubicacion_id'] ?? 0);
     $monto = cleanFloat($_POST['monto_inicial'] ?? 0);
