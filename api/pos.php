@@ -41,11 +41,12 @@ case 'turno_actual':
 case 'historial_turno':
     $tid = cleanInt($_GET['turno_id'] ?? 0);
     if (!$tid) pout(['ok'=>true,'ventas'=>[]]);
+    // Incluye ventas POS y pedidos de carta atendidos en este turno (turno_id).
     $ventas = Database::fetchAll(
-        "SELECT id, total, metodo_pago, estado, created_at, comprobante_tipo,
+        "SELECT id, total, metodo_pago, estado, created_at, origen, comprobante_tipo,
                 comprobante_estado, comprobante_serie, comprobante_numero, comprobante_pdf
          FROM pedidos
-         WHERE turno_id=? AND origen='pos'
+         WHERE turno_id=?
          ORDER BY id DESC", [$tid]);
     pout(['ok'=>true,'ventas'=>$ventas]);
 

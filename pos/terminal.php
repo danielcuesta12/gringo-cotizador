@@ -2513,10 +2513,12 @@ function renderHistorial(ventas) {
     var esComp = (v.comprobante_tipo === 'boleta' || v.comprobante_tipo === 'factura');
     var reintentar = (esComp && (v.comprobante_estado === 'pendiente' || v.comprobante_estado === 'error'))
       ? '<button class="hist-retry" onclick="reintentarComprobante(' + v.id + ', this)">Reintentar</button>' : '';
+    var origenTag = v.origen === 'carta'
+      ? '<span class="hist-comp" style="background:rgba(255,187,200,.18);color:var(--pink,#ef7da6)">Carta</span> ' : '';
     return '<div class="hist-row">'
       + '<div class="hist-info">'
       + '<div class="hist-top"><span class="hist-id">#' + v.id + '</span><span class="hist-hora">' + esc(hora) + '</span></div>'
-      + '<div class="hist-meta">' + esc(v.metodo_pago || '') + ' ' + comp + '</div>'
+      + '<div class="hist-meta">' + origenTag + esc(v.metodo_pago || '') + ' ' + comp + '</div>'
       + '</div>'
       + '<span class="hist-total">' + fmt(v.total) + '</span>'
       + '<div class="hist-actions">'
