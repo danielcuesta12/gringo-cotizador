@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ── Izipay (pagos en línea) ─────────────────────────────────────
     $izMode = strtoupper($_POST['izipay_mode'] ?? 'TEST');
-    setSetting('izipay_mode', in_array($izMode, ['TEST', 'PROD'], true) ? $izMode : 'TEST');
+    setSetting('izipay_mode', $izMode === 'TEST' ? 'TEST' : 'PRODUCTION');
     setSetting('izipay_shop_id',          trim((string)($_POST['izipay_shop_id'] ?? '')));
     setSetting('izipay_public_key_test',  trim((string)($_POST['izipay_public_key_test'] ?? '')));
     setSetting('izipay_public_key_prod',  trim((string)($_POST['izipay_public_key_prod'] ?? '')));
@@ -293,7 +293,7 @@ include __DIR__ . '/../layout-top.php';
         <label>Modo</label>
         <select name="izipay_mode">
           <option value="TEST" <?= $izMode==='TEST'?'selected':'' ?>>TEST (pruebas)</option>
-          <option value="PROD" <?= $izMode==='PROD'?'selected':'' ?>>PRODUCCIÓN (cobros reales)</option>
+          <option value="PRODUCTION" <?= $izMode!=='TEST'?'selected':'' ?>>PRODUCCIÓN (cobros reales)</option>
         </select>
       </div>
       <div class="form-group">
