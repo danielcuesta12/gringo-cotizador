@@ -320,6 +320,21 @@ try {
     </div>
     <?php endif; ?>
 
+    <?php /* ===== 6.5 Finanzas ===== */ ?>
+    <?php if (can('gastos')): ?>
+    <div class="sb-group" data-sb-group="finanzas">
+      <button type="button" class="nav-section-label sb-header" aria-expanded="true">
+        <span class="sb-dot sb-dot-pink"></span>Finanzas<span class="sb-chevron">&#9662;</span>
+      </button>
+      <div class="sb-items">
+        <a href="<?php echo APP_URL; ?>/admin/gastos/index.php"
+           class="nav-link <?php echo ($activePage??'')==='gastos'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span> Gastos
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <?php /* ===== 7. Sistema (admin) ===== */ ?>
     <?php if (isAdmin()): ?>
     <div class="sb-group" data-sb-group="sistema">

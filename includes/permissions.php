@@ -45,6 +45,9 @@ function permissionCatalog(): array {
             'qr'         => 'Generador QR',
             'landing'    => 'Landing',
         ],
+        'Finanzas' => [
+            'gastos' => 'Gastos',
+        ],
     ];
 }
 
@@ -111,6 +114,7 @@ function permissionPaths(): array {
         'cartas_pdf' => '/admin/cartas/index.php',
         'qr'         => '/admin/qr.php',
         'landing'    => '/admin/landing/index.php',
+        'gastos'     => '/admin/gastos/index.php',
     ];
 }
 
