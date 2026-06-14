@@ -12,7 +12,7 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/helpers.php';
 
 $co = array(
-    'name'  => getSetting('company_name',    'El Gringo Burger Joint'),
+    'name'  => getSetting('company_name',    'Mi Restaurante'),
     'logo'  => getSetting('company_logo',    ''),
     'wa'    => getSetting('whatsapp_number', ''),
 );
@@ -72,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         // Alerta interna por email
-        $companyName  = getSetting('company_name', 'El Gringo Burger Joint');
-        $alertTo      = 'reservas@elgringo.pe';
-        $alertFrom    = '=?UTF-8?B?' . base64_encode($companyName) . '?= <reservas@elgringo.pe>';
+        $companyName  = getSetting('company_name', 'Mi Restaurante');
+        $alertTo      = mailFrom('reservas');
+        $alertFrom    = '=?UTF-8?B?' . base64_encode($companyName) . '?= <' . mailFrom('reservas') . '>';
         $alertSubject = '=?UTF-8?B?' . base64_encode('Nueva reserva — ' . strip_tags($nombre) . ' · ' . $fecha . ($hora ? ' ' . $hora : '')) . '?=';
 
         // Nombre de ubicación para el email

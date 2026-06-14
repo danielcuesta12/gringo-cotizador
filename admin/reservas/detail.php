@@ -47,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Enviar email solo si el cliente dejo uno y hay asunto
     if ($reserva['email'] && $asunto) {
-        $company   = getSetting('company_name', 'El Gringo Burger Joint');
-        $fromEmail = 'reservas@elgringo.pe';
+        $company   = getSetting('company_name', 'Mi Restaurante');
+        $fromEmail = mailFrom('reservas');
         $fromName  = '=?UTF-8?B?' . base64_encode($company) . '?=';
 
         $logoRel = getSetting('company_logo', '');
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ─── Preparar datos para el template JS y la vista ───────────────────────────
-$company  = getSetting('company_name', 'El Gringo Burger Joint');
+$company  = getSetting('company_name', 'Mi Restaurante');
 $phone    = preg_replace('/\D/', '', $reserva['telefono'] ?: '');
 $waMsg    = rawurlencode('Hola ' . $reserva['nombre'] . ', te contactamos de ' . $company . ' sobre tu reserva para el ' . ($reserva['fecha'] ? formatDate($reserva['fecha']) : 'proximo evento') . '.');
 $waLink   = $phone ? 'https://wa.me/' . $phone . '?text=' . $waMsg : '';
@@ -340,7 +340,7 @@ include __DIR__ . '/../layout-top.php';
             <textarea name="mensaje" id="mensaje" placeholder="Escribe el mensaje..."></textarea>
           </div>
           <div class="alert alert-info" style="margin-bottom:14px;font-size:13px">
-            &#9993; Se enviara desde <strong>reservas@elgringo.pe</strong> a <strong><?php echo htmlspecialchars($reserva['email']); ?></strong>
+            &#9993; Se enviara desde <strong><?php echo clean(mailFrom('reservas')); ?></strong> a <strong><?php echo htmlspecialchars($reserva['email']); ?></strong>
           </div>
         </div>
         <?php endif; ?>

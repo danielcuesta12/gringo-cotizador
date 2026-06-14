@@ -9,7 +9,7 @@ $p  = $id ? Database::fetch("SELECT * FROM pedidos WHERE id = ?", [$id]) : null;
 if (!$p) { http_response_code(404); echo 'Ticket no encontrado.'; exit; }
 $ubi   = Database::fetch("SELECT nombre FROM ubicaciones WHERE id = ?", [(int)$p['ubicacion_id']]);
 $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
-$emp   = getSetting('company_name', 'El Gringo Burger Joint');
+$emp   = getSetting('company_name', 'Mi Restaurante');
 $compLabel = ['ticket'=>'TICKET','boleta'=>'BOLETA','factura'=>'FACTURA'];
 ?>
 <!DOCTYPE html>

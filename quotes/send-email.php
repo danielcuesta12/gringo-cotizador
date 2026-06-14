@@ -19,9 +19,9 @@ if (!$quote) {
 $errors = array();
 $sent   = false;
 
-$company   = getSetting('company_name',  'El Gringo Burger Joint');
-$fromEmail = 'cotizaciones@elgringo.pe';
-$replyTo   = 'daniel@elgringo.pe, eventos@elgringo.pe';
+$company   = getSetting('company_name',  'Mi Restaurante');
+$fromEmail = mailFrom('cotizaciones');
+$replyTo   = getSetting('mail_cotizaciones_replyto', 'daniel@' . mailDomain() . ', eventos@' . mailDomain());
 $pubLink   = APP_URL . '/quotes/view.php?token=' . $quote['public_token'];
 
 // Asunto y cuerpo del email adaptados al estado de la cotización

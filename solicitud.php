@@ -12,7 +12,7 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/helpers.php';
 
 $co = array(
-    'name'   => getSetting('company_name',      'El Gringo Burger Joint'),
+    'name'   => getSetting('company_name',      'Mi Restaurante'),
     'logo'   => getSetting('company_logo',        ''),   // logo oscuro (Logo A) para fondo claro
     'wa'     => getSetting('whatsapp_number',     ''),
 );

@@ -193,7 +193,7 @@ if ($logoBytes !== '') {
     $esc .= $logoBytes;
 } else {
     $esc .= ESC_CENTER . ESC_BOLD_ON . ESC_DBLHW;
-    $esc .= asciiSafe(getSetting('company_name', 'El Gringo Burger Joint')) . "\n";
+    $esc .= asciiSafe(getSetting('company_name', 'Mi Restaurante')) . "\n";
     $esc .= ESC_NORMAL . ESC_BOLD_OFF;
 }
 

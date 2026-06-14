@@ -240,6 +240,23 @@ function setSetting(string $key, string $value): void
     );
 }
 
+/**
+ * Dominio de correo de la instancia (configurable). Default: elgringo.pe.
+ * Los buzones por área (cotizaciones@, reservas@, comprobantes@) deben existir
+ * en el cPanel del cliente con ese dominio.
+ */
+function mailDomain(): string
+{
+    $d = trim((string) getSetting('mail_domain', ''));
+    return $d !== '' ? $d : 'elgringo.pe';
+}
+
+/** Remitente de un área: "cotizaciones@{dominio}". */
+function mailFrom(string $area): string
+{
+    return $area . '@' . mailDomain();
+}
+
 // ------------------------------------------------------------
 // TOKENS PÚBLICOS
 // ------------------------------------------------------------

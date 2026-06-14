@@ -330,7 +330,7 @@ case 'enviar_recibo':
     $p = Database::fetch("SELECT * FROM pedidos WHERE id=?", [$pid]);
     if (!$p) pout(['ok'=>false,'error'=>'Pedido no encontrado']);
     $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
-    $emp = getSetting('company_name', 'El Gringo Burger Joint');
+    $emp = getSetting('company_name', 'Mi Restaurante');
     $rows = '';
     foreach ($items as $it) {
         $qty = (int)($it['qty'] ?? 1);
@@ -387,8 +387,8 @@ case 'enviar_recibo':
 </table></td></tr></table></body></html>';
     $headers  = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: =?UTF-8?B?" . base64_encode($emp) . "?= <comprobantes@elgringo.pe>\r\n";
-    $headers .= "X-Mailer: ElGringoPOS/1.0\r\n";
+    $headers .= "From: =?UTF-8?B?" . base64_encode($emp) . "?= <" . mailFrom('comprobantes') . ">\r\n";
+    $headers .= "X-Mailer: POS/1.0\r\n";
     $ok = @mail($email, '=?UTF-8?B?' . base64_encode($subject) . '?=', $bodyHtml, $headers);
     pout(['ok' => (bool)$ok, 'error' => $ok ? '' : 'No se pudo enviar']);
 

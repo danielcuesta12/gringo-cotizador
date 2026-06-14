@@ -28,7 +28,7 @@ if (!$quote) { http_response_code(404); die('<h2>Cotizacion no encontrada</h2>')
 $items    = Database::fetchAll("SELECT * FROM quote_items WHERE quote_id=? ORDER BY sort_order", array($quote['id']));
 $isPublic = !isLoggedIn();
 $co = array(
-    'name'    => getSetting('company_name',        'El Gringo Burger Joint'),
+    'name'    => getSetting('company_name',        'Mi Restaurante'),
     'ruc'     => getSetting('company_ruc',         ''),
     'address' => getSetting('company_address',     'Lima, Peru'),
     'phone'   => getSetting('company_phone',       ''),

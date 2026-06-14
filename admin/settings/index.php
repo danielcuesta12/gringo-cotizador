@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'quote_prefix','quote_validity_days','default_igv',
         'default_terms','default_observations','whatsapp_number',
         'pdf_primary_color','pdf_secondary_color',
+        'mail_domain','mail_cotizaciones_replyto',
     ];
 
     foreach ($fields as $k) {
@@ -178,6 +179,22 @@ include __DIR__ . '/../layout-top.php';
             <input type="text" name="company_website"
                    value="<?= clean($cfg['company_website'] ?? '') ?>"
                    placeholder="www.elgringo.pe">
+          </div>
+        </div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label>Dominio de correo</label>
+            <input type="text" name="mail_domain"
+                   value="<?= clean($cfg['mail_domain'] ?? '') ?>"
+                   placeholder="elgringo.pe">
+            <div class="form-hint">Desde aquí salen los correos: cotizaciones@, reservas@, comprobantes@<strong>{dominio}</strong>. Esos buzones deben existir en el cPanel.</div>
+          </div>
+          <div class="form-group">
+            <label>Responder-a (cotizaciones)</label>
+            <input type="text" name="mail_cotizaciones_replyto"
+                   value="<?= clean($cfg['mail_cotizaciones_replyto'] ?? '') ?>"
+                   placeholder="daniel@..., eventos@...">
+            <div class="form-hint">A dónde llegan las respuestas de los correos de cotización (separa con coma).</div>
           </div>
         </div>
       </div>
