@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/inventario.php';
+require_once __DIR__ . '/../../includes/nubefact.php';
 
 requirePermission('pedidos');
 
@@ -22,6 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Database::execute("DELETE FROM pedidos WHERE id = ?", [$id]);
         flashMessage('success', 'Pedido eliminado.');
         redirect('/admin/pedidos/index.php');
+    }
+    if (isset($_POST['action']) && $_POST['action'] === 'emitir_comprobante') {
+        $r = nubefactEmitir($id);
+        flashMessage($r['ok'] ? 'success' : 'error',
+            $r['ok'] ? ('Comprobante emitido: ' . $r['serie'] . '-' . $r['numero'])
+                     : ('No se pudo emitir: ' . ($r['error'] ?? 'error')));
+        redirect('/admin/pedidos/detail.php?id=' . $id);
     }
     $nuevo = clean($_POST['estado'] ?? '');
     if (isset($ESTADOS[$nuevo])) {
@@ -69,6 +77,52 @@ include __DIR__ . '/../layout-top.php';
     <p><?= formatDatetime($p['created_at']) ?> · <?= clean($p['ubi_nombre'] ?: 'Sin ubicación') ?></p>
   </div>
 </div>
+
+<?php
+$ct = $p['comprobante_tipo'] ?? 'ticket';
+$ce = $p['comprobante_estado'] ?? 'no_aplica';
+if ($ct === 'boleta' || $ct === 'factura'):
+  $ctLabel = $ct === 'factura' ? 'Factura' : 'Boleta';
+?>
+<div class="card" style="margin-bottom:20px">
+  <div class="card-body" style="padding:16px 18px">
+    <?php if ($ce === 'emitido'): ?>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;color:#16a34a"><?= $ctLabel ?> electrónica · <?= clean($p['comprobante_serie'] . '-' . $p['comprobante_numero']) ?></div>
+          <div style="font-size:12px;color:var(--text-muted)">Emitida<?= $p['comprobante_emitido_at'] ? ' ' . formatDatetime($p['comprobante_emitido_at']) : '' ?></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <?php if (!empty($p['comprobante_pdf'])): ?><a href="<?= clean($p['comprobante_pdf']) ?>" target="_blank" class="btn btn-primary btn-sm">Ver PDF</a><?php endif; ?>
+          <?php if (!empty($p['comprobante_xml'])): ?><a href="<?= clean($p['comprobante_xml']) ?>" target="_blank" class="btn btn-ghost btn-sm">XML</a><?php endif; ?>
+          <?php if (!empty($p['comprobante_cdr'])): ?><a href="<?= clean($p['comprobante_cdr']) ?>" target="_blank" class="btn btn-ghost btn-sm">CDR</a><?php endif; ?>
+        </div>
+      </div>
+    <?php elseif (!nubefactConfigurado()): ?>
+      <div style="font-size:13px;color:var(--text-secondary)"><?= $ctLabel ?> pendiente. <a href="<?= APP_URL ?>/admin/facturacion/index.php" style="color:var(--red);font-weight:600">Configura NubeFact</a> para poder emitir.</div>
+    <?php else: ?>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700"><?= $ctLabel ?> electrónica</div>
+          <?php if ($ce === 'error' && !empty($p['comprobante_error'])): ?>
+            <div style="font-size:12px;color:#dc2626;margin-top:2px"><?= clean($p['comprobante_error']) ?></div>
+          <?php elseif ($ce === 'pendiente'): ?>
+            <div style="font-size:12px;color:#d97706;margin-top:2px">Pendiente de emisión.</div>
+          <?php else: ?>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Aún no emitida.</div>
+          <?php endif; ?>
+        </div>
+        <form method="post" style="margin:0"><?= csrfField() ?>
+          <input type="hidden" name="action" value="emitir_comprobante">
+          <button type="submit" class="btn btn-primary btn-sm"><?= $ce === 'error' ? 'Reintentar emisión' : 'Emitir comprobante' ?></button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+<?php elseif ($ct === 'ticket'): ?>
+<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Ticket interno (no emite comprobante electrónico).</div>
+<?php endif; ?>
 
 <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
 
