@@ -90,7 +90,7 @@ function chipUrl(array $over): string {
     return APP_URL . '/admin/gastos/index.php' . ($merged ? ('?' . http_build_query($merged)) : '');
 }
 
-$pageTitle  = 'Gastos';
+$pageTitle  = 'Registro de gastos';
 $activePage = 'gastos';
 $extraHead  = '<style>
 .g-totales{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
@@ -125,7 +125,7 @@ include __DIR__ . '/../layout-top.php';
 ?>
 
 <div class="page-header">
-  <div class="page-header-left"><h1>Gastos</h1></div>
+  <div class="page-header-left"><h1>Registro de gastos</h1></div>
   <div class="page-header-right">
     <a href="<?= APP_URL ?>/admin/gastos/form.php" class="btn btn-primary">+ Nuevo gasto</a>
   </div>

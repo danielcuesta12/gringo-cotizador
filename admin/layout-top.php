@@ -329,7 +329,7 @@ try {
       <div class="sb-items">
         <a href="<?php echo APP_URL; ?>/admin/gastos/index.php"
            class="nav-link <?php echo ($activePage??'')==='gastos'?'active':''; ?>">
-          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span> Gastos
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span> Registro de gastos
         </a>
       </div>
     </div>

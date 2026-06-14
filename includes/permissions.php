@@ -46,7 +46,7 @@ function permissionCatalog(): array {
             'landing'    => 'Landing',
         ],
         'Finanzas' => [
-            'gastos' => 'Gastos',
+            'gastos' => 'Registro de gastos',
         ],
     ];
 }
