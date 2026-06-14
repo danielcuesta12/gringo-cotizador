@@ -16,8 +16,23 @@ $metodo   = $izipay ? 'izipay' : 'whatsapp';
 $izOrder  = $body['izipay_order_id'] ?? null;
 if ($izOrder === '') $izOrder = null;
 
-$cols = "ubicacion_id, nombre, telefono, tipo_entrega, direccion, horario, comentarios, items_json, total, estado, metodo_pago, izipay_order_id, aceptado_at";
-$vals = "?,?,?,?,?,?,?,?,?,?,?,?," . ($izipay ? 'NOW()' : 'NULL');
+// Comprobante deseado por el cliente (el cajero lo confirma/ajusta en su bandeja).
+$compTipo = in_array($body['comprobante_tipo'] ?? '', ['boleta', 'factura'], true) ? $body['comprobante_tipo'] : 'ticket';
+$cDoc     = preg_replace('/[^0-9A-Za-z]/', '', (string)($body['cliente_documento'] ?? ''));
+$cNom     = clean($body['cliente_nombre'] ?? '');
+$cEmail   = filter_var(trim((string)($body['cliente_email'] ?? '')), FILTER_VALIDATE_EMAIL) ?: '';
+$cNombre  = $compTipo === 'factura' ? ''   : $cNom;   // boleta/ticket → nombre
+$cRazon   = $compTipo === 'factura' ? $cNom : '';     // factura → razón social
+
+// cliente_email puede no existir aún (migración nubefact_email.sql pendiente).
+$hasEmailCol = (bool) Database::fetch(
+    "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'pedidos' AND column_name = 'cliente_email'"
+);
+
+$cols = "ubicacion_id, nombre, telefono, tipo_entrega, direccion, horario, comentarios, items_json, total, estado, metodo_pago, izipay_order_id, comprobante_tipo, cliente_documento, cliente_nombre, cliente_razon_social"
+      . ($hasEmailCol ? ", cliente_email" : "")
+      . ", aceptado_at";
+$vals = "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?" . ($hasEmailCol ? ",?" : "") . "," . ($izipay ? 'NOW()' : 'NULL');
 $params = [
     $ubiId,
     clean($body['nombre'] ?? ''),
@@ -31,7 +46,12 @@ $params = [
     $estado,
     $metodo,
     $izOrder,
+    $compTipo,
+    ($cDoc ?: null),
+    ($cNombre ?: null),
+    ($cRazon ?: null),
 ];
+if ($hasEmailCol) $params[] = ($cEmail ?: null);
 
 try {
     $id = Database::insert("INSERT INTO pedidos ($cols) VALUES ($vals)", $params);

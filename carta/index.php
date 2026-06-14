@@ -829,6 +829,22 @@ if ($salesMode === 'izipay') {
         <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
       </div>
 
+      <!-- Comprobante (opcional) -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+        <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
+          <option value="">No necesito comprobante</option>
+          <option value="boleta">Boleta</option>
+          <option value="factura">Factura</option>
+        </select>
+        <div id="comp-fields" style="display:none;margin-top:10px;">
+          <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+          <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+          <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
+          <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
+        </div>
+      </div>
+
       <!-- LEALTAD — oculta por ahora (no eliminar) -->
       <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
         <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
@@ -1325,6 +1341,20 @@ function cambiar(id, nombre, precio, delta) {
     document.body.style.overflow = '';
   }
 
+  function onCompChange() {
+    var t = document.getElementById('campo-comprobante').value;
+    document.getElementById('comp-fields').style.display = t ? 'block' : 'none';
+    var doc = document.getElementById('campo-doc');
+    var razon = document.getElementById('campo-razon');
+    if (t === 'factura') {
+      doc.placeholder = 'RUC (11 dígitos)'; doc.maxLength = 11;
+      razon.placeholder = 'Razón social';
+    } else {
+      doc.placeholder = 'DNI (opcional)'; doc.maxLength = 8;
+      razon.placeholder = 'Nombre (opcional)';
+    }
+  }
+
   function confirmarPedido() {
     if (!isStoreOpen()) { cerrarModal(); avisoCerrado(); return; }
     let valid = true;
@@ -1362,6 +1392,23 @@ function cambiar(id, nombre, precio, delta) {
     const horario = document.getElementById('campo-horario').value;
     const horarioLabel = horario === 'asap' ? 'Lo antes posible' : horario;
     const comentarios = document.getElementById('campo-comentarios').value.trim();
+
+    // Comprobante (opcional) — el cajero confirma/ajusta en su bandeja.
+    const compTipo  = document.getElementById('campo-comprobante').value; // '', 'boleta', 'factura'
+    const compDoc   = (document.getElementById('campo-doc').value || '').replace(/\D/g, '');
+    const compNom   = (document.getElementById('campo-razon').value || '').trim();
+    const compEmail = (document.getElementById('campo-email-comp').value || '').trim();
+    if (compTipo === 'factura' && (compDoc.length !== 11 || !compNom)) {
+      document.getElementById('err-comp').style.display = 'block';
+      return;
+    }
+    document.getElementById('err-comp').style.display = 'none';
+    const compPayload = {
+      comprobante_tipo: compTipo,
+      cliente_documento: compDoc,
+      cliente_nombre: compNom,
+      cliente_email: compEmail
+    };
 
     const loyaltyEmailWA = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
     const lines = [
@@ -1413,7 +1460,8 @@ function cambiar(id, nombre, precio, delta) {
         horario: horarioLabel, comentarios,
         items: izItems, total: Math.round(izTotal),
         carta_id: CARTA_ID, ubicacion_id: CARTA_ID,
-        loyaltyEmail: loyaltyEmailIz
+        loyaltyEmail: loyaltyEmailIz,
+        ...compPayload
       };
       cerrarModal();
       iniciarPago();
@@ -1440,7 +1488,8 @@ function cambiar(id, nombre, precio, delta) {
         items: itemsData,
         total: Math.round(saveTotal),
         carta_id: CARTA_ID || 1,
-        ubicacion_id: CARTA_ID || 1
+        ubicacion_id: CARTA_ID || 1,
+        ...compPayload
       })
     }).then(r => r.json()).then(d => {
       if (!d.ok) console.error('save_pedido error:', d.error);
