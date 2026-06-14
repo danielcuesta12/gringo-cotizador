@@ -47,80 +47,101 @@ function horaLabel(int $h): string {
   }
 </script>
 <style>
-  :root{ --yellow:#FFDF00; --pink:#FFBBC8; --black:#1E1E1E; --cream:#FFEFBC; }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    min-height:100vh;display:flex;flex-direction:column;align-items:center;
-    padding:24px 16px 60px;transition:background .3s,color .3s;
+  @font-face {
+    font-family:'ArialNarrowBold';
+    src: url('<?= APP_URL ?>/assets/fonts/Arial_Narrow_Bold.ttf') format('truetype');
+    font-display: swap;
   }
-  html[data-theme="dia"] body{
-    background:radial-gradient(1200px 420px at 50% -120px, rgba(255,187,200,.5), transparent 70%),
-      linear-gradient(180deg,#FFF6D6 0%, #FFEFBC 100%);
-    color:var(--black);
-  }
-  html[data-theme="dia"] .card{background:#fff;border:1px solid rgba(30,30,30,.08);box-shadow:0 6px 22px rgba(30,30,30,.06)}
-  html[data-theme="dia"] .ref{color:#7a6f4d}
-  html[data-theme="dia"] .micro{color:#8a7f5c}
-  html[data-theme="dia"] .badge-closed{background:#efe7cf;color:#9a8f6c}
-  html[data-theme="noche"] body{
-    background:radial-gradient(1100px 420px at 50% -140px, rgba(255,187,200,.16), transparent 70%), #1A1A1A;
-    color:#fff;
-  }
-  html[data-theme="noche"] .card{background:#262626;border:1px solid #333;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-  html[data-theme="noche"] .ref{color:#b9b2a0}
-  html[data-theme="noche"] .micro{color:#8c8576}
-  html[data-theme="noche"] .badge-closed{background:#333;color:#9b9b9b}
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
-  .wrap{width:100%;max-width:440px}
-  .theme-row{display:flex;justify-content:flex-end;margin-bottom:14px}
-  .theme-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:700;
-    padding:7px 13px;border-radius:999px;border:1px solid currentColor;opacity:.55;background:transparent;color:inherit}
-  .brand{text-align:center;margin-bottom:8px}
-  .brand img{max-height:64px;width:auto}
-  .brand .logo-txt{display:inline-block;font-weight:900;font-size:28px;letter-spacing:-.5px;
-    background:var(--yellow);color:var(--black);padding:9px 15px;border-radius:12px;transform:rotate(-2deg)}
-  h1{font-size:25px;font-weight:900;letter-spacing:-.4px;margin:22px 0 6px;text-align:center;line-height:1.15}
-  .sub{text-align:center;font-size:14px;opacity:.7;margin-bottom:22px}
-  .stores{display:flex;flex-direction:column;gap:13px}
-  .card{border-radius:18px;padding:17px;cursor:pointer;display:flex;align-items:center;gap:13px;
-    text-decoration:none;color:inherit;transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease}
-  .card:hover{transform:translateY(-3px);border-color:var(--yellow)}
-  .card.closed{opacity:.6}
-  .pin{flex:0 0 44px;height:44px;border-radius:13px;display:grid;place-items:center;
-    background:linear-gradient(135deg,var(--pink),#ff9fb3);color:var(--black)}
-  .pin svg{width:21px;height:21px}
-  .card.closed .pin{background:#cfccc4;color:#fff}
-  .info{flex:1;min-width:0}
-  .name{font-weight:800;font-size:16.5px;line-height:1.2}
-  .ref{display:flex;align-items:center;gap:5px;font-size:12.5px;margin-top:4px}
-  .ref svg{width:13px;height:13px;flex-shrink:0}
-  .meta{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
-  .badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px}
-  .badge-open{background:rgba(34,197,94,.16);color:#16a34a}
-  html[data-theme="noche"] .badge-open{background:rgba(34,197,94,.2);color:#4ade80}
-  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-  .micro{font-size:11.5px;font-weight:600}
-  .chev{flex:0 0 auto;opacity:.4}
-  .chev svg{width:20px;height:20px}
-  .foot{text-align:center;font-size:12px;opacity:.5;margin-top:24px;line-height:1.5}
-  .empty{text-align:center;opacity:.6;padding:40px 0}
+  html[data-theme="noche"] {
+    --bg:#1A1A1A; --surface:#242424; --surface-2:#2a2a2a;
+    --text:#FFFFFF; --text-soft:#aaaaaa; --muted:#999999;
+    --accent:#FCDA13; --accent-ink:#1A1A1A; --accent-tint:rgba(252,218,19,.15);
+    --green:#34d399; --green-tint:rgba(52,211,153,.15);
+    --border:rgba(255,255,255,0.08);
+    --header-bg:var(--accent); --header-text:var(--accent-ink);
+  }
+  html[data-theme="dia"] {
+    --bg:#FFEFBC; --surface:#ffffff; --surface-2:#f1ede2;
+    --text:#1E1E1E; --text-soft:#6f6750; --muted:#7a6f55;
+    --accent:#1E1E1E; --accent-ink:#FFEFBC; --accent-tint:rgba(30,30,30,.08);
+    --green:#1f8a4c; --green-tint:rgba(31,138,76,.14);
+    --border:rgba(30,30,30,0.14);
+    --header-bg:var(--accent); --header-text:var(--accent-ink);
+  }
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+  }
+
+  /* Cabecera idéntica a la carta (barra con color de marca + logo) */
+  header{
+    height:64px; background:var(--header-bg); color:var(--header-text);
+    display:flex; align-items:center; padding:0 16px; gap:12px;
+    position:sticky; top:0; z-index:10;
+  }
+  .logo{ height:34px; width:auto; }
+  html[data-theme="noche"] .logo{ filter:brightness(0); }       /* negro sobre amarillo */
+  html[data-theme="dia"]   .logo{ filter:brightness(0) invert(1); } /* blanco sobre negro */
+  .theme-toggle{
+    margin-left:auto; display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+    font-size:12px; font-weight:800; color:var(--header-text);
+    background:transparent; border:1.5px solid var(--header-text); border-radius:999px;
+    padding:6px 12px; opacity:.85;
+  }
+
+  .wrap{ max-width:480px; margin:0 auto; padding:28px 16px 60px; }
+  h1{
+    font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;
+    text-transform:uppercase; letter-spacing:1.5px;
+    font-size:30px; line-height:1.08; text-align:center; margin-bottom:8px;
+  }
+  .sub{ text-align:center; font-size:14px; color:var(--text-soft); margin-bottom:24px; }
+
+  .stores{ display:flex; flex-direction:column; gap:13px; }
+  .card{
+    display:flex; align-items:center; gap:13px; text-decoration:none; color:inherit;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:15px;
+    transition:transform .14s ease, border-color .14s ease;
+  }
+  .card:hover{ transform:translateY(-2px); border-color:var(--accent); }
+  .card.closed{ opacity:.6; }
+  .pin{ flex:0 0 44px; height:44px; border-radius:12px; display:grid; place-items:center;
+    background:var(--accent-tint); color:var(--accent); }
+  html[data-theme="dia"] .pin{ color:var(--text); }
+  .pin svg{ width:21px; height:21px; }
+  .info{ flex:1; min-width:0; }
+  .name{
+    font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;
+    text-transform:uppercase; letter-spacing:1px; font-size:18px; line-height:1.15;
+  }
+  .ref{ display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--text-soft); margin-top:4px; }
+  .ref svg{ width:13px; height:13px; flex-shrink:0; }
+  .meta{ display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .badge{ font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
+  .badge-open{ background:var(--green-tint); color:var(--green); }
+  .badge-closed{ background:var(--accent-tint); color:var(--muted); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .micro{ font-size:11.5px; font-weight:600; color:var(--text-soft); }
+  .chev{ flex:0 0 auto; color:var(--text-soft); opacity:.6; }
+  .chev svg{ width:20px; height:20px; }
+  .foot{ text-align:center; font-size:12px; color:var(--muted); margin-top:26px; line-height:1.5; }
+  .empty{ text-align:center; color:var(--text-soft); padding:40px 0; }
 </style>
 </head>
 <body>
+  <header>
+    <?php if ($logoUrl): ?>
+      <img class="logo" src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
+    <?php else: ?>
+      <strong style="font-size:20px;letter-spacing:.5px">EL GRINGO</strong>
+    <?php endif; ?>
+    <button class="theme-toggle" onclick="toggleTheme()" type="button">☀︎ / ☾ Tema</button>
+  </header>
+
   <div class="wrap">
-    <div class="theme-row">
-      <button class="theme-toggle" onclick="toggleTheme()" type="button">☀︎ / ☾ Tema</button>
-    </div>
-
-    <div class="brand">
-      <?php if ($logoUrl): ?>
-        <img src="<?= htmlspecialchars($logoUrl) ?>" alt="El Gringo Burger Joint">
-      <?php else: ?>
-        <span class="logo-txt">EL GRINGO</span>
-      <?php endif; ?>
-    </div>
-
     <h1>¿De qué tienda<br>quieres pedir?</h1>
     <p class="sub">Elige tu local y te mostramos su carta.</p>
 
