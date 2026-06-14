@@ -137,21 +137,34 @@ if (!function_exists('nubefactEmitir')) {
             $pedidoTotal = round((float) ($pedido['total'] ?? 0), 2);
             $escala = ($subBruto > 0) ? ($pedidoTotal / $subBruto) : 1.0;
 
+            // IGV configurable: porcentaje y si los precios ya lo incluyen.
+            $igvPct = (float) getSetting('igv_pct', '18');
+            if ($igvPct <= 0) $igvPct = 18.0;
+            $factor   = 1 + $igvPct / 100;
+            $incluido = getSetting('igv_incluido', '1') == '1';
+
             // 4c. Construir items NubeFact y acumular gravada / igv
             $itemsPayload  = [];
             $total_gravada = 0.0;
             $total_igv     = 0.0;
-            $sumGi         = 0.0; // suma de g_i escalados (con IGV) para chequeo
+            $sumLinea      = 0.0; // suma de totales de línea (con IGV) para chequeo
 
             foreach ($lineas as $ln) {
                 $qty = $ln['qty'];
-                $gi  = round($ln['bruto'] * $escala, 2); // bruto escalado con IGV
+                $gi  = round($ln['bruto'] * $escala, 2); // bruto escalado
                 if ($gi < 0) $gi = 0.0;
 
-                $valorLinea = round($gi / 1.18, 2);      // sin IGV
-                $igvLinea   = round($gi - $valorLinea, 2);
+                if ($incluido) {
+                    $valorLinea = round($gi / $factor, 2);   // gi = monto con IGV
+                    $igvLinea   = round($gi - $valorLinea, 2);
+                    $lineaTotal = $gi;
+                } else {
+                    $valorLinea = $gi;                        // gi = base sin IGV
+                    $igvLinea   = round($gi * $igvPct / 100, 2);
+                    $lineaTotal = round($gi + $igvLinea, 2);
+                }
 
-                $precio_unitario = $qty > 0 ? round($gi / $qty, 2) : $gi;          // con IGV
+                $precio_unitario = $qty > 0 ? round($lineaTotal / $qty, 2) : $lineaTotal; // con IGV
                 $valor_unitario  = $qty > 0 ? round($valorLinea / $qty, 2) : $valorLinea; // sin IGV
                 $subtotalLinea   = round($valor_unitario * $qty, 2);              // subtotal NubeFact (sin IGV)
 
@@ -166,29 +179,26 @@ if (!function_exists('nubefactEmitir')) {
                     'subtotal'                 => $subtotalLinea,
                     'tipo_de_igv'              => 1,
                     'igv'                      => $igvLinea,
-                    'total'                    => $gi,
+                    'total'                    => $lineaTotal,
                     'anticipo_regularizacion'  => false,
                 ];
 
                 $total_gravada += $valorLinea;
                 $total_igv     += $igvLinea;
-                $sumGi         += $gi;
+                $sumLinea      += $lineaTotal;
             }
 
             $total_gravada = round($total_gravada, 2);
             $total_igv     = round($total_igv, 2);
             $total         = round($total_gravada + $total_igv, 2);
 
-            // 4d. Cuadre fino con el total cobrado del pedido.
-            // El total del comprobante debe igualar pedido.total. Ajustar IGV.
-            $objetivo = round($sumGi, 2); // suma exacta de líneas escaladas
-            // Si el redondeo se desvió del total del pedido por ±0.02, alinear al pedido.
-            if (abs($objetivo - $pedidoTotal) <= 0.02) {
+            // 4d. Cuadre fino. Con IGV incluido, el total debe igualar pedido.total.
+            $objetivo = round($sumLinea, 2);
+            if ($incluido && abs($objetivo - $pedidoTotal) <= 0.02) {
                 $objetivo = $pedidoTotal;
             }
             if (abs($total - $objetivo) > 0.0) {
-                $diff = round($objetivo - $total_gravada, 2);
-                $total_igv = $diff; // gravada + igv = objetivo
+                $total_igv = round($objetivo - $total_gravada, 2); // gravada + igv = objetivo
                 if ($total_igv < 0) $total_igv = 0.0;
                 $total = round($total_gravada + $total_igv, 2);
             }
@@ -243,7 +253,7 @@ if (!function_exists('nubefactEmitir')) {
                 'cliente_email'                        => '',
                 'fecha_de_emision'                     => date('d-m-Y'),
                 'moneda'                               => 1,
-                'porcentaje_de_igv'                    => 18.00,
+                'porcentaje_de_igv'                    => round($igvPct, 2),
                 'total_gravada'                        => $total_gravada,
                 'total_igv'                            => $total_igv,
                 'total'                                => $total,
