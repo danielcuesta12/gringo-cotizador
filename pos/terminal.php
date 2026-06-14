@@ -418,17 +418,32 @@ a{color:inherit;text-decoration:none}
 .nota-general-area:focus{outline:none;border-color:var(--yellow)}
 
 /* ── Caja panel ────────────────────────────────────────── */
-#panel-caja{
+#panel-caja, #panel-historial{
   display:none;position:absolute;bottom:var(--btmbar-h);left:0;right:0;
   background:var(--surface);border-top:1px solid var(--border);z-index:90;
   padding:18px 20px;flex-direction:column;gap:14px;
   max-height:calc(100vh - var(--topbar-h) - var(--btmbar-h));overflow-y:auto;
 }
-#panel-caja.active{display:flex}
+#panel-caja.active, #panel-historial.active{display:flex}
 .caja-row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px}
 .caja-row:last-of-type{border:none}
 .caja-row span:first-child{font-size:13px;color:var(--text2)}
 .caja-row span:last-child{font-size:16px;font-weight:700}
+.hist-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.hist-row:last-of-type{border:none}
+.hist-info{flex:1;min-width:0}
+.hist-top{display:flex;gap:8px;align-items:baseline}
+.hist-id{font-size:14px;font-weight:700}
+.hist-hora{font-size:11px;color:var(--text2)}
+.hist-meta{font-size:11px;color:var(--text2);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hist-total{font-size:15px;font-weight:700;color:var(--yellow);white-space:nowrap}
+.hist-actions{display:flex;gap:6px;flex-shrink:0}
+.hist-actions button,.hist-actions a{font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;text-decoration:none}
+.hist-comp{font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px}
+.hist-comp.emitido{background:rgba(74,222,128,.15);color:#4ade80}
+.hist-comp.pend{background:rgba(255,223,0,.15);color:var(--yellow)}
+.hist-comp.err{background:rgba(248,113,113,.15);color:#f87171}
+.hist-comp.ticket{background:var(--surface2);color:var(--text2)}
 #btn-cerrar-turno{
   background:var(--red);color:#fff;font-weight:800;font-size:15px;padding:13px;
   border-radius:var(--radius);width:100%;
@@ -826,6 +841,12 @@ a{color:inherit;text-decoration:none}
     </button>
   </div>
 
+  <!-- Panel historial (slide up sobre bottombar) -->
+  <div id="panel-historial">
+    <h3 style="font-size:16px;font-weight:700">Historial del turno</h3>
+    <div id="historial-lista"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Cargando…</div></div>
+  </div>
+
 </div><!-- /app -->
 
 <!-- ── Ver pedido bar (phone only) ────────────────────── -->
@@ -1017,6 +1038,10 @@ function init() {
     setNavActive('nav-caja');
     toggleCajaPanel();
   });
+  document.getElementById('nav-historial').addEventListener('click', function() {
+    setNavActive('nav-historial');
+    toggleHistorialPanel();
+  });
   document.getElementById('btn-cerrar-turno').addEventListener('click', function() {
     promptCerrarTurno();
   });
@@ -1113,8 +1138,8 @@ function updateCajaEstado(turno) {
 }
 
 function disableNavCaja(off) {
-  var btn = document.getElementById('nav-caja');
-  btn.disabled = off;
+  document.getElementById('nav-caja').disabled = off;
+  document.getElementById('nav-historial').disabled = off;
 }
 
 // ── Abrir caja ─────────────────────────────────────────
@@ -2109,9 +2134,72 @@ function toggleCajaPanel() {
 
 function openCajaPanel() {
   if (!state.turno) return;
+  closeHistorialPanel();
   state.cajaOpen = true;
   renderCajaDetalle();
   document.getElementById('panel-caja').classList.add('active');
+}
+
+// ── Panel historial ────────────────────────────────────
+function toggleHistorialPanel() {
+  state.histOpen = !state.histOpen;
+  if (state.histOpen) openHistorialPanel(); else closeHistorialPanel();
+}
+function openHistorialPanel() {
+  if (!state.turno) return;
+  closeCajaPanel();
+  state.histOpen = true;
+  document.getElementById('panel-historial').classList.add('active');
+  loadHistorial();
+}
+function closeHistorialPanel() {
+  state.histOpen = false;
+  var p = document.getElementById('panel-historial');
+  if (p) p.classList.remove('active');
+  if (document.getElementById('nav-historial').classList.contains('active')) {
+    setNavActive('nav-vender');
+  }
+}
+function loadHistorial() {
+  if (!state.turno) return;
+  document.getElementById('historial-lista').innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Cargando…</div>';
+  apiGet('historial_turno', { turno_id: state.turno.id }).then(function(res) {
+    if (!res.ok) return;
+    renderHistorial(res.ventas || []);
+  }).catch(function() {
+    document.getElementById('historial-lista').innerHTML = '<div style="color:var(--red);font-size:13px;text-align:center;padding:20px">Error al cargar</div>';
+  });
+}
+function renderHistorial(ventas) {
+  var box = document.getElementById('historial-lista');
+  if (!ventas.length) {
+    box.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Sin ventas en este turno.</div>';
+    return;
+  }
+  box.innerHTML = ventas.map(function(v) {
+    var hora = (String(v.created_at || '').substr(11, 5)) || '';
+    var comp;
+    if (v.comprobante_tipo === 'boleta' || v.comprobante_tipo === 'factura') {
+      var lbl = v.comprobante_tipo === 'factura' ? 'Factura' : 'Boleta';
+      if (v.comprobante_estado === 'emitido') comp = '<span class="hist-comp emitido">' + lbl + ' ' + esc(v.comprobante_serie + '-' + v.comprobante_numero) + '</span>';
+      else if (v.comprobante_estado === 'error') comp = '<span class="hist-comp err">' + lbl + ' · error</span>';
+      else comp = '<span class="hist-comp pend">' + lbl + ' · pendiente</span>';
+    } else {
+      comp = '<span class="hist-comp ticket">Ticket</span>';
+    }
+    var pdf = (v.comprobante_estado === 'emitido' && v.comprobante_pdf) ? '<a href="' + esc(v.comprobante_pdf) + '" target="_blank">PDF</a>' : '';
+    return '<div class="hist-row">'
+      + '<div class="hist-info">'
+      + '<div class="hist-top"><span class="hist-id">#' + v.id + '</span><span class="hist-hora">' + esc(hora) + '</span></div>'
+      + '<div class="hist-meta">' + esc(v.metodo_pago || '') + ' ' + comp + '</div>'
+      + '</div>'
+      + '<span class="hist-total">' + fmt(v.total) + '</span>'
+      + '<div class="hist-actions">'
+      + '<button onclick="printRawBT(' + v.id + ')">Imprimir</button>'
+      + '<button onclick="showTicketModal(' + v.id + ')">Ver</button>'
+      + pdf
+      + '</div></div>';
+  }).join('');
 }
 
 function closeCajaPanel() {

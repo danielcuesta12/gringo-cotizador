@@ -37,6 +37,17 @@ case 'turno_actual':
     $t = Database::fetch("SELECT * FROM pos_turnos WHERE usuario_id=? AND ubicacion_id=? AND estado='abierto' ORDER BY id DESC LIMIT 1", [$uid,$ubi]);
     pout(['ok'=>true,'turno'=>$t]);
 
+case 'historial_turno':
+    $tid = cleanInt($_GET['turno_id'] ?? 0);
+    if (!$tid) pout(['ok'=>true,'ventas'=>[]]);
+    $ventas = Database::fetchAll(
+        "SELECT id, total, metodo_pago, estado, created_at, comprobante_tipo,
+                comprobante_estado, comprobante_serie, comprobante_numero, comprobante_pdf
+         FROM pedidos
+         WHERE turno_id=? AND origen='pos'
+         ORDER BY id DESC", [$tid]);
+    pout(['ok'=>true,'ventas'=>$ventas]);
+
 case 'abrir_turno':
     $ubi = cleanInt($_POST['ubicacion_id'] ?? 0);
     $monto = cleanFloat($_POST['monto_inicial'] ?? 0);
