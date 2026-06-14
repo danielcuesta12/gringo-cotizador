@@ -38,6 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     setSetting('doc_api_dni_url', $dniUrl !== '' ? $dniUrl : 'https://api.apis.net.pe/v2/reniec/dni?numero={n}');
     setSetting('doc_api_ruc_url', $rucUrl !== '' ? $rucUrl : 'https://api.apis.net.pe/v2/sunat/ruc?numero={n}');
 
+    // ── Izipay (pagos en línea) ─────────────────────────────────────
+    $izMode = strtoupper($_POST['izipay_mode'] ?? 'TEST');
+    setSetting('izipay_mode', in_array($izMode, ['TEST', 'PROD'], true) ? $izMode : 'TEST');
+    setSetting('izipay_shop_id',          trim((string)($_POST['izipay_shop_id'] ?? '')));
+    setSetting('izipay_public_key_test',  trim((string)($_POST['izipay_public_key_test'] ?? '')));
+    setSetting('izipay_public_key_prod',  trim((string)($_POST['izipay_public_key_prod'] ?? '')));
+    $izJs = trim((string)($_POST['izipay_js_url'] ?? ''));
+    if ($izJs !== '') setSetting('izipay_js_url', $izJs);
+    // Secretas: solo-escritura → solo se guardan si llega un valor nuevo (no se borran al guardar).
+    foreach (['izipay_rest_pass_test','izipay_rest_pass_prod','izipay_hmac_test','izipay_hmac_prod'] as $sk) {
+        $v = trim((string)($_POST[$sk] ?? ''));
+        if ($v !== '') setSetting($sk, $v);
+    }
+
     flashMessage('success', 'Configuración de facturación guardada correctamente.');
     redirect('/admin/facturacion/index.php');
 }
@@ -56,6 +70,17 @@ $igvIncluido = getSetting('igv_incluido', '1');
 $docToken    = getSetting('doc_api_token', '');
 $docDniUrl   = getSetting('doc_api_dni_url', 'https://api.apis.net.pe/v2/reniec/dni?numero={n}');
 $docRucUrl   = getSetting('doc_api_ruc_url', 'https://api.apis.net.pe/v2/sunat/ruc?numero={n}');
+
+// Izipay
+$izMode      = getSetting('izipay_mode', 'TEST');
+$izShop      = getSetting('izipay_shop_id', '');
+$izPubT      = getSetting('izipay_public_key_test', '');
+$izPubP      = getSetting('izipay_public_key_prod', '');
+$izJsUrl     = getSetting('izipay_js_url', 'https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js');
+$izHasPassT  = getSetting('izipay_rest_pass_test', '') !== '';
+$izHasPassP  = getSetting('izipay_rest_pass_prod', '') !== '';
+$izHasHmacT  = getSetting('izipay_hmac_test', '') !== '';
+$izHasHmacP  = getSetting('izipay_hmac_prod', '') !== '';
 
 $companyRuc   = getSetting('company_ruc', '');
 $companyName  = getSetting('company_name', '');
@@ -257,6 +282,69 @@ include __DIR__ . '/../layout-top.php';
 
   </div>
 
+</div>
+
+<!-- Izipay (ancho completo) -->
+<div class="card" style="margin-top:20px">
+  <div class="card-header"><span class="card-title">Pagos en línea (Izipay)</span></div>
+  <div class="card-body">
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Modo</label>
+        <select name="izipay_mode">
+          <option value="TEST" <?= $izMode==='TEST'?'selected':'' ?>>TEST (pruebas)</option>
+          <option value="PROD" <?= $izMode==='PROD'?'selected':'' ?>>PRODUCCIÓN (cobros reales)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Shop ID</label>
+        <input type="text" name="izipay_shop_id" value="<?= clean($izShop) ?>" placeholder="12345678" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Clave pública TEST</label>
+        <input type="text" name="izipay_public_key_test" value="<?= clean($izPubT) ?>" placeholder="testpublickey_..." autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Clave pública PRODUCCIÓN</label>
+        <input type="text" name="izipay_public_key_prod" value="<?= clean($izPubP) ?>" placeholder="publickey_..." autocomplete="off">
+      </div>
+    </div>
+
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Contraseña REST TEST <span style="color:#16a34a;font-size:11px"><?= $izHasPassT ? '· configurada' : '' ?></span></label>
+        <input type="password" name="izipay_rest_pass_test" value="" placeholder="<?= $izHasPassT ? '•••••••• (dejar vacío para no cambiar)' : 'testpassword_...' ?>" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>Contraseña REST PRODUCCIÓN <span style="color:#16a34a;font-size:11px"><?= $izHasPassP ? '· configurada' : '' ?></span></label>
+        <input type="password" name="izipay_rest_pass_prod" value="" placeholder="<?= $izHasPassP ? '•••••••• (dejar vacío para no cambiar)' : 'prodpassword_...' ?>" autocomplete="new-password">
+      </div>
+    </div>
+
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Clave HMAC TEST <span style="color:#16a34a;font-size:11px"><?= $izHasHmacT ? '· configurada' : '' ?></span></label>
+        <input type="password" name="izipay_hmac_test" value="" placeholder="<?= $izHasHmacT ? '•••••••• (dejar vacío para no cambiar)' : 'testhmac_...' ?>" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>Clave HMAC PRODUCCIÓN <span style="color:#16a34a;font-size:11px"><?= $izHasHmacP ? '· configurada' : '' ?></span></label>
+        <input type="password" name="izipay_hmac_prod" value="" placeholder="<?= $izHasHmacP ? '•••••••• (dejar vacío para no cambiar)' : 'prodhmac_...' ?>" autocomplete="new-password">
+      </div>
+    </div>
+
+    <details>
+      <summary style="cursor:pointer;font-size:13px;color:var(--text-muted)">Avanzado (URLs)</summary>
+      <div class="form-group" style="margin-top:12px">
+        <label>JS del formulario (Krypton)</label>
+        <input type="text" name="izipay_js_url" value="<?= clean($izJsUrl) ?>">
+      </div>
+    </details>
+
+    <div class="form-hint" style="margin-top:6px">Las contraseñas REST y HMAC son <strong>secretas</strong>: se guardan en la BD, <strong>nunca se muestran</strong> y solo se usan en el servidor (jamás llegan al navegador). Déjalas vacías para conservar las actuales. Si configuras todo aquí, ya no necesitas el <code>.env</code> de Izipay (que queda como respaldo).</div>
+  </div>
 </div>
 
 <div style="margin-top:20px">

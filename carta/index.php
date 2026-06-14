@@ -25,14 +25,14 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $waNum   = preg_replace('/\D/', '', $ubi['whatsapp_number'] ?: getSetting('whatsapp_number', ''));
 $ig      = ltrim($ubi['instagram'] ?? '', '@');
 
-// Izipay — solo si esta ubicación cobra con tarjeta y las credenciales están en .env
+// Izipay — solo si esta ubicación cobra con tarjeta y hay credenciales (settings → .env)
 $izEnabled = false; $izKey = ''; $izJsUrl = '';
 if ($salesMode === 'izipay') {
-    $izEnv  = @parse_ini_file(__DIR__ . '/../.env') ?: [];
-    $izMode = $izEnv['IZIPAY_MODE'] ?? 'TEST';
-    $izKey  = $izMode === 'TEST' ? ($izEnv['IZIPAY_PUBLIC_KEY_TEST'] ?? '') : ($izEnv['IZIPAY_PUBLIC_KEY_PROD'] ?? '');
-    $izJsUrl = $izEnv['IZIPAY_JS_URL'] ?? 'https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js';
-    $izEnabled = !empty($izEnv['IZIPAY_SHOP_ID']) && !empty($izKey);
+    require_once __DIR__ . '/../includes/izipay.php';
+    $izc = izipayCfg();
+    $izKey     = $izc['public_key'];   // pública por diseño
+    $izJsUrl   = $izc['js_url'];
+    $izEnabled = izipayConfigured();
 }
 ?>
 <!DOCTYPE html>

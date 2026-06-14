@@ -4,10 +4,12 @@
 // Se firma con la PASSWORD REST (no con la HMAC).
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/izipay.php';
 
-$env     = @parse_ini_file(__DIR__ . '/../.env');
-$mode    = $env['IZIPAY_MODE'] ?? 'TEST';
-$signKey = $mode === 'TEST' ? ($env['IZIPAY_REST_PASS_TEST'] ?? '') : ($env['IZIPAY_REST_PASS_PROD'] ?? '');
+$izc     = izipayCfg();
+$mode    = $izc['mode'];
+$signKey = $izc['rest_pass'];   // IPN se firma con la PASSWORD REST (secreta)
 
 $krAnswer = $_POST['kr-answer'] ?? '';
 $krHash   = $_POST['kr-hash']   ?? '';

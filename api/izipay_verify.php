@@ -1,9 +1,12 @@
 <?php
 // Verifica la firma del retorno del navegador (HMAC) y confirma el pago.
 require_once __DIR__ . '/../config/config.php';
-$env     = @parse_ini_file(__DIR__ . '/../.env');
-$mode    = $env['IZIPAY_MODE'] ?? 'TEST';
-$hmacKey = $mode === 'TEST' ? ($env['IZIPAY_HMAC_TEST'] ?? '') : ($env['IZIPAY_HMAC_PROD'] ?? '');
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/izipay.php';
+$izc     = izipayCfg();
+$mode    = $izc['mode'];
+$hmacKey = $izc['hmac'];   // secreta (solo-servidor)
 $base    = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
 
 $isBrowserRedirect = isset($_POST['kr-answer']);

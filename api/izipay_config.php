@@ -1,11 +1,15 @@
 <?php
-// Config pública de Izipay para el formulario embebido (lee .env del cotizador)
+// Config PÚBLICA de Izipay para el formulario embebido (settings → .env).
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/izipay.php';
+
 header('Content-Type: application/json; charset=utf-8');
-$env  = @parse_ini_file(__DIR__ . '/../.env');
-$mode = $env['IZIPAY_MODE'] ?? 'TEST';
+$c = izipayCfg();
 echo json_encode([
-    'jsUrl'      => $env['IZIPAY_JS_URL'] ?? '',
-    'publicKey'  => $mode === 'TEST' ? ($env['IZIPAY_PUBLIC_KEY_TEST'] ?? '') : ($env['IZIPAY_PUBLIC_KEY_PROD'] ?? ''),
-    'mode'       => $mode,
-    'configured' => !empty($env['IZIPAY_SHOP_ID']),
+    'jsUrl'      => $c['js_url'],
+    'publicKey'  => $c['public_key'],   // pública por diseño
+    'mode'       => $c['mode'],
+    'configured' => izipayConfigured(),
 ]);

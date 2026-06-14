@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/izipay.php';
 
 header('Content-Type: application/json; charset=utf-8');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
@@ -18,13 +19,13 @@ if ($ubiId) {
     }
 }
 
-$env = @parse_ini_file(__DIR__ . '/../.env');
-$shopId = $env['IZIPAY_SHOP_ID'] ?? '';
-if (!$shopId) { echo json_encode(['ok' => false, 'error' => 'Izipay no configurado (.env)']); exit; }
+$izc = izipayCfg();
+$shopId = $izc['shop_id'];
+if (!$shopId) { echo json_encode(['ok' => false, 'error' => 'Izipay no configurado']); exit; }
 
-$mode       = $env['IZIPAY_MODE'] ?? 'TEST';
-$password   = $mode === 'TEST' ? ($env['IZIPAY_REST_PASS_TEST'] ?? '') : ($env['IZIPAY_REST_PASS_PROD'] ?? '');
-$restServer = $env['IZIPAY_REST_SERVER'] ?? 'https://api.micuentaweb.pe';
+$mode       = $izc['mode'];
+$password   = $izc['rest_pass'];   // secreta (solo-servidor)
+$restServer = $izc['rest_server'];
 
 $amount  = intval(floatval($body['amount'] ?? 0) * 100); // céntimos
 $orderId = 'EG-' . time() . '-' . rand(1000, 9999);
