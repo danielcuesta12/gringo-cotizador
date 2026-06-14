@@ -75,20 +75,61 @@ if (!function_exists('nubefactEmitir')) {
                 return ['ok' => false, 'error' => 'Falta configurar NubeFact'];
             }
 
-            // ---- 3. Tipo / serie / numero ------------------------------
+            // ---- 3. Tipo / serie / numero (serie propia por local) -----
             $tipo = ($compTipo === 'factura') ? 1 : 2; // 1 factura, 2 boleta
 
-            if ($compTipo === 'factura') {
-                $serie    = trim((string) getSetting('nubefact_serie_factura', 'F001'));
-                $serie    = $serie !== '' ? $serie : 'F001';
-                $numKey   = 'nubefact_num_factura';
-            } else {
-                $serie    = trim((string) getSetting('nubefact_serie_boleta', 'B001'));
-                $serie    = $serie !== '' ? $serie : 'B001';
-                $numKey   = 'nubefact_num_boleta';
+            // Serie/correlativo del LOCAL del pedido; si no tiene serie propia,
+            // cae al global de Facturación (compatibilidad). Tolerante si la
+            // migración multilocal aún no se aplicó.
+            $ubiId    = (int) ($pedido['ubicacion_id'] ?? 0);
+            $perLocal = false;
+            $numCol   = '';
+            $numKey   = '';
+            $ubiSerie = null;
+            try {
+                $ubiSerie = $ubiId ? Database::fetch(
+                    "SELECT serie_boleta, serie_factura, num_boleta, num_factura FROM ubicaciones WHERE id = ?",
+                    [$ubiId]
+                ) : null;
+            } catch (\Throwable $e) {
+                $ubiSerie = null; // columnas aún no existen → global
             }
-            $numero = (int) getSetting($numKey, '1');
+
+            if ($compTipo === 'factura') {
+                $serieLoc = $ubiSerie ? trim((string) ($ubiSerie['serie_factura'] ?? '')) : '';
+                if ($serieLoc !== '') {
+                    $perLocal = true;
+                    $serie    = $serieLoc;
+                    $numCol   = 'num_factura';
+                    $numero   = (int) ($ubiSerie['num_factura'] ?? 1);
+                } else {
+                    $serie  = trim((string) getSetting('nubefact_serie_factura', 'F001')) ?: 'F001';
+                    $numKey = 'nubefact_num_factura';
+                    $numero = (int) getSetting($numKey, '1');
+                }
+            } else {
+                $serieLoc = $ubiSerie ? trim((string) ($ubiSerie['serie_boleta'] ?? '')) : '';
+                if ($serieLoc !== '') {
+                    $perLocal = true;
+                    $serie    = $serieLoc;
+                    $numCol   = 'num_boleta';
+                    $numero   = (int) ($ubiSerie['num_boleta'] ?? 1);
+                } else {
+                    $serie  = trim((string) getSetting('nubefact_serie_boleta', 'B001')) ?: 'B001';
+                    $numKey = 'nubefact_num_boleta';
+                    $numero = (int) getSetting($numKey, '1');
+                }
+            }
             if ($numero < 1) $numero = 1;
+
+            // Avanza el correlativo (local o global) a $n.
+            $avanzarCorrelativo = function (int $n) use ($perLocal, $numCol, $numKey, $ubiId) {
+                if ($perLocal) {
+                    Database::execute("UPDATE ubicaciones SET $numCol = ? WHERE id = ?", [$n, $ubiId]);
+                } else {
+                    setSetting($numKey, (string) $n);
+                }
+            };
 
             // ---- 4. Items + IGV (precios incluyen IGV 18%) -------------
             $items = json_decode($pedido['items_json'] ?? '[]', true);
@@ -321,7 +362,7 @@ if (!function_exists('nubefactEmitir')) {
                     && (strpos($lower, 'existe') !== false || strpos($lower, 'otro') !== false || strpos($lower, 'mayor') !== false || strpos($lower, 'registrado') !== false || strpos($lower, 'repetido') !== false);
 
                 if ($numeroChoca) {
-                    setSetting($numKey, (string) ($numero + 1));
+                    $avanzarCorrelativo($numero + 1);
                     $msg = 'El número ' . $serie . '-' . $numero . ' ya estaba usado; se avanzó al siguiente correlativo. Reintenta la emisión.';
                     Database::execute(
                         "UPDATE pedidos SET comprobante_estado='error', comprobante_error=? WHERE id=?",
@@ -368,8 +409,8 @@ if (!function_exists('nubefactEmitir')) {
                     ]
                 );
 
-                // Avanzar el correlativo para la próxima emisión de esta serie.
-                setSetting($numKey, (string) ($rNumero + 1));
+                // Avanzar el correlativo (local o global) para la próxima emisión.
+                $avanzarCorrelativo($rNumero + 1);
 
                 return [
                     'ok'     => true,

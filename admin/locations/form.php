@@ -21,6 +21,7 @@ $data   = $loc ?? [
     'sales_mode' => 'menu', 'whatsapp_number' => '', 'direccion' => '', 'maps_url' => '',
     'hora_apertura' => 18, 'hora_cierre' => 24, 'instagram' => '',
     'activa' => 1, 'cerrado_manual' => 0, 'es_principal' => 0, 'sort_order' => 0,
+    'referencia' => '', 'serie_boleta' => '', 'serie_factura' => '', 'num_boleta' => 1, 'num_factura' => 1,
 ];
 
 // Genera un slug a partir de un texto
@@ -49,6 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'cerrado_manual'  => isset($_POST['cerrado_manual']) ? 1 : 0,
         'es_principal'    => isset($_POST['es_principal']) ? 1 : 0,
         'sort_order'      => cleanInt($_POST['sort_order'] ?? 0),
+        'referencia'      => clean($_POST['referencia'] ?? ''),
+        'serie_boleta'    => strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $_POST['serie_boleta'] ?? '')),
+        'serie_factura'   => strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $_POST['serie_factura'] ?? '')),
+        'num_boleta'      => max(1, cleanInt($_POST['num_boleta'] ?? 1)),
+        'num_factura'     => max(1, cleanInt($_POST['num_factura'] ?? 1)),
     ];
 
     if (!$data['nombre']) $errors[] = 'El nombre es obligatorio.';
@@ -76,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "UPDATE ubicaciones SET nombre=?,slug=?,descripcion=?,color_header=?,sales_mode=?,whatsapp_number=?,direccion=?,maps_url=?,hora_apertura=?,hora_cierre=?,instagram=?,activa=?" . ($hasCerrado ? ',cerrado_manual=?' : '') . ",es_principal=?,sort_order=? WHERE id=?",
                 array_merge($params, [$id])
             );
+            $savedId = $id;
             flashMessage('success', 'Ubicación actualizada.');
         } else {
             $cols = "nombre,slug,descripcion,color_header,sales_mode,whatsapp_number,direccion,maps_url,hora_apertura,hora_cierre,instagram,activa" . ($hasCerrado ? ',cerrado_manual' : '') . ",es_principal,sort_order";
@@ -83,8 +90,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $params = [$data['nombre'],$data['slug'],$data['descripcion'],$data['color_header'],$data['sales_mode'],$data['whatsapp_number'],$data['direccion'],$data['maps_url'],$data['hora_apertura'],$data['hora_cierre'],$data['instagram'],$data['activa']];
             if ($hasCerrado) { $params[] = $data['cerrado_manual']; }
             $params[] = $data['es_principal']; $params[] = $data['sort_order'];
-            Database::insert("INSERT INTO ubicaciones ($cols) VALUES ($vals)", $params);
+            $savedId = Database::insert("INSERT INTO ubicaciones ($cols) VALUES ($vals)", $params);
             flashMessage('success', 'Ubicación creada. Ahora agrégale ítems a su carta.');
+        }
+        // Campos multilocal (serie/correlativo/referencia) — UPDATE aparte y
+        // tolerante por si la migración multilocal_facturacion.sql aún no se aplicó.
+        if (!empty($savedId)) {
+            try {
+                Database::execute(
+                    "UPDATE ubicaciones SET referencia=?, serie_boleta=?, serie_factura=?, num_boleta=?, num_factura=? WHERE id=?",
+                    [
+                        $data['referencia'],
+                        $data['serie_boleta'] ?: null,
+                        $data['serie_factura'] ?: null,
+                        $data['num_boleta'],
+                        $data['num_factura'],
+                        $savedId,
+                    ]
+                );
+            } catch (\Throwable $e) { /* columnas aún no creadas */ }
         }
         redirect('/admin/locations/index.php');
     }
@@ -149,6 +173,11 @@ include __DIR__ . '/../layout-top.php';
         </div>
       </div>
 
+      <div class="form-group">
+        <label>Referencia / zona <small style="font-weight:400;color:var(--text-muted)">(la ve el cliente en el selector de tienda)</small></label>
+        <input type="text" name="referencia" value="<?= clean($data['referencia'] ?? '') ?>" placeholder="Ej: Lince / San Isidro">
+      </div>
+
       <div class="form-row form-row-2">
         <div class="form-group">
           <label>Dirección <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label>
@@ -175,6 +204,31 @@ include __DIR__ . '/../layout-top.php';
           <label>Instagram <small style="font-weight:400;color:var(--text-muted)">(usuario)</small></label>
           <input type="text" name="instagram" value="<?= clean($data['instagram']) ?>" placeholder="elgringoburger">
           <div class="form-hint">Sin @, solo el usuario</div>
+        </div>
+      </div>
+
+      <div style="margin:22px 0 6px;padding-top:18px;border-top:1px solid var(--border)">
+        <strong style="font-size:14px">Facturación electrónica de este local</strong>
+        <div class="form-hint" style="margin-top:2px">Serie y correlativo propios para que dos locales nunca choquen en SUNAT. Déjalo vacío para usar la serie global de Facturación.</div>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Serie de boletas</label>
+          <input type="text" name="serie_boleta" value="<?= clean($data['serie_boleta'] ?? '') ?>" placeholder="B001" maxlength="10" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Siguiente Nº (boleta)</label>
+          <input type="number" name="num_boleta" value="<?= (int)($data['num_boleta'] ?? 1) ?>" min="1" step="1">
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Serie de facturas</label>
+          <input type="text" name="serie_factura" value="<?= clean($data['serie_factura'] ?? '') ?>" placeholder="F001" maxlength="10" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Siguiente Nº (factura)</label>
+          <input type="number" name="num_factura" value="<?= (int)($data['num_factura'] ?? 1) ?>" min="1" step="1">
         </div>
       </div>
 
