@@ -30,7 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $foto = $existing['foto_referencia'] ?? null;
     if (!empty($_FILES['foto']['name'])) {
         $up = uploadImage($_FILES['foto'], 'empleados');
-        if ($up) $foto = $up;
+        if ($up) {
+            $foto = $up;
+        } else {
+            flashMessage('error', 'No se pudo subir la foto (revisa formato/tamaño, máx 2MB).');
+            redirect('/admin/asistencia/empleado_form' . ($id ? ('?id=' . $id) : ''));
+        }
     }
 
     if ($nombre === '') {

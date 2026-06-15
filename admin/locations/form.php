@@ -252,6 +252,24 @@ include __DIR__ . '/../layout-top.php';
       }
       </script>
 
+        <?php if (!empty($data['slug']) && !empty($data['asistencia_token'])):
+            $marcarUrl = APP_URL . '/asistencia/marcar.php?u=' . rawurlencode($data['slug']) . '&t=' . rawurlencode($data['asistencia_token']);
+        ?>
+        <div class="form-group" style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:14px">
+          <label>Enlace de marcaje de asistencia (compártelo o pégalo en la tablet del local)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="marcar-url" readonly value="<?= htmlspecialchars($marcarUrl, ENT_QUOTES) ?>" onclick="this.select()" style="flex:1">
+            <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('marcar-url').value);this.textContent='Copiado'">Copiar</button>
+          </div>
+          <div id="marcar-qr" style="margin-top:12px"></div>
+          <div class="form-hint">El token es secreto: solo compártelo con tu equipo. La página pide selfie + ubicación.</div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script>
+        (function(){ if(window.QRCode){ try{ new QRCode(document.getElementById('marcar-qr'), {text: document.getElementById('marcar-url').value, width:148, height:148}); }catch(e){} } })();
+        </script>
+        <?php endif; ?>
+
       <div style="margin:22px 0 6px;padding-top:18px;border-top:1px solid var(--border)"></div>
 
       <div class="form-group">

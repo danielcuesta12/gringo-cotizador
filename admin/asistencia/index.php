@@ -18,6 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo     = in_array($_POST['tipo'] ?? '', ['entrada', 'salida']) ? $_POST['tipo'] : 'entrada';
         $fechaHora = str_replace('T', ' ', clean($_POST['marcada_at'] ?? ''));
         $nota     = clean($_POST['nota'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $fechaHora)) {
+            flashMessage('error', 'Fecha/hora inválida.');
+            redirect('/admin/asistencia/index.php?fecha=' . urlencode($fechaRedir));
+        }
         if ($empId && $fechaHora) {
             $emp = Database::fetch("SELECT ubicacion_id FROM empleados WHERE id=?", [$empId]);
             Database::insert(
@@ -35,6 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fechaHora = str_replace('T', ' ', clean($_POST['marcada_at'] ?? ''));
         $tipo      = in_array($_POST['tipo'] ?? '', ['entrada', 'salida']) ? $_POST['tipo'] : 'entrada';
         $nota      = clean($_POST['nota'] ?? 'Ajuste manual');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $fechaHora)) {
+            flashMessage('error', 'Fecha/hora inválida.');
+            redirect('/admin/asistencia/index.php?fecha=' . urlencode($fechaRedir));
+        }
         if ($mid && $fechaHora) {
             Database::execute(
                 "UPDATE asistencia_marcas SET tipo=?, marcada_at=?, origen='manual', nota=?, registrada_por=? WHERE id=?",

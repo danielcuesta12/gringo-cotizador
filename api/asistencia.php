@@ -34,14 +34,18 @@ if (preg_match('#^data:image/\w+;base64,#', $b64)) {
 
 $lat = isset($in['lat']) && $in['lat'] !== '' && $in['lat'] !== null ? (float)$in['lat'] : null;
 $lng = isset($in['lng']) && $in['lng'] !== '' && $in['lng'] !== null ? (float)$in['lng'] : null;
+$ubiLat = ($ubi['lat'] !== null && $ubi['lat'] !== '') ? (float)$ubi['lat'] : null;
+$ubiLng = ($ubi['lng'] !== null && $ubi['lng'] !== '') ? (float)$ubi['lng'] : null;
 $dist = null; $dentro = 1;
-if (!empty($ubi['geocerca_activa']) && $ubi['lat'] !== null && $lat !== null) {
-    $R = 6371000; $dLat = deg2rad($lat - $ubi['lat']); $dLng = deg2rad($lng - $ubi['lng']);
-    $a = sin($dLat/2)**2 + cos(deg2rad($ubi['lat']))*cos(deg2rad($lat))*sin($dLng/2)**2;
-    $dist = (int) round($R * 2 * atan2(sqrt($a), sqrt(1-$a)));
-    $dentro = $dist <= (int)$ubi['geocerca_radio'] ? 1 : 0;
-} elseif (!empty($ubi['geocerca_activa']) && $lat === null) {
-    $dentro = 0;
+if (!empty($ubi['geocerca_activa'])) {
+    if ($lat !== null && $lng !== null && $ubiLat !== null && $ubiLng !== null) {
+        $R = 6371000; $dLat = deg2rad($lat - $ubiLat); $dLng = deg2rad($lng - $ubiLng);
+        $a = sin($dLat/2)**2 + cos(deg2rad($ubiLat))*cos(deg2rad($lat))*sin($dLng/2)**2;
+        $dist = (int) round($R * 2 * atan2(sqrt($a), sqrt(1-$a)));
+        $dentro = $dist <= (int)$ubi['geocerca_radio'] ? 1 : 0;
+    } else {
+        $dentro = 0; // geocerca activa pero faltan coordenadas → rojo para revisar
+    }
 }
 
 $fuente = in_array($ubi['modo_marcaje'] ?? '', ['tablet','celular']) ? $ubi['modo_marcaje'] : 'tablet';

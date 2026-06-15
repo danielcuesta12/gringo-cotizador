@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/asistencia.php';
 
 requirePermission('asistencia');
 
@@ -16,35 +17,7 @@ $rows = Database::fetchAll(
     [$desde, $hasta]
 );
 
-$acc     = []; // empleado_id => ['nombre'=>, 'segundos'=>0, 'incompletas'=>0]
-$abierta = []; // empleado_id => ['ts'=>, 'dia'=>]
-
-foreach ($rows as $r) {
-    $eid = $r['empleado_id'];
-    if (!isset($acc[$eid])) {
-        $acc[$eid] = ['nombre' => $r['nombre'], 'segundos' => 0, 'incompletas' => 0];
-    }
-    $ts  = strtotime($r['marcada_at']);
-    $dia = date('Y-m-d', $ts);
-
-    if ($r['tipo'] === 'entrada') {
-        if (isset($abierta[$eid])) {
-            $acc[$eid]['incompletas']++; // entrada previa sin cerrar
-        }
-        $abierta[$eid] = ['ts' => $ts, 'dia' => $dia];
-    } else { // salida
-        if (isset($abierta[$eid]) && $abierta[$eid]['dia'] === $dia) {
-            $acc[$eid]['segundos'] += max(0, $ts - $abierta[$eid]['ts']);
-            unset($abierta[$eid]);
-        } else {
-            $acc[$eid]['incompletas']++; // salida sin entrada del día
-        }
-    }
-}
-
-foreach ($abierta as $eid => $_v) {
-    $acc[$eid]['incompletas']++; // entradas que quedaron abiertas
-}
+$acc = asistenciaResumen($rows);
 
 uasort($acc, fn($a, $b) => strcmp($a['nombre'], $b['nombre']));
 
@@ -56,8 +29,8 @@ include __DIR__ . '/../../admin/layout-top.php';
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;">
     <h1 style="margin:0;font-size:1.4rem;">Reporte de horas</h1>
     <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-        <a href="index.php" class="btn btn-secondary">← Revisión</a>
-        <a href="empleados.php" class="btn btn-secondary">Empleados</a>
+        <a href="<?= APP_URL ?>/admin/asistencia/index.php" class="btn btn-secondary">← Revisión</a>
+        <a href="<?= APP_URL ?>/admin/asistencia/empleados.php" class="btn btn-secondary">Empleados</a>
     </div>
 </div>
 
