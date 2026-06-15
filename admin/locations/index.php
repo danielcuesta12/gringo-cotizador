@@ -25,6 +25,7 @@ $modeBadge = [
     'menu'     => ['badge-secondary', 'Solo menú'],
     'whatsapp' => ['badge-success',   'WhatsApp'],
     'izipay'   => ['badge-info',      'Izipay'],
+    'ambos'    => ['badge-info',      'WhatsApp + Izipay'],
 ];
 
 $pageTitle  = 'Ubicaciones';
