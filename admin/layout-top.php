@@ -336,6 +336,21 @@ try {
     </div>
     <?php endif; ?>
 
+    <?php /* ===== 6.6 Personal ===== */ ?>
+    <?php if (can('asistencia')): ?>
+    <div class="sb-group" data-sb-group="personal">
+      <button type="button" class="nav-section-label sb-header" aria-expanded="true">
+        <span class="sb-dot sb-dot-pink"></span>Personal<span class="sb-chevron">&#9662;</span>
+      </button>
+      <div class="sb-items">
+        <a href="<?php echo APP_URL; ?>/admin/asistencia/index.php"
+           class="nav-link <?php echo ($activePage??'')==='asistencia'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/><path d="M9 11l2 2 4-4" stroke-width="1.8"/></svg></span> Asistencia
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <?php /* ===== 7. Sistema (admin) ===== */ ?>
     <?php if (isAdmin()): ?>
     <div class="sb-group" data-sb-group="sistema">

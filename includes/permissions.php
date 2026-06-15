@@ -48,6 +48,9 @@ function permissionCatalog(): array {
         'Finanzas' => [
             'gastos' => 'Registro de gastos',
         ],
+        'Personal' => [
+            'asistencia' => 'Control de asistencia',
+        ],
     ];
 }
 
@@ -115,6 +118,7 @@ function permissionPaths(): array {
         'qr'         => '/admin/qr.php',
         'landing'    => '/admin/landing/index.php',
         'gastos'     => '/admin/gastos/index.php',
+        'asistencia' => '/admin/asistencia/index.php',
     ];
 }
 
