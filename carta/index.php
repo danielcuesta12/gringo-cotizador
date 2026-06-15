@@ -1965,6 +1965,22 @@ function cambiar(id, nombre, precio, delta) {
     const w = window.open(_waUrlActual, '_blank');
     if (!w) window.location.href = _waUrlActual;
   }
+  function resetPedido() {
+    vaciarCarrito();
+    ['campo-nombre','campo-telefono','campo-direccion','campo-comentarios','campo-doc','campo-razon','campo-email-comp']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const comp = document.getElementById('campo-comprobante');
+    if (comp) { comp.value = ''; onCompChange(); }
+    ['err-nombre','err-telefono','err-direccion','err-comp'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    setTipoEntrega('delivery');
+    wizardStep = 0;
+    if (typeof _pedidoData !== 'undefined') _pedidoData = null;
+    const mc = document.getElementById('modal-confirmado'); if (mc) mc.style.display = 'none';
+    const mp = document.getElementById('modal-pedido'); if (mp) mp.style.display = 'none';
+    document.body.style.overflow = '';
+  }
   function vaciarYVolver() {
     if (typeof _pedidoData !== 'undefined' && _pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
     resetPedido();
