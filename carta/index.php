@@ -1518,6 +1518,12 @@ function cambiar(id, nombre, precio, delta) {
     ];
     if (loyaltyEmailWA && loyaltyOpcion !== 'no') lines.push(`*Email lealtad:* ${loyaltyEmailWA}`);
     if (comentarios) lines.push(`*Comentarios:* ${comentarios}`);
+    if (compTipo) {
+      const etq = compTipo === 'factura' ? 'Factura' : 'Boleta';
+      lines.push(`*Comprobante:* ${etq}`);
+      if (compDoc) lines.push(`*Documento:* ${compDoc}`);
+      if (compNom) lines.push(`*Nombre/Razón:* ${compNom}`);
+    }
     lines.push('', '*Pedido:*');
     const items = Object.values(carrito);
     let total = 0;
