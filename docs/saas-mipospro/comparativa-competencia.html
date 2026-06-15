@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comparativa competitiva — El Gringo vs. Wally vs. Restaurant.pe</title>
+<style>
+  :root{ --yellow:#FFDF00; --pink:#FFBBC8; --black:#1E1E1E; --cream:#FFEFBC; --ink:#2b2b2b; --muted:#777; --line:#ececec; --green:#1f9d55; --red:#d64545; --amber:#d9920a; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f4f4f6;color:var(--ink);line-height:1.5;padding:28px 16px 70px}
+  .wrap{max-width:1040px;margin:0 auto}
+  header.hero{background:var(--black);color:#fff;border-radius:18px;padding:30px 32px;position:relative;overflow:hidden}
+  header.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:var(--yellow);border-radius:50%;opacity:.18}
+  header.hero .kicker{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--yellow)}
+  header.hero h1{font-size:27px;font-weight:900;margin:6px 0 8px;letter-spacing:.3px}
+  header.hero p{font-size:14px;color:#cfcfcf;max-width:680px}
+  .note{font-size:12.5px;color:#5a5a5a;background:var(--cream);border:1px solid #f0e3a8;border-radius:12px;padding:12px 16px;margin:20px 0}
+  .note b{color:var(--black)}
+  h2{font-size:18px;font-weight:900;margin:30px 0 12px;display:flex;align-items:center;gap:9px}
+  h2 .bar{width:6px;height:20px;border-radius:3px;background:var(--yellow);display:inline-block}
+
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.04)}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--black);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+  thead th.you{background:#3a3410;color:var(--yellow)}
+  tbody tr:nth-child(even){background:#fafafa}
+  td.dim{font-weight:700;color:var(--black);width:230px}
+  td.you{background:#fffdf0}
+  .y{color:var(--green);font-weight:700}
+  .n{color:var(--red);font-weight:700}
+  .m{color:var(--amber);font-weight:700}
+  .sm{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:6px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+  .card h3{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .card.win{border-top:4px solid var(--green)}
+  .card.lose{border-top:4px solid var(--red)}
+  .card.price{border-top:4px solid var(--yellow)}
+  .card.risk{border-top:4px solid var(--amber)}
+  .card p{font-size:13px;color:#444}
+  .card p b{color:var(--black)}
+
+  .plans{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .pill{font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px}
+  .pill b{color:var(--black)}
+
+  .takeaway{background:linear-gradient(135deg,var(--yellow),#ffd000);border-radius:16px;padding:22px 26px;margin-top:22px;color:var(--black)}
+  .takeaway h2{margin:0 0 8px;color:var(--black)}
+  .takeaway p{font-size:14.5px;font-weight:600}
+  .takeaway .q{font-size:15px;font-weight:800;background:rgba(0,0,0,.07);border-radius:10px;padding:10px 14px;margin-top:10px;display:inline-block}
+
+  footer{margin-top:28px;font-size:12px;color:var(--muted)}
+  footer a{color:#555}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">Análisis competitivo · Mercado gastronómico Perú</div>
+    <h1>El Gringo vs. Wally vs. Restaurant.pe</h1>
+    <p>Comparativa de la plataforma El Gringo frente a dos sistemas establecidos de POS + facturación electrónica para restaurantes en Perú. Junio 2026.</p>
+  </header>
+
+  <div class="note">
+    <b>Nota de datos:</b> de <b>Wally</b> hay planes y precios públicos (confirmados en su web). De <b>Restaurant.pe</b> la web pública detalla poco: se presenta como “Software para restaurante con Facturación Electrónica” (POS + SUNAT), sin precios ni módulos publicados — lo marcado ahí es por categoría, no dato confirmado.
+  </div>
+
+  <h2><span class="bar"></span>Comparación de funcionalidades</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>Dimensión</th><th>Wally</th><th>Restaurant.pe</th><th class="you">El Gringo (tú)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="dim">Qué es</td><td>POS en la nube + facturación + inventario</td><td>POS + gestión + facturación SUNAT</td><td class="you">Plataforma integral: tienda online + POS + facturación + catering</td></tr>
+        <tr><td class="dim">Facturación SUNAT</td><td><span class="y">✓</span> ilimitada, todos los planes</td><td><span class="y">✓</span> núcleo del producto</td><td class="you"><span class="m">✓ (NubeFact)</span><span class="sm">⚠ probado en demo — falta producción</span></td></tr>
+        <tr><td class="dim">POS / caja</td><td><span class="y">✓</span> maduro</td><td><span class="y">✓</span></td><td class="you"><span class="y">✓</span> con arqueo por turnos</td></tr>
+        <tr><td class="dim">Comandas / KDS</td><td><span class="y">✓</span> impresión + tomador de pedidos</td><td><span class="y">✓</span></td><td class="you"><span class="y">✓</span> KDS en pantalla + ESC/POS</td></tr>
+        <tr><td class="dim">Inventario</td><td><span class="y">✓</span> 1–2 almacenes según plan</td><td><span class="m">probable</span></td><td class="you"><span class="y">✓</span> insumos, recetas, costo promedio</td></tr>
+        <tr><td class="dim">Carta online al cliente (QR/web)</td><td><span class="n">✗</span><span class="sm">no figura en sus planes</span></td><td><span class="n">✗ / limitado</span></td><td class="you"><span class="y">✓</span> multi-local, QR, tema día/noche</td></tr>
+        <tr><td class="dim">Pedidos online (WhatsApp / Izipay)</td><td><span class="n">✗</span></td><td><span class="n">✗</span></td><td class="you"><span class="y">✓</span> wizard + WhatsApp + Izipay</td></tr>
+        <tr><td class="dim">Landing / link-in-bio</td><td><span class="n">✗</span></td><td><span class="n">✗</span></td><td class="you"><span class="y">✓</span></td></tr>
+        <tr><td class="dim">Reservas de mesa</td><td><span class="n">✗</span></td><td><span class="n">✗</span></td><td class="you"><span class="y">✓</span></td></tr>
+        <tr><td class="dim">Cotizaciones / eventos (catering B2B)</td><td><span class="m">solo cotizaciones simples (plan top)</span></td><td><span class="n">✗</span></td><td class="you"><span class="y">✓</span> módulo completo</td></tr>
+        <tr><td class="dim">Multi-local</td><td><span class="m">limitado (almacenes)</span></td><td><span class="m">?</span></td><td class="you"><span class="y">✓</span> serie por local, selector de tienda</td></tr>
+        <tr><td class="dim">Precios (mensual)</td><td><b>S/49 · 99 · 149 · 199</b> + IGV</td><td><span class="m">no público</span></td><td class="you"><b>Propuesto S/150–250</b></td></tr>
+        <tr><td class="dim">Madurez / soporte</td><td><span class="y">Alta</span> — empresa, soporte, capacitación</td><td><span class="y">Establecido</span></td><td class="you"><span class="n">Nuevo</span><span class="sm">1 desarrollador, hosting compartido, sin capa comercial aún</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="legend"><span class="y">✓</span> incluido &nbsp;·&nbsp; <span class="m">parcial / por confirmar</span> &nbsp;·&nbsp; <span class="n">✗</span> no ofrece</div>
+
+  <h2><span class="bar"></span>Planes de Wally (referencia de mercado)</h2>
+  <div class="plans">
+    <span class="pill"><b>Facturación</b> — S/49 + IGV · POS + facturación, 2 usuarios</span>
+    <span class="pill"><b>Crece</b> — S/99 + IGV · + inventario (1 almacén), 4 usuarios</span>
+    <span class="pill"><b>Gastro Emprende</b> — S/99 + IGV · + comandas</span>
+    <span class="pill"><b>Gastronomía</b> — S/149 + IGV · usuarios ilimitados</span>
+    <span class="pill"><b>Avanza</b> — S/199 + IGV · 2 almacenes + cotizaciones</span>
+  </div>
+
+  <h2><span class="bar"></span>Lectura estratégica</h2>
+  <div class="cards">
+    <div class="card lose">
+      <h3>🔻 Dónde ellos te ganan</h3>
+      <p>Son empresas con <b>soporte, capacitación, infraestructura probada y años de SUNAT a escala</b>. En “POS + facturación” puro, Wally es <b>más barato (S/99–149), más maduro y respaldado</b>. No compitas de frente ahí.</p>
+    </div>
+    <div class="card win">
+      <h3>🟢 Tu ventaja real</h3>
+      <p>Wally y Restaurant.pe son <b>back-office</b> (caja + facturar + inventario). <b>Ninguno le da al restaurante su tienda online de cara al cliente.</b> Tú sí: carta multi-local con QR, pedidos WhatsApp/Izipay, landing, reservas y catering — integrado con POS y facturación.</p>
+    </div>
+    <div class="card price">
+      <h3>💰 Implicación de precio</h3>
+      <p>Tu S/150–250 se justifica <b>vendiendo la cuña digital, no el POS</b>. Reemplazas tres gastos: el POS, la web/Linktree, y las <b>comisiones de Rappi/PedidosYa</b> (delivery propio sin comisión).</p>
+    </div>
+    <div class="card risk">
+      <h3>⚠️ Riesgo a cubrir antes de vender</h3>
+      <p>Pasar <b>NubeFact a producción</b> (hoy demo = sin valor legal) y montar algo de <b>soporte/onboarding</b>. Ahí es donde los competidores establecidos te sacan ventaja.</p>
+    </div>
+  </div>
+
+  <div class="takeaway">
+    <h2>Conclusión</h2>
+    <p>No te posiciones como “otro POS más barato” — ahí pierdes contra Wally. Posiciónate como la plataforma que junta <b>operación + presencia digital + delivery propio</b> en una sola cuenta.</p>
+    <span class="q">“Tu carta online + delivery propio + reservas + caja + facturación, en una sola plataforma, sin comisiones de delivery.”</span>
+  </div>
+
+  <footer>
+    Fuentes:
+    <a href="https://soluciones.miwally.com/precios/">Wally — Precios</a> ·
+    <a href="https://miwally.com/sistema-para-restaurantes/">Wally — Restaurantes</a> ·
+    <a href="https://www.comparasoftware.pe/wally-punto-de-venta">ComparaSoftware — Wally</a> ·
+    <a href="https://www.restaurant.pe/">Restaurant.pe</a> ·
+    <a href="https://www.panca.pe/blog/cuanto-cuesta-sistema-pos-restaurante-peru/">PANCA — Guía precios POS Perú 2026</a>
+    <br>Generado para El Gringo · junio 2026 · estimaciones de mercado, no garantías.
+  </footer>
+
+</div>
+</body>
+</html>

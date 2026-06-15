@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MiPOS Pro — Oportunidad para socio comercial</title>
+<style>
+  :root{
+    --ink:#15151c; --navy:#1b1f4b; --yellow:#FFDF00; --pink:#FFBBC8;
+    --teal:#19c3b2; --cream:#FFF7D6; --muted:#8a8a93; --line:#e9e9ef; --green:#1f9d55;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#0e0e14;line-height:1.55}
+  .page{max-width:1080px;margin:0 auto;background:#fff}
+  section{padding:46px 44px}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase}
+  h2{font-size:26px;font-weight:900;letter-spacing:.2px;margin-bottom:6px}
+  h2 .accent{color:#caa400}
+  .lead{font-size:15px;color:#555;max-width:760px}
+  .big{font-size:40px;font-weight:900;line-height:1}
+
+  /* HERO */
+  .hero{background:radial-gradient(circle at 80% 10%, #2a2f63 0%, #15151c 60%);color:#fff;padding:56px 44px}
+  .hero .eyebrow{color:var(--yellow)}
+  .hero h1{font-size:44px;font-weight:900;line-height:1.05;margin:14px 0 14px;letter-spacing:-.5px}
+  .hero h1 span{background:var(--yellow);color:var(--ink);padding:0 10px;border-radius:8px}
+  .hero p{font-size:17px;color:#d4d4e0;max-width:680px}
+  .hero .tag{display:inline-block;margin-top:22px;font-size:12.5px;font-weight:700;color:#bdbdd0;border:1px solid #3a3a55;border-radius:30px;padding:7px 16px}
+
+  /* PROBLEM */
+  .prob{background:var(--cream)}
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+  .pcard{background:#fff;border:1px solid #f0e6b8;border-radius:14px;padding:18px}
+  .pcard .ic{font-size:26px}
+  .pcard h4{font-size:15px;font-weight:800;margin:8px 0 4px}
+  .pcard p{font-size:13px;color:#6a6a55}
+  .arrow{text-align:center;font-size:13px;font-weight:800;color:#caa400;margin-top:20px;letter-spacing:1px}
+
+  /* SOLUTION modules */
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+  .mod{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;transition:.15s}
+  .mod .ic{font-size:24px}
+  .mod h4{font-size:13.5px;font-weight:800;margin:8px 0 3px}
+  .mod p{font-size:12px;color:var(--muted)}
+
+  /* DIFF strip */
+  .diff{background:var(--navy);color:#fff}
+  .diff h2{color:#fff}
+  .replace{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .rep{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;text-align:center}
+  .rep .x{color:#ff8a8a;font-weight:900;font-size:13px;letter-spacing:1px}
+  .rep h4{font-size:15px;margin:6px 0 4px}
+  .rep p{font-size:12px;color:#c3c3d6}
+  .diff .punch{margin-top:22px;background:var(--yellow);color:var(--ink);border-radius:14px;padding:18px 22px;font-size:16px;font-weight:800}
+
+  /* PRICING */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+  .plan{border:1.5px solid var(--line);border-radius:18px;padding:22px;position:relative;background:#fff}
+  .plan.pop{border-color:var(--yellow);box-shadow:0 12px 30px rgba(0,0,0,.08)}
+  .plan .ribbon{position:absolute;top:-12px;right:18px;background:var(--yellow);color:var(--ink);font-size:11px;font-weight:900;padding:4px 12px;border-radius:20px;letter-spacing:.5px}
+  .plan h3{font-size:16px;font-weight:900}
+  .plan .price{font-size:34px;font-weight:900;margin:6px 0 2px}
+  .plan .price small{font-size:13px;font-weight:700;color:var(--muted)}
+  .plan ul{list-style:none;margin-top:12px}
+  .plan li{font-size:12.5px;color:#444;padding:5px 0;padding-left:20px;position:relative}
+  .plan li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:900}
+  .addon{font-size:13px;color:#555;margin-top:18px;background:#f6f6f9;border-radius:12px;padding:12px 16px}
+  .addon b{color:var(--ink)}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+  .step{text-align:center}
+  .step .num{width:42px;height:42px;border-radius:50%;background:var(--ink);color:var(--yellow);font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+  .step h4{font-size:13.5px;font-weight:800;margin-bottom:3px}
+  .step p{font-size:12px;color:var(--muted)}
+  .tech{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tbox{border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tbox h4{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;color:var(--navy)}
+  .tbox p{font-size:13px;color:#555}
+
+  /* MARKET MATH */
+  .math{background:var(--ink);color:#fff}
+  .math h2{color:#fff}
+  .mrow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+  .mstat{background:rgba(255,255,255,.06);border-radius:16px;padding:22px;text-align:center}
+  .mstat .big{color:var(--yellow)}
+  .mstat p{font-size:13px;color:#c7c7d8;margin-top:6px}
+  .disclaimer{font-size:11.5px;color:#8a8aa0;margin-top:16px}
+
+  /* ROADMAP */
+  .road{display:flex;gap:0;margin-top:24px;flex-wrap:wrap}
+  .ritem{flex:1;min-width:150px;border-top:3px solid var(--line);padding:14px 12px 0;position:relative}
+  .ritem.done{border-top-color:var(--green)}
+  .ritem.now{border-top-color:var(--yellow)}
+  .ritem .st{font-size:10.5px;font-weight:900;letter-spacing:.5px;text-transform:uppercase}
+  .ritem.done .st{color:var(--green)}
+  .ritem.now .st{color:#caa400}
+  .ritem.next .st{color:var(--muted)}
+  .ritem h4{font-size:13px;font-weight:800;margin:4px 0}
+  .ritem p{font-size:11.5px;color:var(--muted)}
+
+  /* CTA */
+  .cta{background:linear-gradient(135deg,var(--yellow),#ffcf00);color:var(--ink)}
+  .cta h2{font-size:28px}
+  .cta .lead{color:#5a5320}
+  .cta .ask{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  .ask .a{background:rgba(0,0,0,.06);border-radius:14px;padding:18px}
+  .ask h4{font-size:14px;font-weight:900;margin-bottom:5px}
+  .ask p{font-size:13px;color:#4a451c}
+  .foot{background:#0e0e14;color:#7a7a90;font-size:11.5px;padding:20px 44px}
+  .foot a{color:#a6a6c0}
+
+  @media(max-width:760px){
+    .cols3,.grid4,.plans,.steps,.mrow,.tech,.replace,.ask{grid-template-columns:1fr}
+    .hero h1{font-size:32px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">Oportunidad de negocio · SaaS gastronómico · Perú</div>
+    <h1>La plataforma que le da a cada restaurante su <span>tienda online + caja + facturación</span> en una sola cuenta.</h1>
+    <p>MiPOS Pro junta lo que hoy los restaurantes pagan por separado: su carta online con delivery propio, el punto de venta, la facturación SUNAT y hasta catering — todo en una suscripción mensual, sin comisiones de plataformas de delivery.</p>
+    <span class="tag">Producto construido y probado en multi-cliente · Buscamos socio comercial</span>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="prob">
+    <div class="eyebrow" style="color:#caa400">El problema</div>
+    <h2>Un restaurante hoy <span class="accent">paga y gestiona 3 cosas distintas</span></h2>
+    <div class="cols3">
+      <div class="pcard"><div class="ic">🧾</div><h4>Un POS + facturador</h4><p>Sistema de caja y facturación electrónica (otra mensualidad).</p></div>
+      <div class="pcard"><div class="ic">🔗</div><h4>Una web / Linktree</h4><p>Carta digital armada a mano, sin pedidos reales integrados.</p></div>
+      <div class="pcard"><div class="ic">🛵</div><h4>Rappi / PedidosYa</h4><p>Delivery que se lleva 20–30% de comisión por cada pedido.</p></div>
+    </div>
+    <div class="arrow">↓ Tres proveedores, tres costos, nada conversa entre sí ↓</div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section>
+    <div class="eyebrow" style="color:#caa400">La solución</div>
+    <h2>Una sola plataforma, <span class="accent">todo integrado</span></h2>
+    <p class="lead">El mismo sistema cubre la operación interna y la presencia digital de cara al cliente. Estos son los módulos:</p>
+    <div class="grid4">
+      <div class="mod"><div class="ic">📱</div><h4>Carta online</h4><p>Multi-local, con QR y pedidos.</p></div>
+      <div class="mod"><div class="ic">💬</div><h4>Pedidos WhatsApp / pago online</h4><p>Checkout con Izipay o WhatsApp.</p></div>
+      <div class="mod"><div class="ic">🧾</div><h4>Facturación SUNAT</h4><p>Boletas y facturas electrónicas.</p></div>
+      <div class="mod"><div class="ic">🖥️</div><h4>POS / caja</h4><p>Con arqueo por turnos.</p></div>
+      <div class="mod"><div class="ic">👨‍🍳</div><h4>Pantalla de cocina (KDS)</h4><p>Pedidos en tiempo real.</p></div>
+      <div class="mod"><div class="ic">📦</div><h4>Inventario</h4><p>Insumos, recetas, costeo.</p></div>
+      <div class="mod"><div class="ic">🎉</div><h4>Catering / eventos</h4><p>Cotizaciones B2B.</p></div>
+      <div class="mod"><div class="ic">🪑</div><h4>Reservas + Landing</h4><p>Reservas de mesa y link-in-bio.</p></div>
+    </div>
+  </section>
+
+  <!-- DIFFERENTIATION -->
+  <section class="diff">
+    <div class="eyebrow" style="color:var(--yellow)">Por qué ganamos</div>
+    <h2>Reemplazamos 3 gastos por 1</h2>
+    <div class="replace">
+      <div class="rep"><div class="x">REEMPLAZA ✕</div><h4>El POS + facturador</h4><p>Caja + SUNAT incluidos.</p></div>
+      <div class="rep"><div class="x">REEMPLAZA ✕</div><h4>La web / Linktree</h4><p>Tienda online de verdad.</p></div>
+      <div class="rep"><div class="x">REEMPLAZA ✕</div><h4>Comisiones de delivery</h4><p>Delivery propio, 0% comisión.</p></div>
+    </div>
+    <div class="punch">Los competidores (Wally, Restaurant.pe) son solo back-office: caja + facturación. Ninguno le da al restaurante su tienda online de cara al cliente. Esa es nuestra cuña.</div>
+  </section>
+
+  <!-- PRICING -->
+  <section>
+    <div class="eyebrow" style="color:#caa400">Modelo de negocio</div>
+    <h2>Suscripción mensual <span class="accent">recurrente</span> por restaurante</h2>
+    <p class="lead">Ingreso predecible que crece con cada cliente. Tres planes prearmados; el cliente sube de plan y se le encienden más módulos.</p>
+    <div class="plans">
+      <div class="plan">
+        <h3>Básico</h3>
+        <div class="price">S/99<small>/mes</small></div>
+        <ul><li>Carta online + QR</li><li>Pedidos por WhatsApp</li><li>Landing / link-in-bio</li><li>Reservas de mesa</li></ul>
+      </div>
+      <div class="plan pop">
+        <div class="ribbon">MÁS POPULAR</div>
+        <h3>Pro</h3>
+        <div class="price">S/199<small>/mes</small></div>
+        <ul><li>Todo lo de Básico</li><li>POS + caja + KDS</li><li>Facturación SUNAT + Izipay</li><li>Analítica + gastos</li></ul>
+      </div>
+      <div class="plan">
+        <h3>Multi-local / Catering</h3>
+        <div class="price">S/299<small>+/mes</small></div>
+        <ul><li>Todo lo de Pro</li><li>Inventario y recetas</li><li>Cotizaciones / eventos</li><li>Varios locales + cartas PDF</li></ul>
+      </div>
+    </div>
+    <div class="addon"><b>Adicionales:</b> setup / onboarding único S/250–600 (cargar carta, configurar, capacitar) · <b>dominio propio</b> (tutienda.pe en vez de tutienda.mipospro.pe) con cargo extra.</div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section style="background:#fafafb">
+    <div class="eyebrow" style="color:#caa400">Cómo funciona</div>
+    <h2>El cliente entra en minutos; tú actualizas <span class="accent">una sola vez</span></h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h4>Elige plan</h4><p>Y paga la suscripción.</p></div>
+      <div class="step"><div class="num">2</div><h4>Su tienda queda lista</h4><p>tienda.mipospro.pe o su dominio propio.</p></div>
+      <div class="step"><div class="num">3</div><h4>Configura su marca</h4><p>Logo, colores, productos, RUC.</p></div>
+      <div class="step"><div class="num">4</div><h4>Empieza a vender</h4><p>Online + caja + facturación.</p></div>
+    </div>
+    <div class="tech">
+      <div class="tbox"><h4>Un código, muchos clientes</h4><p>Todos corren sobre el mismo sistema con datos aislados por cliente. Una mejora se publica <b>una vez</b> y la reciben todos al instante — según su plan.</p></div>
+      <div class="tbox"><h4>Márgenes de SaaS</h4><p>El costo de servidor es casi fijo; cada cliente nuevo es ingreso recurrente con costo marginal mínimo. El negocio escala sin escalar los costos al mismo ritmo.</p></div>
+    </div>
+  </section>
+
+  <!-- MARKET MATH -->
+  <section class="math">
+    <div class="eyebrow" style="color:var(--yellow)">El potencial</div>
+    <h2>Ingreso recurrente que se acumula</h2>
+    <div class="mrow">
+      <div class="mstat"><div class="big">S/4 mil</div><p>al mes con solo <b>20 clientes</b> en plan Pro (~S/48k/año recurrente)</p></div>
+      <div class="mstat"><div class="big">S/20 mil</div><p>al mes con <b>100 clientes</b> — el mismo código, mismo servidor</p></div>
+      <div class="mstat"><div class="big">Miles</div><p>de restaurantes y dark kitchens en Lima como mercado direccionable</p></div>
+    </div>
+    <p class="disclaimer">Cifras ilustrativas para dimensionar el modelo, no proyecciones garantizadas. El recurrente real depende de retención y velocidad de venta.</p>
+  </section>
+
+  <!-- ROADMAP -->
+  <section>
+    <div class="eyebrow" style="color:#caa400">Estado real (honesto)</div>
+    <h2>El producto ya está construido. Falta <span class="accent">llevarlo al mercado.</span></h2>
+    <p class="lead">No es una idea en papel: el sistema funciona y ya opera en multi-cliente (dos instancias reales corriendo).</p>
+    <div class="road">
+      <div class="ritem done"><div class="st">✓ Listo</div><h4>Producto completo</h4><p>Carta, POS, KDS, facturación, inventario, catering.</p></div>
+      <div class="ritem done"><div class="st">✓ Listo</div><h4>Multi-cliente probado</h4><p>Código compartido, datos aislados, marca configurable.</p></div>
+      <div class="ritem now"><div class="st">● En curso</div><h4>Planes y cobro</h4><p>Gating por plan + suscripción.</p></div>
+      <div class="ritem next"><div class="st">○ Sigue</div><h4>Infraestructura</h4><p>Servidor propio + facturación a producción.</p></div>
+      <div class="ritem next"><div class="st">○ Sigue</div><h4>Ventas</h4><p>Salir a conseguir clientes ← <b>aquí entras tú</b>.</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="eyebrow" style="color:#7a6e10">La propuesta</div>
+    <h2>Busco un socio comercial</h2>
+    <p class="lead">El producto y la tecnología están resueltos. Lo que falta es quién abra puertas en el sector gastronómico y cierre clientes. Ahí es donde un socio de ventas multiplica el negocio.</p>
+    <div class="ask">
+      <div class="a"><h4>Yo pongo</h4><p>La plataforma completa, el desarrollo, las actualizaciones, la infraestructura y el soporte técnico.</p></div>
+      <div class="a"><h4>El socio pone</h4><p>La fuerza comercial: red de contactos, prospección y cierre de restaurantes. Modelo a definir (comisión / participación).</p></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    MiPOS Pro (nombre tentativo) · Documento de presentación para socio comercial · junio 2026 · cifras ilustrativas. Confidencial.
+  </div>
+
+</div>
+</body>
+</html>
