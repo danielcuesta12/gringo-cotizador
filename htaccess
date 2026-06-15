@@ -23,6 +23,17 @@ ServerSignature Off
     RewriteRule ^config/  - [F,L]
     RewriteRule ^includes/ - [F,L]
     RewriteRule ^vendor/   - [F,L]
+
+    # Carta por slug — cuando el cotizador ES el docroot del dominio
+    # (instancia servida en su propia raíz, ej. marcona.elgringo.pe/{tienda}).
+    # En Lima estas URLs las maneja el .htaccess de /elgringo, no estas reglas.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-zA-Z0-9_-]+)/menu/?$ carta/menu.php?slug=$1 [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-zA-Z0-9_-]+)/?$ carta/index.php?slug=$1 [L,QSA]
 </IfModule>
 
 # Headers de seguridad + no-cache para PHP
