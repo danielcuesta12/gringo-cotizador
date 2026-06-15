@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userId     = cleanInt($_POST['user_id'] ?? 0) ?: null;
     $cargo      = clean($_POST['cargo'] ?? '');
     $activo     = !empty($_POST['activo']) ? 1 : 0;
+    $quitarPin  = !empty($_POST['quitar_pin']);
     $pin        = preg_replace('/\D/', '', $_POST['pin'] ?? '');
     $pinHash    = ($pin !== '') ? password_hash($pin, PASSWORD_DEFAULT) : null;
 
@@ -44,7 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($id > 0) {
-        if ($pinHash !== null) {
+        if ($quitarPin) {
+            Database::execute(
+                "UPDATE empleados SET nombre=?, foto_referencia=?, ubicacion_id=?, user_id=?, pin_hash=NULL, cargo=?, activo=? WHERE id=?",
+                [$nombre, $foto, $ubicacionId, $userId, $cargo, $activo, $id]
+            );
+        } elseif ($pinHash !== null) {
             Database::execute(
                 "UPDATE empleados SET nombre=?, foto_referencia=?, ubicacion_id=?, user_id=?, pin_hash=?, cargo=?, activo=? WHERE id=?",
                 [$nombre, $foto, $ubicacionId, $userId, $pinHash, $cargo, $activo, $id]
@@ -143,6 +149,14 @@ include __DIR__ . '/../layout-top.php';
         <div style="font-size:12px;color:var(--text-muted,#888);margin-top:4px">
           <?= $isEdit ? 'Déjalo vacío para no cambiar el PIN actual.' : 'Opcional; 4 dígitos.' ?>
         </div>
+        <?php if ($isEdit && !empty($existing['pin_hash'])): ?>
+        <div style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" name="quitar_pin" value="1" style="width:16px;height:16px;cursor:pointer">
+            <span>Quitar PIN (este empleado podrá marcar sin PIN)</span>
+          </label>
+        </div>
+        <?php endif; ?>
       </div>
 
       <div class="form-group">
