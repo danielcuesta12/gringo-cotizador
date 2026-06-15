@@ -631,6 +631,11 @@ if ($showCard) {
     .wz-pay{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:10px;margin-top:14px}
     .wz-pay-card{background:#1A1A1A;color:#fff}
     .wz-pay-wa{background:#25D366;color:#fff}
+    .wz-pay svg{flex-shrink:0}
+    .wz-seg{display:flex;gap:8px;margin-bottom:10px}
+    .wz-seg-opt{flex:1;border:1.5px solid #e0e0e0;border-radius:11px;padding:11px 6px;background:#fff;cursor:pointer;text-align:center;font-size:13px;font-weight:800;color:#1B1F4B;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;transition:all .12s}
+    .wz-seg-opt .wz-seg-ic{font-size:20px;line-height:1}
+    .wz-seg-opt.wz-seg-on{border-color:#F5C200;background:#fffbec}
     .wz-or{display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:11px;font-weight:800;margin:0 0 4px}
     .wz-or::before,.wz-or::after{content:"";height:1px;background:#eee;flex:1}
     @media(min-width:900px){
@@ -924,11 +929,12 @@ if ($showCard) {
           <!-- Comprobante (opcional) -->
           <div style="margin-bottom:20px;">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
-              <option value="">No necesito comprobante</option>
-              <option value="boleta">Boleta</option>
-              <option value="factura">Factura</option>
-            </select>
+            <div class="wz-seg" id="comp-seg">
+              <button type="button" class="wz-seg-opt wz-seg-on" data-val=""        onclick="setComprobante('')"><span class="wz-seg-ic">🙅</span>Ninguno</button>
+              <button type="button" class="wz-seg-opt"           data-val="boleta"  onclick="setComprobante('boleta')"><span class="wz-seg-ic">🧾</span>Boleta</button>
+              <button type="button" class="wz-seg-opt"           data-val="factura" onclick="setComprobante('factura')"><span class="wz-seg-ic">🏢</span>Factura</button>
+            </div>
+            <input type="hidden" id="campo-comprobante" value="">
             <div id="comp-fields" style="display:none;margin-top:10px;">
               <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
               <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
@@ -1407,8 +1413,7 @@ function cambiar(id, nombre, precio, delta) {
     return true;
   }
   function omitirComprobante() {
-    const comp = document.getElementById('campo-comprobante');
-    if (comp) { comp.value = ''; if (typeof onCompChange === 'function') onCompChange(); }
+    if (typeof setComprobante === 'function') setComprobante('');
     const err = document.getElementById('err-comp'); if (err) err.style.display = 'none';
     wizardGo(2);
   }
@@ -1468,6 +1473,14 @@ function cambiar(id, nombre, precio, delta) {
     document.body.style.overflow = '';
   }
 
+  function setComprobante(val) {
+    var inp = document.getElementById('campo-comprobante');
+    if (inp) inp.value = val;
+    var seg = document.getElementById('comp-seg');
+    if (seg) seg.querySelectorAll('.wz-seg-opt').forEach(function(b){ b.classList.toggle('wz-seg-on', b.dataset.val === val); });
+    onCompChange();
+  }
+
   function onCompChange() {
     var t = document.getElementById('campo-comprobante').value;
     document.getElementById('comp-fields').style.display = t ? 'block' : 'none';
@@ -1490,8 +1503,10 @@ function cambiar(id, nombre, precio, delta) {
     }).join('');
     document.getElementById('wz-resumen').innerHTML =
       filas + `<div class="wz-it wz-ittot"><span>Total</span><span>S/${Math.round(total)}</span></div>`;
-    const card = `<button type="button" class="wz-pay wz-pay-card" onclick="confirmarPedido('izipay')">💳 Pagar con tarjeta</button>`;
-    const wa   = `<button type="button" class="wz-pay wz-pay-wa" onclick="confirmarPedido('whatsapp')">🟢 Pedir por WhatsApp</button>`;
+    const cardIco = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>';
+    const waIco   = '<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+    const card = `<button type="button" class="wz-pay wz-pay-card" onclick="confirmarPedido('izipay')">${cardIco} Pagar con tarjeta</button>`;
+    const wa   = `<button type="button" class="wz-pay wz-pay-wa" onclick="confirmarPedido('whatsapp')">${waIco} Pedir por WhatsApp</button>`;
     let html = '';
     if (SHOW_CARD && IZ_ENABLED) html += card;
     if (SHOW_CARD && IZ_ENABLED && SHOW_WA) html += '<div class="wz-or">O</div>';
@@ -2001,8 +2016,7 @@ function cambiar(id, nombre, precio, delta) {
     vaciarCarrito();
     ['campo-nombre','campo-telefono','campo-direccion','campo-comentarios','campo-doc','campo-razon','campo-email-comp']
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    const comp = document.getElementById('campo-comprobante');
-    if (comp) { comp.value = ''; onCompChange(); }
+    if (typeof setComprobante === 'function') setComprobante('');
     ['err-nombre','err-telefono','err-direccion','err-comp'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
