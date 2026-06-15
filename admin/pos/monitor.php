@@ -41,7 +41,7 @@ function inlineSvgGrip() {
   --surface:  #1f1c19;
   --surface2: #2a2622;
   --border:   #332e29;
-  --yellow:   #FFDF00;
+  --yellow:   var(--c-brand,#FFDF00);
   --green:    #4ade80;
   --green-dk: #16a34a;
   --red:      #f87171;

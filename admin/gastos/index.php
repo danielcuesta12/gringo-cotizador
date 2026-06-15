@@ -101,7 +101,7 @@ $extraHead  = '<style>
 .g-filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
 .g-chip{flex:0 0 auto;border:1.5px solid var(--border,#ddd);background:var(--card,#fff);border-radius:999px;padding:7px 13px;font-size:12px;font-weight:700;color:var(--text-muted,#777);white-space:nowrap;text-decoration:none}
 .g-chip.on{background:#1E1E1E;color:#fff;border-color:#1E1E1E}
-.g-chip.tag.on{background:#1E1E1E;color:#FFDF00}
+.g-chip.tag.on{background:#1E1E1E;color:var(--c-brand,#FFDF00)}
 .g-card{background:var(--card,#fff);border:1px solid var(--border,#eee);border-radius:14px;padding:14px;margin-bottom:11px}
 .g-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .g-concepto{font-size:15px;font-weight:800}
@@ -111,7 +111,7 @@ $extraHead  = '<style>
 .g-tag.empresa{background:#eef2ff;color:#4f46e5}
 .g-tag.prestamo{background:#FFBBC8;color:#1E1E1E}
 .g-tag.cat{background:var(--bg-page,#f1f1f4);color:#555}
-.g-tag.hash{background:#1E1E1E;color:#FFDF00}
+.g-tag.hash{background:#1E1E1E;color:var(--c-brand,#FFDF00)}
 .g-estado{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px}
 .g-estado.pendiente{background:#fde8ea;color:#e23744}
 .g-estado.pagado{background:#e6f5ec;color:#16a34a}

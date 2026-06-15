@@ -29,7 +29,7 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
   --surface:   #1f1c19;
   --surface2:  #2a2622;
   --border:    #332e29;
-  --yellow:    #FFDF00;
+  --yellow:    var(--c-brand,#FFDF00);
   --yellow-dk: #d4b800;
   --green:     #16a34a;
   --green-dk:  #147040;

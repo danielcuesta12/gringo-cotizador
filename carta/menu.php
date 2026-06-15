@@ -59,7 +59,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
       --muted:     #999999;
       --dim:       #666666;
       --faint:     #444444;
-      --accent:    #FCDA13;   /* amarillo: precios, activos, acentos */
+      --accent:    var(--c-brand,#FCDA13);   /* amarillo: precios, activos, acentos */
       --accent-ink:#1A1A1A;   /* texto sobre amarillo */
       --accent-tint: rgba(252,218,19,.15);
       --accent-tint-strong: rgba(252,218,19,.7);

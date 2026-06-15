@@ -120,11 +120,11 @@ $extraHead  = '<style>
 .cat-row{display:flex;gap:8px}
 .cat-row select{flex:1}
 .cat-add{flex:0 0 auto;border:1.5px dashed var(--border,#ddd);background:#fff;border-radius:9px;padding:0 15px;font-size:20px;font-weight:800;cursor:pointer;color:var(--text-primary,#1E1E1E)}
-.cat-new{display:none;gap:8px;margin-top:8px;background:#fffbe6;border:1px solid #FFDF00;border-radius:10px;padding:10px}
+.cat-new{display:none;gap:8px;margin-top:8px;background:#fffbe6;border:1px solid var(--c-brand,#FFDF00);border-radius:10px;padding:10px}
 .cat-new.on{display:flex}
 .cat-new input{flex:1}
 .tags-box{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1.5px solid var(--border,#ddd);border-radius:10px;padding:8px;background:#fff}
-.tagchip{background:#1E1E1E;color:#FFDF00;font-size:12px;font-weight:800;padding:4px 9px;border-radius:7px;display:inline-flex;gap:5px;align-items:center}
+.tagchip{background:#1E1E1E;color:var(--c-brand,#FFDF00);font-size:12px;font-weight:800;padding:4px 9px;border-radius:7px;display:inline-flex;gap:5px;align-items:center}
 .tagchip b{cursor:pointer;opacity:.7}
 #tag-input{flex:1;min-width:100px;border:none;outline:none;font-size:14px;padding:4px;background:transparent}
 .tag-sug{font-size:12px;color:var(--text-muted,#888);margin-top:7px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}

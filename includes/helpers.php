@@ -303,6 +303,7 @@ function brandHead(): string
     $root = '';
     if ($p !== '') {
         $pr = $rgb($p); $pd = $dark($p);
+        $root .= "--c-brand:$p;";  // variable dedicada para reemplazar amarillos literales (fallback en cada uso)
         $root .= "--yellow:$p;--yellow-dk:$pd;";                                    // POS
         $root .= "--brand:$p;--brand-dark:$pd;--brand-soft:rgba($pr,.12);--brand-border:rgba($pr,.30);"; // admin
         $root .= "--accent:$p;--accent-ink:#fff;--accent-tint:rgba($pr,.15);--accent-tint-strong:rgba($pr,.7);"; // carta

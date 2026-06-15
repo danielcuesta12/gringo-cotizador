@@ -68,7 +68,7 @@ $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
 ?>
 <meta name="theme-color" content="#FCDA13">
 <style>
-  :root{ --brand:#FCDA13; --brand-dark:#e6c400; --ink:#1a1a1a; --bg:#f4f4f0; --card:#fff;
+  :root{ --brand:var(--c-brand,#FCDA13); --brand-dark:#e6c400; --ink:#1a1a1a; --bg:#f4f4f0; --card:#fff;
          --line:#e7e4dc; --muted:#8a877e; --green:#16a34a; }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}

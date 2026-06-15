@@ -88,7 +88,7 @@ if ($salesMode === 'izipay') {
       --muted:     #999999;
       --dim:       #666666;
       --faint:     #444444;
-      --accent:    #FCDA13;
+      --accent:    var(--c-brand,#FCDA13);
       --accent-ink:#1A1A1A;
       --accent-tint: rgba(252,218,19,.15);
       --accent-tint-strong: rgba(252,218,19,.7);
@@ -1950,7 +1950,7 @@ function cambiar(id, nombre, precio, delta) {
 <?php if ($salesMode === 'izipay'): ?>
   <!-- MODAL CARGANDO PAGO -->
   <div id="modal-cargando-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:520;align-items:center;justify-content:center;flex-direction:column;">
-    <div style="width:54px;height:54px;border:4px solid rgba(255,255,255,0.15);border-top-color:#FCDA13;border-radius:50%;animation:spinIz .8s linear infinite;"></div>
+    <div style="width:54px;height:54px;border:4px solid rgba(255,255,255,0.15);border-top-color:var(--c-brand,#FCDA13);border-radius:50%;animation:spinIz .8s linear infinite;"></div>
     <div style="color:#fff;font-size:14px;margin-top:18px;letter-spacing:1px;">Procesando…</div>
   </div>
 
@@ -1981,12 +1981,12 @@ function cambiar(id, nombre, precio, delta) {
 
   <!-- MODAL PAGO CONFIRMADO -->
   <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;">
-    <div style="width:80px;height:80px;border-radius:50%;background:#FCDA13;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
+    <div style="width:80px;height:80px;border-radius:50%;background:var(--c-brand,#FCDA13);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div style="font-family:'Kimmy',sans-serif;font-size:28px;text-transform:uppercase;letter-spacing:2px;color:#fff;margin-bottom:8px;">¡Pedido confirmado!</div>
     <div id="confirmado-detalle" style="font-size:14px;color:#888;line-height:1.9;margin-bottom:32px;"></div>
-    <button onclick="vaciarYVolver()" style="padding:14px 40px;background:#FCDA13;color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">Volver a la carta</button>
+    <button onclick="vaciarYVolver()" style="padding:14px 40px;background:var(--c-brand,#FCDA13);color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">Volver a la carta</button>
   </div>
 
   <!-- MODAL ERROR PAGO -->
@@ -1997,7 +1997,7 @@ function cambiar(id, nombre, precio, delta) {
       </div>
       <div style="font-family:'Kimmy',sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:1.5px;color:#fff;margin-bottom:8px;">Pago rechazado</div>
       <div id="error-pago-msg" style="font-size:13px;color:#888;margin-bottom:24px;line-height:1.6;"></div>
-      <button onclick="reintentarPago()" style="width:100%;padding:13px;background:#FCDA13;color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-bottom:10px;">Intentar de nuevo</button>
+      <button onclick="reintentarPago()" style="width:100%;padding:13px;background:var(--c-brand,#FCDA13);color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-bottom:10px;">Intentar de nuevo</button>
       <button onclick="cancelarPago()" style="width:100%;padding:11px;background:none;border:1px solid #333;border-radius:10px;font-size:13px;color:#888;cursor:pointer;">Cancelar</button>
     </div>
   </div>

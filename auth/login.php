@@ -131,7 +131,7 @@ body {
 .brand-logo img { width: 160px; max-height: 84px; object-fit: contain; display: block; margin: 0 auto; }
 .brand-logo-fallback {
   width: 80px; height: 80px;
-  background: #FCDA13; border-radius: 20px;
+  background: var(--c-brand,#FCDA13); border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto; font-size: 30px; font-weight: 900; color: #1a1a1a; letter-spacing: -1px;
 }
@@ -183,7 +183,7 @@ input[type="text"] {
   transition: border-color .2s;
   -webkit-appearance: none;
 }
-input:focus { border-color: #FCDA13; }
+input:focus { border-color: var(--c-brand,#FCDA13); }
 input::placeholder { color: #333; }
 .toggle-pass {
   position: absolute; right: 12px; top: 50%;
@@ -192,19 +192,19 @@ input::placeholder { color: #333; }
   color: #444; cursor: pointer; font-size: 16px;
   padding: 2px; transition: color .2s;
 }
-.toggle-pass:hover { color: #FCDA13; }
+.toggle-pass:hover { color: var(--c-brand,#FCDA13); }
 .remember {
   display: flex; align-items: center;
   gap: 8px; margin-bottom: 20px;
 }
 .remember input[type="checkbox"] {
   width: 16px; height: 16px;
-  accent-color: #FCDA13; cursor: pointer;
+  accent-color: var(--c-brand,#FCDA13); cursor: pointer;
 }
 .remember label { font-size: 13px; color: #666; cursor: pointer; }
 .btn-submit {
   width: 100%; padding: 14px;
-  background: #FCDA13; color: #1a1a1a;
+  background: var(--c-brand,#FCDA13); color: #1a1a1a;
   border: none; border-radius: 10px;
   font-size: 15px; font-weight: 700;
   cursor: pointer; transition: background .2s;

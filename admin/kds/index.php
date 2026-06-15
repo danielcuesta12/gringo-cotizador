@@ -41,9 +41,9 @@ $csrf    = csrfToken();
 .kon{font-size:26px;font-weight:700;color:#F5E6D0}
 .kti2{font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}.kti2.green{color:#4ade80}.kti2.orange{color:#fb923c}.kti2.red{color:#f87171}
 .ktp{font-size:14px;padding:1px 7px;border-radius:8px;font-weight:500}
-.ktp.delivery{background:rgba(74,222,128,0.15);color:#4ade80}.ktp.recojo{background:rgba(96,165,250,0.15);color:#60a5fa}.ktp.salon{background:rgba(252,218,19,0.18);color:#FCDA13;font-weight:700;letter-spacing:.5px}
-.kpay{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;background:rgba(252,218,19,0.18);color:#FCDA13;padding:3px 9px;border-radius:8px;white-space:nowrap}.kpay svg{width:13px;height:13px}
-.kc.pay{border-color:#a88300;animation:kpay 1.6s ease-in-out infinite}.kch.pay{background:rgba(252,218,19,0.08)}@keyframes kpay{0%,100%{border-color:#7a6000}50%{border-color:#FCDA13}}
+.ktp.delivery{background:rgba(74,222,128,0.15);color:#4ade80}.ktp.recojo{background:rgba(96,165,250,0.15);color:#60a5fa}.ktp.salon{background:rgba(252,218,19,0.18);color:var(--c-brand,#FCDA13);font-weight:700;letter-spacing:.5px}
+.kpay{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;background:rgba(252,218,19,0.18);color:var(--c-brand,#FCDA13);padding:3px 9px;border-radius:8px;white-space:nowrap}.kpay svg{width:13px;height:13px}
+.kc.pay{border-color:#a88300;animation:kpay 1.6s ease-in-out infinite}.kch.pay{background:rgba(252,218,19,0.08)}@keyframes kpay{0%,100%{border-color:#7a6000}50%{border-color:var(--c-brand,#FCDA13)}}
 .kcb{padding:14px}.kcl{font-size:18px;font-weight:700;color:#F5E6D0;margin-bottom:2px}.khr{font-size:14px;color:#888;margin-bottom:5px}
 .kit{display:flex;flex-direction:column;gap:6px}.ki{font-size:18px;color:#ccc;display:flex;gap:5px}.kiq{color:#F5C200;font-weight:500}
 .kim{font-size:12px;color:#777;font-style:italic;padding-left:22px}
@@ -68,10 +68,10 @@ $csrf    = csrfToken();
 .hist-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 14px 12px}.hist-stat{background:#1c1c1c;border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px}.hist-stat-num{font-size:21px;font-weight:700;color:#F5E6D0;line-height:1.05;font-variant-numeric:tabular-nums}.hist-stat-lbl{font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}.hist-stat.money .hist-stat-num{color:#25D366}
 .hist-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 14px 24px;display:flex;flex-direction:column;gap:8px}
 .hist-card{background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #555;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s}.hist-card:hover{background:#1e1e1e}
-.hist-card.listo{border-left-color:#25D366}.hist-card.cancelado{border-left-color:#555;opacity:.55}.hist-card.activo{border-left-color:#FCDA13}
+.hist-card.listo{border-left-color:#25D366}.hist-card.cancelado{border-left-color:#555;opacity:.55}.hist-card.activo{border-left-color:var(--c-brand,#FCDA13)}
 .hist-card-top{display:flex;gap:10px;align-items:flex-start}.hist-card-main{flex:1;min-width:0}.hist-card-num{font-size:15px;font-weight:700;color:#F5E6D0}.hist-card-cli{font-size:12px;color:#aaa;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hist-card-items{font-size:12px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-card-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}.hist-card-hora{font-size:11px;color:#555;font-variant-numeric:tabular-nums}
-.hist-badge{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap}.hist-badge.listo{background:rgba(37,211,102,0.15);color:#25D366}.hist-badge.cancelado{background:rgba(255,255,255,0.08);color:#888}.hist-badge.activo{background:rgba(252,218,19,0.15);color:#FCDA13}
+.hist-badge{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap}.hist-badge.listo{background:rgba(37,211,102,0.15);color:#25D366}.hist-badge.cancelado{background:rgba(255,255,255,0.08);color:#888}.hist-badge.activo{background:rgba(252,218,19,0.15);color:var(--c-brand,#FCDA13)}
 .hist-empty{text-align:center;color:#444;font-size:12px;padding:40px 0}
 .hist-detail{max-height:0;overflow:hidden;transition:max-height .3s cubic-bezier(.32,.72,0,1)}.hist-detail.open{max-height:800px}
 .hist-detail-inner{padding:8px 0 4px;border-top:.5px solid #222;margin-top:8px}
@@ -101,7 +101,7 @@ $csrf    = csrfToken();
       <button id="bhist" onclick="tHist()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span id="bhist-lbl">Historial</span></button>
     </div>
     <div class="km">
-      <div class="cnt"><span style="width:8px;height:8px;border-radius:50%;background:#FCDA13;display:inline-block"></span><span id="cg" style="color:#FCDA13;font-weight:500">0</span><span style="color:#555;margin-left:4px">esperando pago</span></div>
+      <div class="cnt"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-brand,#FCDA13);display:inline-block"></span><span id="cg" style="color:var(--c-brand,#FCDA13);font-weight:500">0</span><span style="color:#555;margin-left:4px">esperando pago</span></div>
       <div class="cnt"><span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block"></span><span id="cgr" style="color:#4ade80;font-weight:500">0</span><span style="color:#555;margin-left:4px">a tiempo</span></div>
       <div class="cnt"><span style="width:8px;height:8px;border-radius:50%;background:#fb923c;display:inline-block"></span><span id="cor" style="color:#fb923c;font-weight:500">0</span><span style="color:#555;margin-left:4px">demorado</span></div>
       <div class="cnt"><span style="width:8px;height:8px;border-radius:50%;background:#f87171;display:inline-block"></span><span id="crd" style="color:#f87171;font-weight:500">0</span><span style="color:#555;margin-left:4px">urgente</span></div>

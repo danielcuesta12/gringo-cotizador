@@ -57,7 +57,7 @@ function horaLabel(int $h): string {
   html[data-theme="noche"] {
     --bg:#1A1A1A; --surface:#242424; --surface-2:#2a2a2a;
     --text:#FFFFFF; --text-soft:#aaaaaa; --muted:#999999;
-    --accent:#FCDA13; --accent-ink:#1A1A1A; --accent-tint:rgba(252,218,19,.15);
+    --accent:var(--c-brand,#FCDA13); --accent-ink:#1A1A1A; --accent-tint:rgba(252,218,19,.15);
     --green:#34d399; --green-tint:rgba(52,211,153,.15);
     --border:rgba(255,255,255,0.08);
     --header-bg:var(--accent); --header-text:var(--accent-ink);

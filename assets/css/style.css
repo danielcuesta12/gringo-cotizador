@@ -1,7 +1,7 @@
 /* ============================================================
    El Gringo Cotizador — style.css v2.0
    Design system: dark sidebar + cream content + yellow brand
-   Paleta: amarillo #FCDA13 / negro #1A1A1A / rosa #FAB8C0
+   Paleta: amarillo var(--c-brand,#FCDA13) / negro #1A1A1A / rosa #FAB8C0
    ============================================================ */
 
 /* ---- Reset & base ---- */
@@ -9,7 +9,7 @@
 
 :root {
   /* ---- Marca ---- */
-  --brand:        #FCDA13;             /* amarillo de marca: fondos / activo / acentos */
+  --brand:        var(--c-brand,#FCDA13);             /* amarillo de marca: fondos / activo / acentos */
   --brand-dark:   #e6c400;             /* hover de superficies amarillas */
   --brand-soft:   rgba(252,218,19,.12);/* fondos suaves (badges, hover sidebar) */
   --brand-border: rgba(252,218,19,.30);
@@ -171,7 +171,7 @@ body {
   flex-shrink: 0;
 }
 .sb-dot-pink   { background: #ef7da6; }
-.sb-dot-yellow { background: #FFDF00; }
+.sb-dot-yellow { background: var(--c-brand,#FFDF00); }
 .sb-chevron {
   margin-left: auto;
   font-size: 11px;
@@ -200,7 +200,7 @@ body {
   color: rgba(255,255,255,.85);
 }
 .nav-link.active {
-  background: #FFDF00;
+  background: var(--c-brand,#FFDF00);
   color: #111;
   font-weight: 700;
 }
@@ -214,10 +214,10 @@ body {
 .nav-link-highlight.active { color: #111; }
 /* "POS · Terminal": texto amarillo */
 .nav-link-pos {
-  color: #FFDF00;
+  color: var(--c-brand,#FFDF00);
   font-weight: 600;
 }
-.nav-link-pos:hover { background: var(--brand-soft); color: #FFDF00; }
+.nav-link-pos:hover { background: var(--brand-soft); color: var(--c-brand,#FFDF00); }
 .nav-link-pos.active { color: #111; }
 /* "Nuevo evento": rosa siempre */
 .nav-link-event {

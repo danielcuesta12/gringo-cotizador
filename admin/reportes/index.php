@@ -106,7 +106,7 @@ include __DIR__ . '/../layout-top.php';
 .rp-btn {
   display:flex;flex-direction:column;align-items:flex-start;gap:6px;
   padding:18px 20px;border:none;border-radius:12px;cursor:pointer;
-  background:#FFDF00;color:#1A1A1A;text-align:left;
+  background:var(--c-brand,#FFDF00);color:#1A1A1A;text-align:left;
   transition:transform .12s,box-shadow .12s;
   box-shadow:0 2px 8px rgba(0,0,0,.10);
 }

@@ -180,7 +180,7 @@ include __DIR__ . '/layout-top.php';
   --pink:       #ef7da6;
   --pink-soft:  rgba(255,187,200,.28);
   --pink-deep:  #d6457e;
-  --yellow:     #FFDF00;
+  --yellow:     var(--c-brand,#FFDF00);
   --yellow-soft:rgba(255,223,0,.18);
   --yellow-deep:#8a7000;
   --black:      #1E1E1E;
@@ -414,7 +414,7 @@ include __DIR__ . '/layout-top.php';
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ev-dot-enviada  { background: #FCDA13; }
+.ev-dot-enviada  { background: var(--c-brand,#FCDA13); }
 .ev-dot-aceptada { background: #16a34a; }
 .ev-dot-evento   { background: #7c3aed; }
 .ev-info { flex: 1; min-width: 0; }
@@ -750,7 +750,7 @@ if (can('quotes') || can('events') || can('calendar') || can('requests')):
           </div>
           <div class="mc-grid" id="mcGrid"></div>
           <div class="mc-legend">
-            <span><i style="background:#FCDA13"></i>Enviada</span>
+            <span><i style="background:var(--c-brand,#FCDA13)"></i>Enviada</span>
             <span><i style="background:#16a34a"></i>Aceptada</span>
             <span><i style="background:#7c3aed"></i>Evento</span>
             <span><i style="background:#f97316"></i>Agenda</span>
