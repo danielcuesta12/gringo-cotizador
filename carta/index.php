@@ -727,7 +727,7 @@ if ($showCard) {
           <span class="carrito-desktop-total-label">Total</span>
           <span class="carrito-desktop-total-val" id="desktop-total-val">S/0</span>
         </div>
-        <?php if ($salesMode === 'izipay'): ?>
+        <?php if ($salesMode === 'izipay' || $salesMode === 'ambos'): ?>
         <button class="btn-pay" id="desktop-wa-btn" style="display:none;margin-top:16px" onclick="enviarPedido()">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Realizar pedido
@@ -760,7 +760,7 @@ if ($showCard) {
     </div>
     <div class="carrito-mobile-items" id="mobile-items-wrap">
       <div id="mobile-items"></div>
-      <?php if ($salesMode === 'izipay'): ?>
+      <?php if ($salesMode === 'izipay' || $salesMode === 'ambos'): ?>
       <button class="btn-pay" onclick="enviarPedido()">
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         Realizar pedido
