@@ -945,7 +945,7 @@ if ($showCard) {
       </div><!-- /wz-body -->
       <div class="wz-foot" id="wz-foot">
         <button type="button" class="wz-cta" id="wz-cta" onclick="wizardNext()">Continuar</button>
-        <button type="button" class="wz-skip" id="wz-skip" style="display:none" onclick="wizardGo(2)">Omitir, no necesito comprobante</button>
+        <button type="button" class="wz-skip" id="wz-skip" style="display:none" onclick="omitirComprobante()">Omitir, no necesito comprobante</button>
         <button type="button" class="wz-cancel" onclick="cerrarModal()">Cancelar</button>
       </div>
     </div>
@@ -1392,7 +1392,25 @@ function cambiar(id, nombre, precio, delta) {
   }
   function wizardNext() {
     if (wizardStep === 0 && !validarDatos()) return;
+    if (wizardStep === 1 && !validarComprobante()) return;
     wizardGo(wizardStep + 1);
+  }
+  function validarComprobante() {
+    const tipo = document.getElementById('campo-comprobante').value;
+    const err = document.getElementById('err-comp');
+    if (tipo === 'factura') {
+      const doc = (document.getElementById('campo-doc').value || '').replace(/\D/g, '');
+      const nom = (document.getElementById('campo-razon').value || '').trim();
+      if (doc.length !== 11 || !nom) { if (err) err.style.display = 'block'; return false; }
+    }
+    if (err) err.style.display = 'none';
+    return true;
+  }
+  function omitirComprobante() {
+    const comp = document.getElementById('campo-comprobante');
+    if (comp) { comp.value = ''; if (typeof onCompChange === 'function') onCompChange(); }
+    const err = document.getElementById('err-comp'); if (err) err.style.display = 'none';
+    wizardGo(2);
   }
   function validarDatos() {
     let valid = true;
@@ -1478,6 +1496,9 @@ function cambiar(id, nombre, precio, delta) {
     if (SHOW_CARD && IZ_ENABLED) html += card;
     if (SHOW_CARD && IZ_ENABLED && SHOW_WA) html += '<div class="wz-or">O</div>';
     if (SHOW_WA) html += wa;
+    if (html === '') {
+      html = '<div style="text-align:center;color:#999;font-size:13px;padding:14px 0;line-height:1.5">El pago con tarjeta no está disponible en este momento.<br>Intenta más tarde o contáctanos.</div>';
+    }
     document.getElementById('wz-pagos').innerHTML = html;
   }
 
@@ -1957,8 +1978,19 @@ function cambiar(id, nombre, precio, delta) {
     document.getElementById('conf-wa-btn').style.display = wa ? 'flex' : 'none';
     document.getElementById('conf-prep').style.display = wa ? 'none' : 'flex';
     document.getElementById('conf-hero').className = 'conf-hero ' + (wa ? 'wa' : 'ok');
+    const ico = document.getElementById('conf-icon');
+    if (ico) ico.innerHTML = wa
+      ? '<path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="currentColor"/>'
+      : '<polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
     document.getElementById('modal-confirmado').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    const res = document.getElementById('conf-resumen');
+    if (res) {
+      let h = '';
+      if (data.total != null) h += '<div style="font-size:15px;font-weight:800;color:var(--text,#fff)">Total: S/' + Number(data.total).toFixed(2) + '</div>';
+      if (!wa && data.cardLast4) h += '<div style="font-size:13px;opacity:.7;margin-top:4px;color:var(--text,#fff)">Tarjeta terminada en ' + String(data.cardLast4).slice(-4) + '</div>';
+      res.innerHTML = h;
+    }
   }
   function abrirWhatsApp() {
     if (!_waUrlActual) return;
@@ -2122,14 +2154,14 @@ function cambiar(id, nombre, precio, delta) {
 <?php endif; ?>
 
   <!-- PANTALLA PEDIDO CONFIRMADO (WhatsApp + tarjeta) -->
-  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;flex-direction:column;align-items:center;text-align:center;padding:48px 26px 30px;overflow-y:auto;">
+  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:var(--bg,#1A1A1A);z-index:500;flex-direction:column;align-items:center;text-align:center;padding:48px 26px 30px;overflow-y:auto;">
     <div class="conf-hero wa" id="conf-hero" style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;">
       <svg id="conf-icon" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/></svg>
     </div>
-    <div id="conf-titulo" style="color:#fff;font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">¡Pedido enviado!</div>
-    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#F5C200;margin-bottom:22px;"></div>
-    <div style="width:100%;background:rgba(255,255,255,.05);border-radius:16px;padding:18px 16px;margin-bottom:14px;max-width:420px;">
-      <div id="conf-msg" style="font-size:14.5px;color:#e7e7e7;line-height:1.55;margin-bottom:14px;"></div>
+    <div id="conf-titulo" style="color:var(--text,#fff);font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">¡Pedido enviado!</div>
+    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(128,128,128,.12);border:1px dashed rgba(128,128,128,.3);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#F5C200;margin-bottom:22px;"></div>
+    <div style="width:100%;background:rgba(128,128,128,.08);border-radius:16px;padding:18px 16px;margin-bottom:14px;max-width:420px;">
+      <div id="conf-msg" style="font-size:14.5px;color:var(--text-soft,#e7e7e7);line-height:1.55;margin-bottom:14px;"></div>
       <button id="conf-wa-btn" onclick="abrirWhatsApp()" style="width:100%;padding:15px;border:none;border-radius:13px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
         Abrir WhatsApp
@@ -2137,7 +2169,7 @@ function cambiar(id, nombre, precio, delta) {
       <div id="conf-prep" style="display:none;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:#F5C200;">🍔 Estamos preparando tu pedido</div>
     </div>
     <div id="conf-resumen" style="max-width:420px;width:100%;"></div>
-    <button onclick="vaciarYVolver()" style="width:100%;max-width:420px;background:none;border:1px solid rgba(255,255,255,.2);color:#cfcfcf;padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;">Hacer otro pedido</button>
+    <button onclick="vaciarYVolver()" style="width:100%;max-width:420px;background:none;border:1px solid rgba(128,128,128,.25);color:var(--text-soft,#cfcfcf);padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;">Hacer otro pedido</button>
   </div>
 </body>
 </html>
