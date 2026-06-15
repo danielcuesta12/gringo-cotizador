@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Checkout wizard inline</title>
+<style>
+  :root{ --yellow:#F5C200; --navy:#1B1F4B; --black:#1A1A1A; --wa:#25D366; --line:#ececec; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:#e9e9ec;min-height:100vh;display:flex;flex-direction:column;
+       align-items:center;gap:14px;padding:24px 12px 60px}
+  .note{font-size:13px;color:#666;text-align:center;max-width:430px;line-height:1.55}
+  .note b{color:#1A1A1A}
+
+  .phone{width:390px;max-width:100%;background:#fff;border-radius:28px;
+         box-shadow:0 18px 50px rgba(0,0,0,.22);overflow:hidden}
+
+  /* barra superior persistente */
+  .wz-top{background:var(--navy);color:#fff;padding:14px 18px 12px}
+  .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+  .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .wz-back[disabled]{opacity:.25;cursor:default}
+  .wz-title{font-size:14px;font-weight:800;letter-spacing:.4px}
+  .wz-total{font-size:15px;font-weight:900;color:var(--yellow)}
+  /* progreso */
+  .steps{display:flex;gap:6px}
+  .steps .bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
+  .steps .bar i{display:block;height:100%;width:0;background:var(--yellow);transition:width .3s}
+  .steps .bar.done i{width:100%}
+  .steps .bar.cur i{width:100%}
+  .step-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
+
+  .wz-body{padding:20px 18px 8px;min-height:330px}
+  .panel{display:none;animation:slide .28s ease}
+  .panel.on{display:block}
+  @keyframes slide{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+
+  .h{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:3px}
+  .hsub{font-size:12.5px;color:#9a9a9a;margin-bottom:16px}
+
+  .lbl{display:block;font-size:11px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:5px}
+  .opt{color:#bbb;font-weight:400;text-transform:none;letter-spacing:0}
+  .req{color:#dc2626}
+  .fld{margin-bottom:13px}
+  .fld input,.fld select{width:100%;padding:12px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;color:var(--navy);font-family:inherit;background:#fafafa}
+  .row2{display:flex;gap:10px}
+
+  .seg{display:flex;gap:8px}
+  .seg .c{flex:1;border:1.5px solid #e0e0e0;border-radius:11px;padding:12px;cursor:pointer;text-align:center;transition:.12s}
+  .seg .c.on{border-color:var(--yellow);background:#fffbec}
+  .seg .c .ic{font-size:20px}
+  .seg .c .nm{font-size:13px;font-weight:800;color:var(--navy);margin-top:3px}
+  .seg .c .ds{font-size:10.5px;color:#aaa}
+
+  /* items resumen */
+  .it{display:flex;justify-content:space-between;font-size:14px;color:#333;padding:9px 0;border-bottom:1px solid #f3f3f3}
+  .it .q{font-weight:800;color:var(--navy)}
+  .it .p{font-weight:800;color:var(--navy)}
+  .it-tot{display:flex;justify-content:space-between;padding-top:13px;font-size:17px;font-weight:900;color:var(--navy)}
+
+  /* botones pago */
+  .pay{width:100%;padding:16px;border:none;border-radius:13px;font-size:16px;font-weight:800;
+       text-transform:uppercase;letter-spacing:.6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:11px}
+  .pay svg{width:20px;height:20px}
+  .pay-card{background:var(--black);color:#fff}
+  .pay-wa{background:var(--wa);color:#fff}
+  .or{display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:11px;font-weight:800;letter-spacing:1px;margin:0 0 11px}
+  .or::before,.or::after{content:"";height:1px;background:#eee;flex:1}
+
+  .foot{padding:4px 18px 22px}
+  .cta{width:100%;padding:15px;border:none;border-radius:13px;background:var(--yellow);color:var(--navy);
+       font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:1px;cursor:pointer}
+  .skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12.5px;font-weight:700;margin-top:11px;cursor:pointer}
+</style>
+</head>
+<body>
+
+  <div class="note"><b>Wizard interactivo</b> — pruébalo: toca <b>Continuar</b> / la flecha de atrás.<br>
+  Total siempre visible arriba · pasos guiados · pago con los dos métodos al final.</div>
+
+  <div class="phone">
+    <!-- barra superior -->
+    <div class="wz-top">
+      <div class="wz-top-row">
+        <button class="wz-back" id="back" onclick="go(step-1)" disabled>‹</button>
+        <span class="wz-title" id="wtitle">Tus datos</span>
+        <span class="wz-total">S/ 48.00</span>
+      </div>
+      <div class="steps">
+        <div class="bar" id="b0"><i></i></div>
+        <div class="bar" id="b1"><i></i></div>
+        <div class="bar" id="b2"><i></i></div>
+      </div>
+      <div class="step-cap" id="cap">Paso 1 de 3</div>
+    </div>
+
+    <div class="wz-body">
+
+      <!-- PASO 1: datos -->
+      <div class="panel on" id="p0">
+        <div class="h">¿A dónde va tu pedido?</div>
+        <div class="hsub">Tus datos para coordinar la entrega</div>
+        <div class="fld"><span class="lbl">Nombre <span class="req">*</span></span><input placeholder="Ej: Juan Pérez"></div>
+        <div class="fld"><span class="lbl">Teléfono <span class="req">*</span></span><input placeholder="Ej: 987654321"></div>
+        <div class="fld">
+          <span class="lbl">¿Cómo lo recibes? <span class="req">*</span></span>
+          <div class="seg">
+            <div class="c on"><div class="ic">🛵</div><div class="nm">Delivery</div><div class="ds">Te lo llevamos</div></div>
+            <div class="c"><div class="ic">🏃</div><div class="nm">Recojo</div><div class="ds">Paso a recoger</div></div>
+          </div>
+        </div>
+        <div class="fld"><span class="lbl">Dirección <span class="req">*</span></span><input placeholder="Av. Principal 123, distrito"></div>
+      </div>
+
+      <!-- PASO 2: comprobante -->
+      <div class="panel" id="p1">
+        <div class="h">¿Necesitas comprobante?</div>
+        <div class="hsub">Boleta o factura — opcional, lo emite la tienda</div>
+        <div class="fld">
+          <div class="seg">
+            <div class="c"><div class="ic">🙅</div><div class="nm">Ninguno</div></div>
+            <div class="c on"><div class="ic">🧾</div><div class="nm">Boleta</div></div>
+            <div class="c"><div class="ic">🏢</div><div class="nm">Factura</div></div>
+          </div>
+        </div>
+        <div class="fld"><span class="lbl">DNI <span class="opt">(opcional)</span></span><input placeholder="Documento"></div>
+        <div class="fld"><span class="lbl">Nombre / Razón social <span class="opt">(opcional)</span></span><input placeholder="Nombre"></div>
+        <div class="fld"><span class="lbl">Correo <span class="opt">(opcional)</span></span><input placeholder="Para recibirlo por correo"></div>
+      </div>
+
+      <!-- PASO 3: pago -->
+      <div class="panel" id="p2">
+        <div class="h">¿Cómo quieres cerrar tu pedido?</div>
+        <div class="hsub">Total a pagar: <b style="color:var(--navy)">S/ 48.00</b></div>
+
+        <div class="it"><span><span class="q">2×</span> Smash Clásica</span><span class="p">S/ 30.00</span></div>
+        <div class="it"><span><span class="q">1×</span> Salchipapa</span><span class="p">S/ 18.00</span></div>
+        <div class="it-tot"><span>Total</span><span>S/ 48.00</span></div>
+
+        <div style="height:18px"></div>
+        <button class="pay pay-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Pagar con tarjeta
+        </button>
+        <div class="or">O</div>
+        <button class="pay pay-wa">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
+          Pedir por WhatsApp
+        </button>
+      </div>
+
+    </div>
+
+    <div class="foot" id="foot">
+      <button class="cta" id="cta" onclick="go(step+1)">Continuar</button>
+      <button class="skip" id="skip" style="display:none" onclick="go(step+1)">Omitir, no necesito comprobante</button>
+    </div>
+  </div>
+
+  <div class="note" style="font-size:12px">Boceto interactivo para validar el flujo — colores/tipografía finales salen de la marca de cada tienda.</div>
+
+<script>
+  var step = 0;
+  var titles = ['Tus datos','Comprobante','Pago'];
+  function go(n){
+    if(n<0||n>2) return;
+    step = n;
+    for(var i=0;i<3;i++){
+      document.getElementById('p'+i).classList.toggle('on', i===step);
+      var b=document.getElementById('b'+i);
+      b.className='bar'+(i<step?' done':(i===step?' cur':''));
+    }
+    document.getElementById('wtitle').textContent = titles[step];
+    document.getElementById('cap').textContent = 'Paso '+(step+1)+' de 3';
+    document.getElementById('back').disabled = step===0;
+    // pie: en el paso de pago no hay "Continuar" (los botones de pago son la acción)
+    document.getElementById('foot').style.display = step===2 ? 'none' : 'block';
+    document.getElementById('skip').style.display = step===1 ? 'block' : 'none';
+    document.getElementById('cta').textContent = 'Continuar';
+  }
+  go(0);
+</script>
+</body>
+</html>

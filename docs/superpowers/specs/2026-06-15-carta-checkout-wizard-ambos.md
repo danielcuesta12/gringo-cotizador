@@ -71,7 +71,11 @@ Una sola función, llamada al **completar** un pedido (al cerrar/"Hacer otro ped
 3. **Formulario/wizard:** vaciar nombre, teléfono, dirección, comentarios y bloque de comprobante; reiniciar entrega a su default y el wizard al **paso 1**.
 4. **Interno:** `_pedidoData = null` y cerrar cualquier modal/overlay abierto.
 
-### 5. Comprobante en el flujo WhatsApp
+### 5. Método por pedido (badge)
+
+`ambos` es solo capacidad de la tienda, **nunca** una propiedad del pedido. Cada pedido se hace por un método y eso ya se registra en `pedidos.metodo_pago` (`'whatsapp'` o `'izipay'`, vía `api/pedido.php`). El botón del wizard determina el flag `izipay:true/false`. Los badges existentes (bandeja del POS lee `metodo_pago === 'whatsapp'` → "WhatsApp" / si no "Izipay · pagado") **siguen funcionando sin cambios** y nunca muestran "ambos".
+
+### 6. Comprobante en el flujo WhatsApp
 
 - Los datos de comprobante ya se persisten en el pedido (vía `compPayload`) → el cajero los ve en la **bandeja del POS** y emite desde ahí (sin cambios en backend más allá de verificar `api/pedido.php`).
 - **Agregar** los datos de comprobante al **texto del mensaje de WhatsApp** (tipo + documento + nombre/razón) para que la tienda los reciba en el chat.
@@ -84,6 +88,7 @@ Display de la carta (productos, categorías, fotos, búsqueda, tema día/noche, 
 
 - `install/NN_sales_mode_ambos.sql` — ALTER del enum (nuevo).
 - `admin/locations/form.php` — 4ª opción + validación.
+- `admin/locations/index.php` — añadir etiqueta `modeBadge` para `ambos` (cosmético; ya tiene fallback).
 - `carta/index.php` — wizard (HTML + CSS + JS), botones de pago por modo, pantalla de confirmación unificada, `resetPedido()`, comprobante en mensaje WhatsApp. (Es el grueso del trabajo.)
 - `api/pedido.php` — verificar que acepta los campos de comprobante en pedidos de carta (probablemente ya).
 

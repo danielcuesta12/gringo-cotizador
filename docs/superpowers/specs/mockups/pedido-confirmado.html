@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Pedido confirmado</title>
+<style>
+  :root{ --yellow:#F5C200; --navy:#1B1F4B; --black:#1A1A1A; --wa:#25D366; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:#e9e9ec;min-height:100vh;display:flex;flex-direction:column;
+       align-items:center;gap:14px;padding:24px 12px 60px}
+  .note{font-size:13px;color:#666;text-align:center;max-width:430px;line-height:1.55}
+  .note b{color:#1A1A1A}
+  .toggle{display:flex;gap:8px;background:#fff;padding:5px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .toggle button{border:none;background:none;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:800;color:#888;cursor:pointer}
+  .toggle button.on{background:var(--navy);color:#fff}
+
+  .phone{width:390px;max-width:100%;background:#fff;border-radius:28px;
+         box-shadow:0 18px 50px rgba(0,0,0,.22);overflow:hidden;position:relative}
+
+  /* pantalla confirmado */
+  .scr{background:var(--black);min-height:720px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 26px 30px;color:#fff}
+  .hero{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:22px;position:relative}
+  .hero.ok{background:var(--yellow)}
+  .hero.wa{background:var(--wa)}
+  .hero svg{width:44px;height:44px}
+  .ttl{font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+  .code{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);
+        padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:var(--yellow);margin-bottom:22px}
+
+  .next{width:100%;background:rgba(255,255,255,.05);border-radius:16px;padding:18px 16px;margin-bottom:14px}
+  .next .lab{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#7d7d7d;margin-bottom:7px}
+  .next .msg{font-size:14.5px;color:#e7e7e7;line-height:1.55;margin-bottom:14px}
+  .wa-btn{width:100%;padding:15px;border:none;border-radius:13px;background:var(--wa);color:#fff;font-size:16px;font-weight:800;
+          text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer}
+  .wa-btn svg{width:19px;height:19px}
+  .prep{display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:var(--yellow)}
+
+  .resume{width:100%;text-align:left;border-top:1px solid rgba(255,255,255,.08);padding-top:16px;margin-bottom:8px}
+  .rrow{display:flex;justify-content:space-between;font-size:13.5px;color:#bdbdbd;padding:5px 0}
+  .rrow .v{color:#fff;font-weight:700}
+  .rtot{display:flex;justify-content:space-between;font-size:16px;font-weight:900;color:#fff;padding-top:9px;margin-top:5px;border-top:1px solid rgba(255,255,255,.08)}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(245,194,0,.13);color:var(--yellow);font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;margin-top:13px}
+
+  .spacer{flex:1}
+  .sec{width:100%;background:none;border:1px solid rgba(255,255,255,.2);color:#cfcfcf;padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px}
+</style>
+</head>
+<body>
+
+  <div class="note"><b>Pantalla "pedido confirmado"</b> unificada · cambia según cómo cerró el cliente.<br>Usa el toggle para ver ambos cierres.</div>
+
+  <div class="toggle">
+    <button class="on" id="tWa" onclick="setM('wa')">Cerró por WhatsApp</button>
+    <button id="tCard" onclick="setM('card')">Pagó con tarjeta</button>
+  </div>
+
+  <div class="phone">
+    <div class="scr">
+      <!-- HERO -->
+      <div class="hero wa" id="hero">
+        <svg id="heroIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/></svg>
+      </div>
+      <div class="ttl" id="ttl">¡Pedido enviado!</div>
+      <div class="code">🍔 PEDIDO <span id="code">#003</span></div>
+
+      <!-- QUÉ SIGUE -->
+      <div class="next">
+        <div class="lab" id="nlab">Último paso</div>
+        <div class="msg" id="nmsg">Envíale tu pedido a la tienda por WhatsApp para confirmarlo. Ahí coordinas pago y entrega.</div>
+        <button class="wa-btn" id="waBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
+          Abrir WhatsApp
+        </button>
+        <div class="prep" id="prep" style="display:none">🍔 Estamos preparando tu pedido</div>
+      </div>
+
+      <!-- RESUMEN -->
+      <div class="resume">
+        <div class="rrow"><span>Entrega</span><span class="v">🛵 Delivery · Av. Principal 123</span></div>
+        <div class="rrow" id="cardRow" style="display:none"><span>Pago</span><span class="v">Tarjeta ••1234</span></div>
+        <div class="rrow"><span>2× Smash Clásica</span><span class="v">S/ 30.00</span></div>
+        <div class="rrow"><span>1× Salchipapa</span><span class="v">S/ 18.00</span></div>
+        <div class="rtot"><span>Total</span><span>S/ 48.00</span></div>
+        <div style="text-align:center"><span class="chip">🧾 Tu boleta llegará a tu correo</span></div>
+      </div>
+
+      <div class="spacer"></div>
+      <button class="sec">Hacer otro pedido</button>
+    </div>
+  </div>
+
+  <div class="note" style="font-size:12px">Boceto para validar — colores/tipografía finales salen de la marca de cada tienda.</div>
+
+<script>
+  function setM(m){
+    var wa = m==='wa';
+    document.getElementById('tWa').classList.toggle('on', wa);
+    document.getElementById('tCard').classList.toggle('on', !wa);
+
+    var hero=document.getElementById('hero'), icon=document.getElementById('heroIcon');
+    hero.className = 'hero ' + (wa?'wa':'ok');
+    icon.innerHTML = wa
+      ? '<path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/>'
+      : '<polyline points="20 6 9 17 4 12" fill="none" stroke="#1A1A1A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+
+    document.getElementById('ttl').textContent  = wa ? '¡Pedido enviado!' : '¡Pago confirmado!';
+    document.getElementById('nlab').textContent  = wa ? 'Último paso' : 'Tu pedido';
+    document.getElementById('nmsg').textContent  = wa
+      ? 'Envíale tu pedido a la tienda por WhatsApp para confirmarlo. Ahí coordinas pago y entrega.'
+      : 'Recibimos tu pago. La tienda ya está preparando tu pedido.';
+    document.getElementById('nmsg').style.display = wa ? 'block' : 'none';
+    document.getElementById('waBtn').style.display = wa ? 'flex' : 'none';
+    document.getElementById('prep').style.display  = wa ? 'none' : 'flex';
+    document.getElementById('cardRow').style.display = wa ? 'none' : 'flex';
+  }
+  setM('wa');
+</script>
+</body>
+</html>

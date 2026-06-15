@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Wizard en escritorio</title>
+<style>
+  :root{ --yellow:#F5C200; --navy:#1B1F4B; --black:#1A1A1A; --wa:#25D366; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#d9d9dd;padding:22px 14px 60px}
+  .note{font-size:13px;color:#555;text-align:center;max-width:820px;margin:0 auto 14px;line-height:1.5}
+  .note b{color:#1A1A1A}
+
+  .browser{max-width:980px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+  .bbar{height:38px;background:#ededed;display:flex;align-items:center;gap:7px;padding:0 14px}
+  .bbar i{width:11px;height:11px;border-radius:50%;background:#ccc}
+  .bbar .url{margin-left:12px;background:#fff;border-radius:7px;height:22px;flex:1;max-width:340px;font-size:11px;color:#999;display:flex;align-items:center;padding:0 12px}
+
+  .chead{background:var(--yellow);padding:14px 26px;display:flex;align-items:center;justify-content:space-between}
+  .chead .brand{font-weight:900;font-size:20px;color:#1A1A1A;letter-spacing:.5px}
+  .chead .store{font-size:13px;font-weight:700;color:#1A1A1A;background:rgba(0,0,0,.08);padding:6px 12px;border-radius:20px}
+
+  .wrap{display:grid;grid-template-columns:1fr 360px;gap:24px;padding:24px 26px 40px;align-items:start}
+
+  /* carta izquierda */
+  .cat{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:1px;margin:4px 0 12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pcard{border:1px solid #eee;border-radius:14px;overflow:hidden;background:#fff}
+  .pcard .ph{height:96px;background:linear-gradient(135deg,#ffe9a8,#ffd34d);display:flex;align-items:center;justify-content:center;font-size:34px}
+  .pcard .bd{padding:11px 13px}
+  .pcard .nm{font-size:14px;font-weight:800;color:var(--navy)}
+  .pcard .ds{font-size:11px;color:#aaa;margin:2px 0 9px;line-height:1.4}
+  .pcard .rw{display:flex;align-items:center;justify-content:space-between}
+  .pcard .pr{font-size:14px;font-weight:900;color:var(--navy)}
+  .qadd{border:1.5px solid var(--yellow);background:#fffbec;color:var(--navy);font-weight:800;font-size:13px;border-radius:8px;padding:6px 12px;cursor:pointer}
+
+  /* panel derecho */
+  .side{position:sticky;top:20px;border:1px solid #eee;border-radius:16px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.05)}
+  .side-top{background:var(--navy);color:#fff;padding:14px 16px}
+  .side-top .r{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+  .sback{background:rgba(255,255,255,.14);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer}
+  .sback[disabled]{opacity:.25}
+  .stt{font-size:14px;font-weight:800}
+  .stot{font-size:15px;font-weight:900;color:var(--yellow)}
+  .pbar{display:flex;gap:5px}
+  .pbar .b{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
+  .pbar .b i{display:block;height:100%;width:0;background:var(--yellow);transition:width .3s}
+  .pbar .b.done i,.pbar .b.cur i{width:100%}
+  .pcap{font-size:11px;color:rgba(255,255,255,.7);margin-top:7px;font-weight:600}
+
+  .side-body{padding:16px}
+  .pn{display:none;animation:sl .25s ease}
+  .pn.on{display:block}
+  @keyframes sl{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+  .h{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:2px}
+  .hs{font-size:12px;color:#9a9a9a;margin-bottom:13px}
+  .lbl{display:block;font-size:10.5px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px}
+  .fld{margin-bottom:11px}
+  .fld input,.fld select{width:100%;padding:10px 12px;border:1.5px solid #e2e2e2;border-radius:9px;font-size:13.5px;color:var(--navy);background:#fafafa;font-family:inherit}
+  .seg{display:flex;gap:7px}
+  .seg .c{flex:1;border:1.5px solid #e2e2e2;border-radius:9px;padding:9px;text-align:center;cursor:pointer;font-size:12px;font-weight:800;color:var(--navy)}
+  .seg .c.on{border-color:var(--yellow);background:#fffbec}
+  .it{display:flex;justify-content:space-between;font-size:13px;color:#444;padding:7px 0;border-bottom:1px solid #f3f3f3}
+  .it .p{font-weight:800;color:var(--navy)}
+  .ittot{display:flex;justify-content:space-between;font-size:15px;font-weight:900;color:var(--navy);padding-top:10px}
+  .pay{width:100%;padding:13px;border:none;border-radius:11px;font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:9px}
+  .pay svg{width:17px;height:17px}
+  .pc{background:var(--black);color:#fff}.pw{background:var(--wa);color:#fff}
+  .or{display:flex;align-items:center;gap:8px;color:#c4c4c4;font-size:10px;font-weight:800;margin:0 0 9px}.or::before,.or::after{content:"";height:1px;background:#eee;flex:1}
+  .side-foot{padding:0 16px 16px}
+  .cta{width:100%;padding:13px;border:none;border-radius:11px;background:var(--yellow);color:var(--navy);font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
+  .skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12px;font-weight:700;margin-top:9px;cursor:pointer}
+
+  /* overlay confirmación centrado */
+  .ov{display:none;position:fixed;inset:0;background:rgba(15,15,20,.65);z-index:50;align-items:center;justify-content:center;padding:20px}
+  .ov.on{display:flex}
+  .conf{width:420px;max-width:100%;background:#fff;border-radius:22px;overflow:hidden;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .conf-hero{background:var(--wa);padding:30px 0 26px}
+  .conf-hero .ring{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin:0 auto}
+  .conf-hero svg{width:38px;height:38px;color:#fff}
+  .conf-bd{padding:22px 26px 26px}
+  .conf-bd .t{font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:var(--navy)}
+  .conf-bd .code{display:inline-flex;gap:7px;background:#f4f4f6;border:1px dashed #d6d6dd;padding:7px 14px;border-radius:24px;font-size:14px;font-weight:800;letter-spacing:1.5px;color:#b08900;margin:10px 0 16px}
+  .conf-bd .msg{font-size:13.5px;color:#666;line-height:1.55;margin-bottom:16px}
+  .conf-bd .wa{width:100%;padding:13px;border:none;border-radius:11px;background:var(--wa);color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+  .conf-bd .wa svg{width:17px;height:17px}
+  .conf-bd .sec{width:100%;padding:11px;background:none;border:1px solid #e2e2e2;border-radius:11px;color:#888;font-weight:700;font-size:13px;cursor:pointer}
+  .closehint{font-size:11px;color:#999;margin-top:8px}
+</style>
+</head>
+<body>
+
+  <div class="note"><b>Vista escritorio</b> · el wizard vive en el <b>panel derecho</b> (donde hoy está el carrito); la carta sigue a la izquierda.<br>
+  Prueba <b>Continuar</b> en el panel. El botón "Ver confirmación" muestra cómo sale la pantalla de pedido confirmado (tarjeta centrada).</div>
+
+  <div class="browser">
+    <div class="bbar"><i></i><i></i><i></i><span class="url">elgringo.pe/miraflores</span></div>
+
+    <div class="chead"><span class="brand">EL GRINGO</span><span class="store">📍 Miraflores ▾</span></div>
+
+    <div class="wrap">
+      <!-- CARTA -->
+      <div>
+        <div class="cat">🍔 Hamburguesas</div>
+        <div class="grid">
+          <div class="pcard"><div class="ph">🍔</div><div class="bd"><div class="nm">Smash Clásica</div><div class="ds">Doble carne, queso, salsa de la casa</div><div class="rw"><span class="pr">S/ 15</span><button class="qadd">+ Agregar</button></div></div></div>
+          <div class="pcard"><div class="ph">🍔</div><div class="bd"><div class="nm">Smash BBQ</div><div class="ds">Carne, tocino, cebolla crispy, BBQ</div><div class="rw"><span class="pr">S/ 18</span><button class="qadd">+ Agregar</button></div></div></div>
+          <div class="pcard"><div class="ph">🍟</div><div class="bd"><div class="nm">Salchipapa</div><div class="ds">Papa, salchicha, salsas</div><div class="rw"><span class="pr">S/ 18</span><button class="qadd">+ Agregar</button></div></div></div>
+          <div class="pcard"><div class="ph">🍗</div><div class="bd"><div class="nm">Pollo Crispy</div><div class="ds">Pechuga crocante, papas</div><div class="rw"><span class="pr">S/ 16</span><button class="qadd">+ Agregar</button></div></div></div>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO = WIZARD -->
+      <div class="side">
+        <div class="side-top">
+          <div class="r">
+            <button class="sback" id="back" onclick="go(step-1)" disabled>‹</button>
+            <span class="stt" id="stt">Tus datos</span>
+            <span class="stot">S/ 48.00</span>
+          </div>
+          <div class="pbar"><div class="b" id="b0"><i></i></div><div class="b" id="b1"><i></i></div><div class="b" id="b2"><i></i></div></div>
+          <div class="pcap" id="cap">Paso 1 de 3</div>
+        </div>
+
+        <div class="side-body">
+          <div class="pn on" id="p0">
+            <div class="h">¿A dónde va tu pedido?</div><div class="hs">Tus datos para coordinar</div>
+            <div class="fld"><span class="lbl">Nombre *</span><input placeholder="Juan Pérez"></div>
+            <div class="fld"><span class="lbl">Teléfono *</span><input placeholder="987654321"></div>
+            <div class="fld"><span class="lbl">¿Cómo lo recibes? *</span><div class="seg"><div class="c on">🛵 Delivery</div><div class="c">🏃 Recojo</div></div></div>
+            <div class="fld"><span class="lbl">Dirección *</span><input placeholder="Av. Principal 123"></div>
+          </div>
+          <div class="pn" id="p1">
+            <div class="h">¿Necesitas comprobante?</div><div class="hs">Boleta o factura — opcional</div>
+            <div class="fld"><div class="seg"><div class="c">Ninguno</div><div class="c on">Boleta</div><div class="c">Factura</div></div></div>
+            <div class="fld"><span class="lbl">DNI (opcional)</span><input placeholder="Documento"></div>
+            <div class="fld"><span class="lbl">Nombre (opcional)</span><input placeholder="Nombre"></div>
+            <div class="fld"><span class="lbl">Correo (opcional)</span><input placeholder="Para recibirlo"></div>
+          </div>
+          <div class="pn" id="p2">
+            <div class="h">Cierra tu pedido</div><div class="hs">Total: <b style="color:var(--navy)">S/ 48.00</b></div>
+            <div class="it"><span>2× Smash Clásica</span><span class="p">S/ 30</span></div>
+            <div class="it"><span>1× Salchipapa</span><span class="p">S/ 18</span></div>
+            <div class="ittot"><span>Total</span><span>S/ 48</span></div>
+            <div style="height:14px"></div>
+            <button class="pay pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagar con tarjeta</button>
+            <div class="or">O</div>
+            <button class="pay pw" onclick="document.getElementById('ov').classList.add('on')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z"/></svg>Pedir por WhatsApp</button>
+          </div>
+        </div>
+
+        <div class="side-foot" id="foot">
+          <button class="cta" id="cta" onclick="go(step+1)">Continuar</button>
+          <button class="skip" id="skip" style="display:none" onclick="go(step+1)">Omitir comprobante</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:18px"><button onclick="document.getElementById('ov').classList.add('on')" style="padding:10px 20px;border:none;border-radius:10px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer">Ver confirmación →</button></div>
+
+  <!-- OVERLAY CONFIRMACIÓN -->
+  <div class="ov" id="ov" onclick="if(event.target===this)this.classList.remove('on')">
+    <div class="conf">
+      <div class="conf-hero"><div class="ring"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z"/></svg></div></div>
+      <div class="conf-bd">
+        <div class="t">¡Pedido enviado!</div>
+        <div class="code">🍔 PEDIDO #003</div>
+        <div class="msg">Envíale tu pedido a la tienda por WhatsApp para confirmarlo. Ahí coordinas pago y entrega.</div>
+        <button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z"/></svg>Abrir WhatsApp</button>
+        <button class="sec" onclick="document.getElementById('ov').classList.remove('on')">Hacer otro pedido</button>
+        <div class="closehint">Al cerrar, el carrito y el formulario se reinician 🧹</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  var step=0, titles=['Tus datos','Comprobante','Pago'];
+  function go(n){ if(n<0||n>2)return; step=n;
+    for(var i=0;i<3;i++){ document.getElementById('p'+i).classList.toggle('on',i===step);
+      document.getElementById('b'+i).className='b'+(i<step?' done':(i===step?' cur':'')); }
+    document.getElementById('stt').textContent=titles[step];
+    document.getElementById('cap').textContent='Paso '+(step+1)+' de 3';
+    document.getElementById('back').disabled=step===0;
+    document.getElementById('foot').style.display=step===2?'none':'block';
+    document.getElementById('skip').style.display=step===1?'block':'none';
+  }
+  go(0);
+</script>
+</body>
+</html>
