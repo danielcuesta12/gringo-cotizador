@@ -603,6 +603,40 @@ if ($showCard) {
     .theme-toggle .ico-luna { display: block; }
     html[data-theme="dia"] .theme-toggle .ico-sol  { display: block; }
     html[data-theme="dia"] .theme-toggle .ico-luna { display: none; }
+
+    /* ── Wizard de checkout ── */
+    .wz-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+    .wz-card{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+    .wz-top{background:#1B1F4B;color:#fff;padding:14px 18px}
+    .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+    .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer}
+    .wz-back[disabled]{opacity:.25;cursor:default}
+    .wz-title{font-size:14px;font-weight:800}
+    .wz-total{font-size:15px;font-weight:900;color:#F5C200}
+    .wz-steps{display:flex;gap:6px}
+    .wz-bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
+    .wz-bar i{display:block;height:100%;width:0;background:#F5C200;transition:width .3s}
+    .wz-bar.done i,.wz-bar.cur i{width:100%}
+    .wz-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
+    .wz-body{padding:18px;flex:1}
+    .wz-panel{display:none}
+    .wz-panel.wz-on{display:block;animation:wzSlide .25s ease}
+    @keyframes wzSlide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+    .wz-foot{padding:0 18px 20px}
+    .wz-cta{width:100%;padding:15px;border:none;border-radius:12px;background:#F5C200;color:#1B1F4B;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
+    .wz-skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12.5px;font-weight:700;margin-top:11px;cursor:pointer}
+    .wz-cancel{display:block;width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;color:#888;font-size:13px;margin-top:8px;cursor:pointer}
+    .wz-it{display:flex;justify-content:space-between;font-size:14px;color:#333;padding:8px 0;border-bottom:1px solid #f3f3f3}
+    .wz-ittot{font-size:16px;font-weight:900;color:#1B1F4B;border-bottom:none;padding-top:11px}
+    .wz-pay{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:10px;margin-top:14px}
+    .wz-pay-card{background:#1A1A1A;color:#fff}
+    .wz-pay-wa{background:#25D366;color:#fff}
+    .wz-or{display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:11px;font-weight:800;margin:0 0 4px}
+    .wz-or::before,.wz-or::after{content:"";height:1px;background:#eee;flex:1}
+    @media(min-width:900px){
+      .wz-modal{align-items:flex-start;justify-content:flex-end;background:rgba(0,0,0,.35);padding:20px 26px}
+      .wz-card{max-width:380px;border-radius:16px}
+    }
   </style>
 <?php if ($izEnabled): ?>
   <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
@@ -783,117 +817,135 @@ if ($showCard) {
     </div>
   </div>
 
-  <!-- MODAL DATOS CLIENTE -->
-  <div id="modal-pedido" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;">
-    <div style="background:#fff;border-radius:16px 16px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:1.5px;color:#1B1F4B;">Completa tu pedido</div>
-        <button onclick="cerrarModal()" style="background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;">×</button>
+  <!-- MODAL DATOS CLIENTE — Wizard 3 pasos -->
+  <div id="modal-pedido" class="wz-modal" style="display:none">
+    <div class="wz-card">
+      <div class="wz-top">
+        <div class="wz-top-row">
+          <button type="button" class="wz-back" id="wz-back" onclick="wizardGo(wizardStep-1)">‹</button>
+          <span class="wz-title" id="wz-title">Tus datos</span>
+          <span class="wz-total" id="wz-total">S/0</span>
+        </div>
+        <div class="wz-steps">
+          <div class="wz-bar" id="wz-b0"><i></i></div>
+          <div class="wz-bar" id="wz-b1"><i></i></div>
+          <div class="wz-bar" id="wz-b2"><i></i></div>
+        </div>
+        <div class="wz-cap" id="wz-cap">Paso 1 de 3</div>
       </div>
-      <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#999;margin-bottom:20px;">Necesitamos tus datos para coordinar tu pedido</div>
+      <div class="wz-body">
+        <!-- STEP 1: datos de entrega -->
+        <div class="wz-panel wz-on" id="wz-p0">
 
-      <!-- Nombre -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Nombre <span style="color:#dc2626">*</span></label>
-        <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-nombre" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
-
-      <!-- Teléfono -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Teléfono <span style="color:#dc2626">*</span></label>
-        <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-telefono" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
-
-      <!-- Delivery / Recojo -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">¿Cómo recibes tu pedido? <span style="color:#dc2626">*</span></label>
-        <div style="display:flex;gap:10px;">
-          <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #F5C200;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-            <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
+          <!-- Nombre -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Nombre <span style="color:#dc2626">*</span></label>
+            <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-nombre" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
-          <div id="opt-recojo" onclick="setTipoEntrega('recojo')" style="flex:1;border:1.5px solid #ddd;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-recojo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
+
+          <!-- Teléfono -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Teléfono <span style="color:#dc2626">*</span></label>
+            <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-telefono" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
-        </div>
-        <div id="err-entrega" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona una opción</div>
-      </div>
 
-      <!-- Dirección (solo delivery) -->
-      <div style="margin-bottom:14px;" id="campo-dir-wrap">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
-        <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
+          <!-- Delivery / Recojo -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">¿Cómo recibes tu pedido? <span style="color:#dc2626">*</span></label>
+            <div style="display:flex;gap:10px;">
+              <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #F5C200;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
+              </div>
+              <div id="opt-recojo" onclick="setTipoEntrega('recojo')" style="flex:1;border:1.5px solid #ddd;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-recojo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
+              </div>
+            </div>
+            <div id="err-entrega" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona una opción</div>
+          </div>
 
-      <!-- Horario — DESACTIVADO: para activar, quitar display:none del div exterior -->
-      <div style="display:none;margin-bottom:14px;" id="horario-wrap">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Horario <span style="color:#dc2626">*</span></label>
-        <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-          <option value="asap">⚡ Lo antes posible</option>
-        </select>
-        <div id="err-horario" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona un horario</div>
-      </div>
+          <!-- Dirección (solo delivery) -->
+          <div style="margin-bottom:14px;" id="campo-dir-wrap">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
+            <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
+          </div>
 
-      <!-- Comentarios -->
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comentarios <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-        <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
-      </div>
+          <!-- Horario — DESACTIVADO: para activar, quitar display:none del div exterior -->
+          <div style="display:none;margin-bottom:14px;" id="horario-wrap">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Horario <span style="color:#dc2626">*</span></label>
+            <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+              <option value="asap">⚡ Lo antes posible</option>
+            </select>
+            <div id="err-horario" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona un horario</div>
+          </div>
 
-      <!-- Comprobante (opcional) -->
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-        <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
-          <option value="">No necesito comprobante</option>
-          <option value="boleta">Boleta</option>
-          <option value="factura">Factura</option>
-        </select>
-        <div id="comp-fields" style="display:none;margin-top:10px;">
-          <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-          <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-          <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
-          <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
-        </div>
-      </div>
+          <!-- Comentarios -->
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comentarios <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
+          </div>
 
-      <!-- LEALTAD — oculta por ahora (no eliminar) -->
-      <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
-        <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
-          🍔 Tarjeta Gringo Lovers
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;transition:all 0.15s;" id="loyalty-opt-no" onclick="setLoyalty('no')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-no"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">No me interesa por ahora</div>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #F5C200;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;font-weight:600;">Quiero crear mi tarjeta</div>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;" id="loyalty-opt-tengo" onclick="setLoyalty('tengo')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-tengo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">Ya tengo mi tarjeta</div>
-          </label>
-        </div>
-        <div id="loyalty-email-wrap" style="margin-top:10px;">
-          <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-          <div id="err-loyalty-email" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Ingresa tu email para crear la tarjeta</div>
-        </div>
-      </div>
+          <!-- LEALTAD — oculta por ahora (no eliminar) -->
+          <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
+            <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
+              🍔 Tarjeta Gringo Lovers
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;transition:all 0.15s;" id="loyalty-opt-no" onclick="setLoyalty('no')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-no"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">No me interesa por ahora</div>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #F5C200;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;font-weight:600;">Quiero crear mi tarjeta</div>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;" id="loyalty-opt-tengo" onclick="setLoyalty('tengo')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-tengo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">Ya tengo mi tarjeta</div>
+              </label>
+            </div>
+            <div id="loyalty-email-wrap" style="margin-top:10px;">
+              <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+              <div id="err-loyalty-email" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Ingresa tu email para crear la tarjeta</div>
+            </div>
+          </div>
 
-      <button onclick="confirmarPedido()" style="width:100%;padding:14px;background:<?= $salesMode === 'izipay' ? '#1A1A1A' : '#25D366' ?>;color:#fff;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:16px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <?php if ($salesMode === 'izipay'): ?>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <?php else: ?>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        <?php endif; ?>
-        <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Enviar pedido por WhatsApp' ?>
-      </button>
-      <button onclick="cerrarModal()" style="width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;font-family:'DINMed',sans-serif;font-size:13px;color:#888;cursor:pointer;margin-top:10px;">Cancelar</button>
+        </div><!-- /wz-p0 -->
+
+        <!-- STEP 2: comprobante -->
+        <div class="wz-panel" id="wz-p1">
+
+          <!-- Comprobante (opcional) -->
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
+              <option value="">No necesito comprobante</option>
+              <option value="boleta">Boleta</option>
+              <option value="factura">Factura</option>
+            </select>
+            <div id="comp-fields" style="display:none;margin-top:10px;">
+              <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
+              <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
+            </div>
+          </div>
+
+        </div><!-- /wz-p1 -->
+
+        <!-- STEP 3: resumen + pago -->
+        <div class="wz-panel" id="wz-p2"><div id="wz-resumen"></div><div id="wz-pagos"></div></div>
+
+      </div><!-- /wz-body -->
+      <div class="wz-foot" id="wz-foot">
+        <button type="button" class="wz-cta" id="wz-cta" onclick="wizardNext()">Continuar</button>
+        <button type="button" class="wz-skip" id="wz-skip" style="display:none" onclick="wizardGo(2)">Omitir, no necesito comprobante</button>
+        <button type="button" class="wz-cancel" onclick="cerrarModal()">Cancelar</button>
+      </div>
     </div>
   </div>
 
