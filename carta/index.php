@@ -53,8 +53,8 @@ if ($salesMode === 'izipay') {
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="El Gringo Burger Joint — Smash Burgers en Marcona, Perú.">
-  <title>El Gringo Burger Joint · Marcona</title>
+  <meta name="description" content="<?= clean(getSetting('company_name', '')) ?> — carta de <?= clean($ubi['nombre']) ?>">
+  <title><?= clean(getSetting('company_name', 'Carta')) ?> · <?= clean($ubi['nombre']) ?></title>
   <style>
     @font-face {
   font-family:'Kimmy'; text-transform: uppercase;
@@ -737,14 +737,26 @@ if ($salesMode === 'izipay') {
     </div>
   </div>
 
+<?php
+  $coName = getSetting('company_name', '');
+  $coWeb  = trim((string) getSetting('company_website', ''));
+  $ubiDir = trim((string) ($ubi['direccion'] ?? ''));
+  $ubiMaps= trim((string) ($ubi['maps_url'] ?? ''));
+?>
+<?php if ($ubiDir !== '' || $coName !== ''): ?>
   <footer>
+    <?php if ($ubiDir !== ''): ?>
     <div class="address">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-      La Suar, Marcona
+      <?php if ($ubiMaps !== ''): ?><a href="<?= htmlspecialchars($ubiMaps) ?>" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><?= clean($ubiDir) ?></a><?php else: ?><?= clean($ubiDir) ?><?php endif; ?>
     </div>
-    <span class="tagline">Est. Lima, Per&uacute;</span>
+    <?php endif; ?>
+    <?php if ($coName !== ''): ?><span class="tagline"><?= clean($coName) ?></span><?php endif; ?>
   </footer>
-  <div class="bottom-bar">Smash Burgers &middot; Marcona &middot; elgringo.pe</div>
+<?php endif; ?>
+<?php if ($coName !== '' || $coWeb !== ''): ?>
+  <div class="bottom-bar"><?= clean($coName) ?><?= $coWeb !== '' ? ' &middot; ' . clean($coWeb) : '' ?></div>
+<?php endif; ?>
 
   <div id="modal-codigo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center;padding:20px;">
     <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;text-align:center;">
@@ -811,7 +823,7 @@ if ($salesMode === 'izipay') {
       <!-- Dirección (solo delivery) -->
       <div style="margin-bottom:14px;" id="campo-dir-wrap">
         <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
-        <input type="text" id="campo-direccion" placeholder="Ej: Av. La Suar 123" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+        <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
         <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
       </div>
 
