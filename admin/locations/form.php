@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'slug'            => slugify($_POST['slug'] ?? ''),
         'descripcion'     => clean($_POST['descripcion'] ?? ''),
         'color_header'    => clean($_POST['color_header'] ?? '#FCDA13'),
-        'sales_mode'      => in_array($_POST['sales_mode'] ?? '', ['menu','whatsapp','izipay']) ? $_POST['sales_mode'] : 'menu',
+        'sales_mode'      => in_array($_POST['sales_mode'] ?? '', ['menu','whatsapp','izipay','ambos']) ? $_POST['sales_mode'] : 'menu',
         'whatsapp_number' => preg_replace('/\D/', '', $_POST['whatsapp_number'] ?? ''),
         'direccion'       => clean($_POST['direccion'] ?? ''),
         'maps_url'        => clean($_POST['maps_url'] ?? ''),
@@ -68,6 +68,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($data['sales_mode'] === 'whatsapp' && !$data['whatsapp_number']) {
         $errors[] = 'Para la modalidad WhatsApp necesitas un número de WhatsApp.';
+    }
+    if ($data['sales_mode'] === 'ambos') {
+        if (!$data['whatsapp_number']) {
+            $errors[] = 'El modo "Ambos" requiere un número de WhatsApp.';
+        }
+        require_once __DIR__ . '/../../includes/izipay.php';
+        if (!izipayConfigured()) {
+            $errors[] = 'El modo "Ambos" requiere que Izipay esté configurado (Facturación → Izipay).';
+        }
     }
 
     if (empty($errors)) {
@@ -163,6 +172,7 @@ include __DIR__ . '/../layout-top.php';
             <option value="menu"     <?= $data['sales_mode']==='menu'?'selected':'' ?>>Solo menú (sin venta)</option>
             <option value="whatsapp" <?= $data['sales_mode']==='whatsapp'?'selected':'' ?>>Pedido por WhatsApp</option>
             <option value="izipay"   <?= $data['sales_mode']==='izipay'?'selected':'' ?>>Pago con Izipay</option>
+            <option value="ambos"    <?= $data['sales_mode']==='ambos'?'selected':'' ?>>Ambos (WhatsApp + Izipay)</option>
           </select>
           <div class="form-hint">Define cómo se vende en la carta de esta ubicación</div>
         </div>

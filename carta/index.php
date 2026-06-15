@@ -17,6 +17,8 @@ if (!$ubi) {
 }
 $ubiId     = (int) $ubi['id'];
 $salesMode = $ubi['sales_mode'];
+$showCard  = in_array($salesMode, ['izipay', 'ambos'], true);  // botón/maquinaria Izipay
+$showWa    = in_array($salesMode, ['whatsapp', 'ambos'], true); // botón WhatsApp
 $base      = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
 // Ubicación solo-menú: redirige a su menú de visualización
 if ($salesMode === 'menu') { header('Location: ' . $base . '/' . rawurlencode($ubi['slug']) . '/menu'); exit; }
@@ -25,9 +27,9 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $waNum   = preg_replace('/\D/', '', $ubi['whatsapp_number'] ?: getSetting('whatsapp_number', ''));
 $ig      = ltrim($ubi['instagram'] ?? '', '@');
 
-// Izipay — solo si esta ubicación cobra con tarjeta y hay credenciales (settings → .env)
+// Izipay — solo si esta ubicación cobra con tarjeta (o ambos) y hay credenciales (settings → .env)
 $izEnabled = false; $izKey = ''; $izJsUrl = '';
-if ($salesMode === 'izipay') {
+if ($showCard) {
     require_once __DIR__ . '/../includes/izipay.php';
     $izc = izipayCfg();
     $izKey     = $izc['public_key'];   // pública por diseño
@@ -601,6 +603,42 @@ if ($salesMode === 'izipay') {
     .theme-toggle .ico-luna { display: block; }
     html[data-theme="dia"] .theme-toggle .ico-sol  { display: block; }
     html[data-theme="dia"] .theme-toggle .ico-luna { display: none; }
+
+    /* ── Wizard de checkout ── */
+    .wz-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+    .wz-card{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+    .wz-top{background:#1B1F4B;color:#fff;padding:14px 18px}
+    .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+    .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer}
+    .wz-back[disabled]{opacity:.25;cursor:default}
+    .wz-title{font-size:14px;font-weight:800}
+    .wz-total{font-size:15px;font-weight:900;color:#F5C200}
+    .wz-steps{display:flex;gap:6px}
+    .wz-bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
+    .wz-bar i{display:block;height:100%;width:0;background:#F5C200;transition:width .3s}
+    .wz-bar.done i,.wz-bar.cur i{width:100%}
+    .wz-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
+    .wz-body{padding:18px;flex:1}
+    .wz-panel{display:none}
+    .wz-panel.wz-on{display:block;animation:wzSlide .25s ease}
+    @keyframes wzSlide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+    .wz-foot{padding:0 18px 20px}
+    .wz-cta{width:100%;padding:15px;border:none;border-radius:12px;background:#F5C200;color:#1B1F4B;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
+    .wz-skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12.5px;font-weight:700;margin-top:11px;cursor:pointer}
+    .wz-cancel{display:block;width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;color:#888;font-size:13px;margin-top:8px;cursor:pointer}
+    .wz-it{display:flex;justify-content:space-between;font-size:14px;color:#333;padding:8px 0;border-bottom:1px solid #f3f3f3}
+    .wz-ittot{font-size:16px;font-weight:900;color:#1B1F4B;border-bottom:none;padding-top:11px}
+    .wz-pay{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:10px;margin-top:14px}
+    .wz-pay-card{background:#1A1A1A;color:#fff}
+    .wz-pay-wa{background:#25D366;color:#fff}
+    .wz-or{display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:11px;font-weight:800;margin:0 0 4px}
+    .wz-or::before,.wz-or::after{content:"";height:1px;background:#eee;flex:1}
+    @media(min-width:900px){
+      .wz-modal{align-items:flex-start;justify-content:flex-end;background:rgba(0,0,0,.35);padding:20px 26px}
+      .wz-card{max-width:380px;border-radius:16px}
+    }
+    .conf-hero.ok{background:#F5C200}
+    .conf-hero.wa{background:#25D366}
   </style>
 <?php if ($izEnabled): ?>
   <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
@@ -689,7 +727,7 @@ if ($salesMode === 'izipay') {
           <span class="carrito-desktop-total-label">Total</span>
           <span class="carrito-desktop-total-val" id="desktop-total-val">S/0</span>
         </div>
-        <?php if ($salesMode === 'izipay'): ?>
+        <?php if ($salesMode === 'izipay' || $salesMode === 'ambos'): ?>
         <button class="btn-pay" id="desktop-wa-btn" style="display:none;margin-top:16px" onclick="enviarPedido()">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Realizar pedido
@@ -722,7 +760,7 @@ if ($salesMode === 'izipay') {
     </div>
     <div class="carrito-mobile-items" id="mobile-items-wrap">
       <div id="mobile-items"></div>
-      <?php if ($salesMode === 'izipay'): ?>
+      <?php if ($salesMode === 'izipay' || $salesMode === 'ambos'): ?>
       <button class="btn-pay" onclick="enviarPedido()">
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         Realizar pedido
@@ -781,117 +819,135 @@ if ($salesMode === 'izipay') {
     </div>
   </div>
 
-  <!-- MODAL DATOS CLIENTE -->
-  <div id="modal-pedido" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;">
-    <div style="background:#fff;border-radius:16px 16px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:1.5px;color:#1B1F4B;">Completa tu pedido</div>
-        <button onclick="cerrarModal()" style="background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;">×</button>
+  <!-- MODAL DATOS CLIENTE — Wizard 3 pasos -->
+  <div id="modal-pedido" class="wz-modal" style="display:none">
+    <div class="wz-card">
+      <div class="wz-top">
+        <div class="wz-top-row">
+          <button type="button" class="wz-back" id="wz-back" onclick="wizardGo(wizardStep-1)">‹</button>
+          <span class="wz-title" id="wz-title">Tus datos</span>
+          <span class="wz-total" id="wz-total">S/0</span>
+        </div>
+        <div class="wz-steps">
+          <div class="wz-bar" id="wz-b0"><i></i></div>
+          <div class="wz-bar" id="wz-b1"><i></i></div>
+          <div class="wz-bar" id="wz-b2"><i></i></div>
+        </div>
+        <div class="wz-cap" id="wz-cap">Paso 1 de 3</div>
       </div>
-      <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#999;margin-bottom:20px;">Necesitamos tus datos para coordinar tu pedido</div>
+      <div class="wz-body">
+        <!-- STEP 1: datos de entrega -->
+        <div class="wz-panel wz-on" id="wz-p0">
 
-      <!-- Nombre -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Nombre <span style="color:#dc2626">*</span></label>
-        <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-nombre" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
-
-      <!-- Teléfono -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Teléfono <span style="color:#dc2626">*</span></label>
-        <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-telefono" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
-
-      <!-- Delivery / Recojo -->
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">¿Cómo recibes tu pedido? <span style="color:#dc2626">*</span></label>
-        <div style="display:flex;gap:10px;">
-          <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #F5C200;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-            <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
+          <!-- Nombre -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Nombre <span style="color:#dc2626">*</span></label>
+            <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-nombre" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
-          <div id="opt-recojo" onclick="setTipoEntrega('recojo')" style="flex:1;border:1.5px solid #ddd;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-recojo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
+
+          <!-- Teléfono -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Teléfono <span style="color:#dc2626">*</span></label>
+            <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-telefono" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
-        </div>
-        <div id="err-entrega" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona una opción</div>
-      </div>
 
-      <!-- Dirección (solo delivery) -->
-      <div style="margin-bottom:14px;" id="campo-dir-wrap">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
-        <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-        <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
-      </div>
+          <!-- Delivery / Recojo -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">¿Cómo recibes tu pedido? <span style="color:#dc2626">*</span></label>
+            <div style="display:flex;gap:10px;">
+              <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #F5C200;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
+              </div>
+              <div id="opt-recojo" onclick="setTipoEntrega('recojo')" style="flex:1;border:1.5px solid #ddd;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-recojo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
+              </div>
+            </div>
+            <div id="err-entrega" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona una opción</div>
+          </div>
 
-      <!-- Horario — DESACTIVADO: para activar, quitar display:none del div exterior -->
-      <div style="display:none;margin-bottom:14px;" id="horario-wrap">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Horario <span style="color:#dc2626">*</span></label>
-        <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-          <option value="asap">⚡ Lo antes posible</option>
-        </select>
-        <div id="err-horario" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona un horario</div>
-      </div>
+          <!-- Dirección (solo delivery) -->
+          <div style="margin-bottom:14px;" id="campo-dir-wrap">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
+            <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
+          </div>
 
-      <!-- Comentarios -->
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comentarios <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-        <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
-      </div>
+          <!-- Horario — DESACTIVADO: para activar, quitar display:none del div exterior -->
+          <div style="display:none;margin-bottom:14px;" id="horario-wrap">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Horario <span style="color:#dc2626">*</span></label>
+            <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+              <option value="asap">⚡ Lo antes posible</option>
+            </select>
+            <div id="err-horario" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona un horario</div>
+          </div>
 
-      <!-- Comprobante (opcional) -->
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-        <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
-          <option value="">No necesito comprobante</option>
-          <option value="boleta">Boleta</option>
-          <option value="factura">Factura</option>
-        </select>
-        <div id="comp-fields" style="display:none;margin-top:10px;">
-          <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-          <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-          <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
-          <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
-        </div>
-      </div>
+          <!-- Comentarios -->
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comentarios <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
+          </div>
 
-      <!-- LEALTAD — oculta por ahora (no eliminar) -->
-      <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
-        <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
-          🍔 Tarjeta Gringo Lovers
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;transition:all 0.15s;" id="loyalty-opt-no" onclick="setLoyalty('no')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-no"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">No me interesa por ahora</div>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #F5C200;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;font-weight:600;">Quiero crear mi tarjeta</div>
-          </label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;" id="loyalty-opt-tengo" onclick="setLoyalty('tengo')">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-tengo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-            <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">Ya tengo mi tarjeta</div>
-          </label>
-        </div>
-        <div id="loyalty-email-wrap" style="margin-top:10px;">
-          <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
-          <div id="err-loyalty-email" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Ingresa tu email para crear la tarjeta</div>
-        </div>
-      </div>
+          <!-- LEALTAD — oculta por ahora (no eliminar) -->
+          <div id="loyalty-block" style="display:none;margin-bottom:20px;background:#f9f4ee;border-radius:10px;padding:14px 16px;border:1px solid #E8DDD0;">
+            <div style="font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">
+              🍔 Tarjeta Gringo Lovers
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;transition:all 0.15s;" id="loyalty-opt-no" onclick="setLoyalty('no')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-no"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">No me interesa por ahora</div>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #F5C200;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;font-weight:600;">Quiero crear mi tarjeta</div>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;" id="loyalty-opt-tengo" onclick="setLoyalty('tengo')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-tengo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">Ya tengo mi tarjeta</div>
+              </label>
+            </div>
+            <div id="loyalty-email-wrap" style="margin-top:10px;">
+              <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+              <div id="err-loyalty-email" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Ingresa tu email para crear la tarjeta</div>
+            </div>
+          </div>
 
-      <button onclick="confirmarPedido()" style="width:100%;padding:14px;background:<?= $salesMode === 'izipay' ? '#1A1A1A' : '#25D366' ?>;color:#fff;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:16px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <?php if ($salesMode === 'izipay'): ?>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <?php else: ?>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        <?php endif; ?>
-        <?= $salesMode === 'izipay' ? 'Pagar con tarjeta' : 'Enviar pedido por WhatsApp' ?>
-      </button>
-      <button onclick="cerrarModal()" style="width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;font-family:'DINMed',sans-serif;font-size:13px;color:#888;cursor:pointer;margin-top:10px;">Cancelar</button>
+        </div><!-- /wz-p0 -->
+
+        <!-- STEP 2: comprobante -->
+        <div class="wz-panel" id="wz-p1">
+
+          <!-- Comprobante (opcional) -->
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comprobante <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <select id="campo-comprobante" onchange="onCompChange()" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;">
+              <option value="">No necesito comprobante</option>
+              <option value="boleta">Boleta</option>
+              <option value="factura">Factura</option>
+            </select>
+            <div id="comp-fields" style="display:none;margin-top:10px;">
+              <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
+              <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
+            </div>
+          </div>
+
+        </div><!-- /wz-p1 -->
+
+        <!-- STEP 3: resumen + pago -->
+        <div class="wz-panel" id="wz-p2"><div id="wz-resumen"></div><div id="wz-pagos"></div></div>
+
+      </div><!-- /wz-body -->
+      <div class="wz-foot" id="wz-foot">
+        <button type="button" class="wz-cta" id="wz-cta" onclick="wizardNext()">Continuar</button>
+        <button type="button" class="wz-skip" id="wz-skip" style="display:none" onclick="omitirComprobante()">Omitir, no necesito comprobante</button>
+        <button type="button" class="wz-cancel" onclick="cerrarModal()">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -1069,6 +1125,8 @@ if ($salesMode === 'izipay') {
 
   const CARTA_ID = <?= (int)$ubiId ?>;
   const SALES_MODE = '<?= $salesMode ?>';
+  const SHOW_CARD  = <?= $showCard ? 'true' : 'false' ?>;
+  const SHOW_WA    = <?= $showWa ? 'true' : 'false' ?>;
   const IZ_ENABLED = <?= $izEnabled ? 'true' : 'false' ?>;
   const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
   const CERRADO_MANUAL = <?= !empty($ubi['cerrado_manual']) ? 'true' : 'false' ?>;
@@ -1311,6 +1369,62 @@ function cambiar(id, nombre, precio, delta) {
     document.getElementById('modal-pedido').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     if (window.track) track('checkout_open', 'carta', { ubicacion_id: CARTA_ID, meta: { items: Object.keys(carrito).length } });
+    document.getElementById('wz-total').textContent = document.getElementById('mobile-total').textContent || 'S/0';
+    wizardGo(0);
+  }
+
+  let wizardStep = 0;
+  const WZ_TITLES = ['Tus datos', 'Comprobante', 'Pago'];
+  function wizardGo(n) {
+    if (n < 0 || n > 2) return;
+    wizardStep = n;
+    for (let i = 0; i < 3; i++) {
+      document.getElementById('wz-p' + i).classList.toggle('wz-on', i === wizardStep);
+      const b = document.getElementById('wz-b' + i);
+      b.className = 'wz-bar' + (i < wizardStep ? ' done' : (i === wizardStep ? ' cur' : ''));
+    }
+    document.getElementById('wz-title').textContent = WZ_TITLES[wizardStep];
+    document.getElementById('wz-cap').textContent = 'Paso ' + (wizardStep + 1) + ' de 3';
+    document.getElementById('wz-back').disabled = wizardStep === 0;
+    document.getElementById('wz-foot').style.display = wizardStep === 2 ? 'none' : 'block';
+    document.getElementById('wz-skip').style.display = wizardStep === 1 ? 'block' : 'none';
+    if (wizardStep === 2) renderPasoPago();
+  }
+  function wizardNext() {
+    if (wizardStep === 0 && !validarDatos()) return;
+    if (wizardStep === 1 && !validarComprobante()) return;
+    wizardGo(wizardStep + 1);
+  }
+  function validarComprobante() {
+    const tipo = document.getElementById('campo-comprobante').value;
+    const err = document.getElementById('err-comp');
+    if (tipo === 'factura') {
+      const doc = (document.getElementById('campo-doc').value || '').replace(/\D/g, '');
+      const nom = (document.getElementById('campo-razon').value || '').trim();
+      if (doc.length !== 11 || !nom) { if (err) err.style.display = 'block'; return false; }
+    }
+    if (err) err.style.display = 'none';
+    return true;
+  }
+  function omitirComprobante() {
+    const comp = document.getElementById('campo-comprobante');
+    if (comp) { comp.value = ''; if (typeof onCompChange === 'function') onCompChange(); }
+    const err = document.getElementById('err-comp'); if (err) err.style.display = 'none';
+    wizardGo(2);
+  }
+  function validarDatos() {
+    let valid = true;
+    const nombre = document.getElementById('campo-nombre').value.trim();
+    const telefono = document.getElementById('campo-telefono').value.trim();
+    const setErr = (id, errId, bad) => {
+      const e = document.getElementById(errId); if (e) e.style.display = bad ? 'block' : 'none';
+      const f = document.getElementById(id); if (f) f.style.borderColor = bad ? '#dc2626' : '#ddd';
+      if (bad) valid = false;
+    };
+    setErr('campo-nombre', 'err-nombre', !nombre);
+    setErr('campo-telefono', 'err-telefono', !telefono);
+    if (tipoEntrega === 'delivery') setErr('campo-direccion', 'err-direccion', !document.getElementById('campo-direccion').value.trim());
+    return valid;
   }
 
   function poblarHorarios() {
@@ -1368,39 +1482,31 @@ function cambiar(id, nombre, precio, delta) {
     }
   }
 
-  function confirmarPedido() {
+  function renderPasoPago() {
+    let total = 0;
+    const filas = Object.values(carrito).map(i => {
+      const sub = Math.round(i.precio * i.qty); total += sub;
+      return `<div class="wz-it"><span>${i.qty}x ${i.nombre}</span><span>S/${sub}</span></div>`;
+    }).join('');
+    document.getElementById('wz-resumen').innerHTML =
+      filas + `<div class="wz-it wz-ittot"><span>Total</span><span>S/${Math.round(total)}</span></div>`;
+    const card = `<button type="button" class="wz-pay wz-pay-card" onclick="confirmarPedido('izipay')">💳 Pagar con tarjeta</button>`;
+    const wa   = `<button type="button" class="wz-pay wz-pay-wa" onclick="confirmarPedido('whatsapp')">🟢 Pedir por WhatsApp</button>`;
+    let html = '';
+    if (SHOW_CARD && IZ_ENABLED) html += card;
+    if (SHOW_CARD && IZ_ENABLED && SHOW_WA) html += '<div class="wz-or">O</div>';
+    if (SHOW_WA) html += wa;
+    if (html === '') {
+      html = '<div style="text-align:center;color:#999;font-size:13px;padding:14px 0;line-height:1.5">El pago con tarjeta no está disponible en este momento.<br>Intenta más tarde o contáctanos.</div>';
+    }
+    document.getElementById('wz-pagos').innerHTML = html;
+  }
+
+  function confirmarPedido(metodo) {
     if (!isStoreOpen()) { cerrarModal(); avisoCerrado(); return; }
-    let valid = true;
     const nombre   = document.getElementById('campo-nombre').value.trim();
     const telefono = document.getElementById('campo-telefono').value.trim();
     const direccion = tipoEntrega === 'delivery' ? document.getElementById('campo-direccion').value.trim() : '';
-
-    if (!nombre) {
-      document.getElementById('err-nombre').style.display = 'block';
-      document.getElementById('campo-nombre').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-nombre').style.display = 'none';
-      document.getElementById('campo-nombre').style.borderColor = '#ddd';
-    }
-    if (!telefono) {
-      document.getElementById('err-telefono').style.display = 'block';
-      document.getElementById('campo-telefono').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-telefono').style.display = 'none';
-      document.getElementById('campo-telefono').style.borderColor = '#ddd';
-    }
-    if (tipoEntrega === 'delivery' && !direccion) {
-      document.getElementById('err-direccion').style.display = 'block';
-      document.getElementById('campo-direccion').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-direccion').style.display = 'none';
-      if (document.getElementById('campo-direccion'))
-        document.getElementById('campo-direccion').style.borderColor = '#ddd';
-    }
-    if (!valid) return;
 
     const horario = document.getElementById('campo-horario').value;
     const horarioLabel = horario === 'asap' ? 'Lo antes posible' : horario;
@@ -1433,6 +1539,12 @@ function cambiar(id, nombre, precio, delta) {
     ];
     if (loyaltyEmailWA && loyaltyOpcion !== 'no') lines.push(`*Email lealtad:* ${loyaltyEmailWA}`);
     if (comentarios) lines.push(`*Comentarios:* ${comentarios}`);
+    if (compTipo) {
+      const etq = compTipo === 'factura' ? 'Factura' : 'Boleta';
+      lines.push(`*Comprobante:* ${etq}`);
+      if (compDoc) lines.push(`*Documento:* ${compDoc}`);
+      if (compNom) lines.push(`*Nombre/Razón:* ${compNom}`);
+    }
     lines.push('', '*Pedido:*');
     const items = Object.values(carrito);
     let total = 0;
@@ -1457,7 +1569,7 @@ function cambiar(id, nombre, precio, delta) {
     }
 
     // ── IZIPAY: cobrar con tarjeta ANTES de registrar el pedido ──
-    if (SALES_MODE === 'izipay') {
+    if (metodo === 'izipay') {
       if (!IZ_ENABLED) { alert('El pago con tarjeta no está disponible en este momento. Intenta más tarde.'); return; }
       let izTotal = 0;
       const izItems = Object.entries(carrito).map(([cid, i]) => {
@@ -1480,6 +1592,9 @@ function cambiar(id, nombre, precio, delta) {
       iniciarPago();
       return;
     }
+
+    // WhatsApp path
+    if (metodo !== 'whatsapp') return;
 
     // Save order to database (fire and forget)
     let saveTotal = 0;
@@ -1510,13 +1625,11 @@ function cambiar(id, nombre, precio, delta) {
 
     cerrarModal();
     if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'whatsapp', total: Math.round(saveTotal) } });
-    var _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
-    var _w = window.open(_waUrl, '_blank');
+    const _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
+    handleLoyalty(loyaltyEmailWA, nombre);
+    mostrarConfirmacion({ metodo: 'whatsapp', pedidoId: null, total: Math.round(saveTotal), waUrl: _waUrl });
+    const _w = window.open(_waUrl, '_blank');
     if (!_w) window.location.href = _waUrl;   // si el navegador bloquea la pestaña nueva, navega en la misma
-
-    // Handle loyalty + generate code
-    const loyaltyEmailVal = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
-    handleLoyalty(loyaltyEmailVal, nombre);
   }
 
   async function handleLoyalty(loyaltyEmail, nombre) {
@@ -1850,7 +1963,62 @@ function cambiar(id, nombre, precio, delta) {
   loadCarta();
   if (window.track) track('page_view', 'carta', { ubicacion_id: CARTA_ID, meta: { sales_mode: SALES_MODE } });
 
-<?php if ($salesMode === 'izipay'): ?>
+  // ── CONFIRMACIÓN UNIFICADA (WhatsApp + tarjeta) ─────────────────────────
+  let _waUrlActual = '';
+  function mostrarConfirmacion(data) {
+    cerrarModal();
+    const wa = data.metodo === 'whatsapp';
+    _waUrlActual = data.waUrl || '';
+    document.getElementById('conf-titulo').textContent = wa ? '¡Pedido enviado!' : '¡Pago confirmado!';
+    document.getElementById('conf-codigo').textContent = data.pedidoId ? ('#' + String(data.pedidoId).padStart(3,'0')) : '';
+    document.getElementById('conf-msg').textContent = wa
+      ? 'Envíale tu pedido a la tienda por WhatsApp para confirmarlo. Ahí coordinas pago y entrega.'
+      : 'Recibimos tu pago. La tienda ya está preparando tu pedido.';
+    document.getElementById('conf-msg').style.display = wa ? 'block' : 'none';
+    document.getElementById('conf-wa-btn').style.display = wa ? 'flex' : 'none';
+    document.getElementById('conf-prep').style.display = wa ? 'none' : 'flex';
+    document.getElementById('conf-hero').className = 'conf-hero ' + (wa ? 'wa' : 'ok');
+    const ico = document.getElementById('conf-icon');
+    if (ico) ico.innerHTML = wa
+      ? '<path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="currentColor"/>'
+      : '<polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    document.getElementById('modal-confirmado').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    const res = document.getElementById('conf-resumen');
+    if (res) {
+      let h = '';
+      if (data.total != null) h += '<div style="font-size:15px;font-weight:800;color:var(--text,#fff)">Total: S/' + Number(data.total).toFixed(2) + '</div>';
+      if (!wa && data.cardLast4) h += '<div style="font-size:13px;opacity:.7;margin-top:4px;color:var(--text,#fff)">Tarjeta terminada en ' + String(data.cardLast4).slice(-4) + '</div>';
+      res.innerHTML = h;
+    }
+  }
+  function abrirWhatsApp() {
+    if (!_waUrlActual) return;
+    const w = window.open(_waUrlActual, '_blank');
+    if (!w) window.location.href = _waUrlActual;
+  }
+  function resetPedido() {
+    vaciarCarrito();
+    ['campo-nombre','campo-telefono','campo-direccion','campo-comentarios','campo-doc','campo-razon','campo-email-comp']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const comp = document.getElementById('campo-comprobante');
+    if (comp) { comp.value = ''; onCompChange(); }
+    ['err-nombre','err-telefono','err-direccion','err-comp'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    setTipoEntrega('delivery');
+    wizardStep = 0;
+    if (typeof _pedidoData !== 'undefined') _pedidoData = null;
+    const mc = document.getElementById('modal-confirmado'); if (mc) mc.style.display = 'none';
+    const mp = document.getElementById('modal-pedido'); if (mp) mp.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function vaciarYVolver() {
+    if (typeof _pedidoData !== 'undefined' && _pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
+    resetPedido();
+  }
+
+<?php if ($showCard): ?>
   // ── IZIPAY ──────────────────────────────────────────────────────────────
   let _pedidoData = null;
 
@@ -1897,7 +2065,8 @@ function cambiar(id, nombre, precio, delta) {
       }).then(r=>r.json());
       localStorage.removeItem('_iz_pedido');
       document.getElementById('modal-cargando-pago').style.display = 'none';
-      mostrarConfirmacion({ pedidoId: saveData.id, total: verifData.amount ?? _pedidoData.total, cardLast4: verifData.cardLast4 });
+      if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'izipay', total: verifData.amount ?? _pedidoData.total } });
+      mostrarConfirmacion({ metodo:'izipay', pedidoId: saveData.id, total: verifData.amount ?? _pedidoData.total, cardLast4: verifData.cardLast4 });
     } catch(e) {
       document.getElementById('modal-cargando-pago').style.display = 'none';
       document.getElementById('error-pago-msg').textContent = e.message;
@@ -1915,8 +2084,8 @@ function cambiar(id, nombre, precio, delta) {
         _pedidoData = JSON.parse(saved);
         localStorage.removeItem('_iz_pedido');
         fetch('<?= APP_URL ?>/api/pedido.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ..._pedidoData, izipay:true, izipay_order_id:_pedidoData.orderId }) })
-          .then(r=>r.json()).then(d=>{ mostrarConfirmacion({ pedidoId:d.id, total:_pedidoData.total, cardLast4:'****' }); })
-          .catch(()=>{ mostrarConfirmacion({ pedidoId:null, total:_pedidoData.total, cardLast4:'****' }); });
+          .then(r=>r.json()).then(d=>{ mostrarConfirmacion({ metodo:'izipay', pedidoId:d.id, total:_pedidoData.total, cardLast4:'****' }); })
+          .catch(()=>{ mostrarConfirmacion({ metodo:'izipay', pedidoId:null, total:_pedidoData.total, cardLast4:'****' }); });
       }
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('iz_err')) {
@@ -1925,27 +2094,6 @@ function cambiar(id, nombre, precio, delta) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   })();
-
-  function mostrarConfirmacion(data) {
-    cerrarModal();
-    if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'izipay', total: data.total } });
-    const last4 = data.cardLast4 ? String(data.cardLast4).slice(-4) : '****';
-    const lines = [];
-    if (data.pedidoId) lines.push('Pedido #' + String(data.pedidoId).padStart(3,'0'));
-    lines.push('Total: S/' + Number(data.total).toFixed(2));
-    lines.push('Tarjeta terminada en ' + last4);
-    document.getElementById('confirmado-detalle').innerHTML = lines.join('<br>');
-    document.getElementById('modal-confirmado').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function vaciarYVolver() {
-    document.getElementById('modal-confirmado').style.display = 'none';
-    document.body.style.overflow = '';
-    if (_pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
-    _pedidoData = null;
-    vaciarCarrito();
-  }
 
   function cerrarIzipay()  { document.getElementById('modal-izipay').style.display = 'none'; }
   function reintentarPago(){ document.getElementById('modal-error-pago').style.display='none'; document.getElementById('modal-izipay').style.display='flex'; }
@@ -1959,7 +2107,7 @@ function cambiar(id, nombre, precio, delta) {
     }
   </script>
 
-<?php if ($salesMode === 'izipay'): ?>
+<?php if ($showCard): ?>
   <!-- MODAL CARGANDO PAGO -->
   <div id="modal-cargando-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:520;align-items:center;justify-content:center;flex-direction:column;">
     <div style="width:54px;height:54px;border:4px solid rgba(255,255,255,0.15);border-top-color:var(--c-brand,#FCDA13);border-radius:50%;animation:spinIz .8s linear infinite;"></div>
@@ -1991,16 +2139,6 @@ function cambiar(id, nombre, precio, delta) {
     </div>
   </div>
 
-  <!-- MODAL PAGO CONFIRMADO -->
-  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;">
-    <div style="width:80px;height:80px;border-radius:50%;background:var(--c-brand,#FCDA13);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-family:'Kimmy',sans-serif;font-size:28px;text-transform:uppercase;letter-spacing:2px;color:#fff;margin-bottom:8px;">¡Pedido confirmado!</div>
-    <div id="confirmado-detalle" style="font-size:14px;color:#888;line-height:1.9;margin-bottom:32px;"></div>
-    <button onclick="vaciarYVolver()" style="padding:14px 40px;background:var(--c-brand,#FCDA13);color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">Volver a la carta</button>
-  </div>
-
   <!-- MODAL ERROR PAGO -->
   <div id="modal-error-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:510;align-items:center;justify-content:center;padding:20px;">
     <div style="background:#1e1e1e;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;text-align:center;">
@@ -2014,5 +2152,24 @@ function cambiar(id, nombre, precio, delta) {
     </div>
   </div>
 <?php endif; ?>
+
+  <!-- PANTALLA PEDIDO CONFIRMADO (WhatsApp + tarjeta) -->
+  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:var(--bg,#1A1A1A);z-index:500;flex-direction:column;align-items:center;text-align:center;padding:48px 26px 30px;overflow-y:auto;">
+    <div class="conf-hero wa" id="conf-hero" style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;">
+      <svg id="conf-icon" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/></svg>
+    </div>
+    <div id="conf-titulo" style="color:var(--text,#fff);font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">¡Pedido enviado!</div>
+    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(128,128,128,.12);border:1px dashed rgba(128,128,128,.3);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#F5C200;margin-bottom:22px;"></div>
+    <div style="width:100%;background:rgba(128,128,128,.08);border-radius:16px;padding:18px 16px;margin-bottom:14px;max-width:420px;">
+      <div id="conf-msg" style="font-size:14.5px;color:var(--text-soft,#e7e7e7);line-height:1.55;margin-bottom:14px;"></div>
+      <button id="conf-wa-btn" onclick="abrirWhatsApp()" style="width:100%;padding:15px;border:none;border-radius:13px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
+        Abrir WhatsApp
+      </button>
+      <div id="conf-prep" style="display:none;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:#F5C200;">🍔 Estamos preparando tu pedido</div>
+    </div>
+    <div id="conf-resumen" style="max-width:420px;width:100%;"></div>
+    <button onclick="vaciarYVolver()" style="width:100%;max-width:420px;background:none;border:1px solid rgba(128,128,128,.25);color:var(--text-soft,#cfcfcf);padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;">Hacer otro pedido</button>
+  </div>
 </body>
 </html>
