@@ -5,6 +5,26 @@ require_once __DIR__ . '/../../includes/helpers.php';
 
 requirePermission('asistencia');
 
+// Eliminar empleado (SOLO admin). Borra en duro si no tiene marcas; si tiene
+// historial de asistencia, se desactiva para conservar los reportes.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'eliminar') {
+    verifyCsrf();
+    if (!isAdmin()) { flashMessage('error', 'Solo un administrador puede eliminar empleados.'); redirect('/admin/asistencia/empleados'); }
+    $eid = cleanInt($_POST['empleado_id'] ?? 0);
+    $emp = $eid ? Database::fetch("SELECT * FROM empleados WHERE id = ?", [$eid]) : null;
+    if (!$emp) { flashMessage('error', 'Empleado no encontrado.'); redirect('/admin/asistencia/empleados'); }
+    $nMarcas = (int) (Database::fetch("SELECT COUNT(*) n FROM asistencia_marcas WHERE empleado_id = ?", [$eid])['n'] ?? 0);
+    if ($nMarcas > 0) {
+        Database::execute("UPDATE empleados SET activo = 0 WHERE id = ?", [$eid]);
+        flashMessage('success', 'El empleado tiene ' . $nMarcas . ' marca(s) registradas; se desactivó para conservar el historial.');
+    } else {
+        if (!empty($emp['foto_referencia']) && is_file(UPLOAD_PATH . $emp['foto_referencia'])) @unlink(UPLOAD_PATH . $emp['foto_referencia']);
+        Database::execute("DELETE FROM empleados WHERE id = ?", [$eid]);
+        flashMessage('success', 'Empleado eliminado.');
+    }
+    redirect('/admin/asistencia/empleados');
+}
+
 $empleados = Database::fetchAll(
     "SELECT e.*, u.nombre AS ubi_nombre
      FROM empleados e
@@ -72,8 +92,16 @@ include __DIR__ . '/../layout-top.php';
               <?= $e['activo'] ? 'Activo' : 'Inactivo' ?>
             </span>
           </td>
-          <td>
+          <td style="white-space:nowrap">
             <a href="<?= APP_URL ?>/admin/asistencia/empleado_form.php?id=<?= (int)$e['id'] ?>" class="btn btn-secondary" style="padding:6px 14px;font-size:12px">Editar</a>
+            <?php if (isAdmin()): ?>
+            <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar este empleado? Si tiene marcas registradas, se desactivará para conservar el historial.');">
+              <?= csrfField() ?>
+              <input type="hidden" name="accion" value="eliminar">
+              <input type="hidden" name="empleado_id" value="<?= (int)$e['id'] ?>">
+              <button type="submit" class="btn" style="padding:6px 14px;font-size:12px;background:#fee2e2;color:#dc2626;border:1px solid #fecaca">Eliminar</button>
+            </form>
+            <?php endif; ?>
           </td>
         </tr>
         <?php endforeach; ?>
