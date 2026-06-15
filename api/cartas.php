@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/helpers.php';
 
 requireLogin();
 header('Content-Type: application/json; charset=utf-8');
-if (!isAdmin()) { echo json_encode(['ok' => false, 'error' => 'Sin permisos']); exit; }
+if (!can('cartas_pdf')) { echo json_encode(['ok' => false, 'error' => 'Sin permisos']); exit; }
 
 function jout($data) { echo json_encode($data); exit; }
 $clampSize = fn($v, $def) => max(4.0, min(120.0, (float)(($v === '' || $v === null) ? $def : $v)));

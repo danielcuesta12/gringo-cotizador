@@ -90,8 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        $brandHex = brandPrimaryHex('#C8102E');
         $alertBody = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:sans-serif;color:#1a1a1a;max-width:480px;margin:0 auto;padding:24px">'
-            . '<h2 style="color:#C8102E;margin-bottom:16px">Nueva reserva de mesa</h2>'
+            . '<h2 style="color:' . $brandHex . ';margin-bottom:16px">Nueva reserva de mesa</h2>'
             . '<table style="width:100%;border-collapse:collapse;font-size:14px">'
             . '<tr><td style="padding:6px 0;color:#666;width:130px">Nombre</td><td style="padding:6px 0;font-weight:600">' . htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8') . '</td></tr>'
             . '<tr><td style="padding:6px 0;color:#666">Teléfono</td><td style="padding:6px 0">' . ($telefono ? htmlspecialchars($telefono, ENT_QUOTES, 'UTF-8') : '—') . '</td></tr>'
