@@ -1369,6 +1369,44 @@ function cambiar(id, nombre, precio, delta) {
     document.getElementById('modal-pedido').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     if (window.track) track('checkout_open', 'carta', { ubicacion_id: CARTA_ID, meta: { items: Object.keys(carrito).length } });
+    document.getElementById('wz-total').textContent = document.getElementById('mobile-total').textContent || 'S/0';
+    wizardGo(0);
+  }
+
+  let wizardStep = 0;
+  const WZ_TITLES = ['Tus datos', 'Comprobante', 'Pago'];
+  function wizardGo(n) {
+    if (n < 0 || n > 2) return;
+    wizardStep = n;
+    for (let i = 0; i < 3; i++) {
+      document.getElementById('wz-p' + i).classList.toggle('wz-on', i === wizardStep);
+      const b = document.getElementById('wz-b' + i);
+      b.className = 'wz-bar' + (i < wizardStep ? ' done' : (i === wizardStep ? ' cur' : ''));
+    }
+    document.getElementById('wz-title').textContent = WZ_TITLES[wizardStep];
+    document.getElementById('wz-cap').textContent = 'Paso ' + (wizardStep + 1) + ' de 3';
+    document.getElementById('wz-back').disabled = wizardStep === 0;
+    document.getElementById('wz-foot').style.display = wizardStep === 2 ? 'none' : 'block';
+    document.getElementById('wz-skip').style.display = wizardStep === 1 ? 'block' : 'none';
+    if (wizardStep === 2) renderPasoPago();
+  }
+  function wizardNext() {
+    if (wizardStep === 0 && !validarDatos()) return;
+    wizardGo(wizardStep + 1);
+  }
+  function validarDatos() {
+    let valid = true;
+    const nombre = document.getElementById('campo-nombre').value.trim();
+    const telefono = document.getElementById('campo-telefono').value.trim();
+    const setErr = (id, errId, bad) => {
+      const e = document.getElementById(errId); if (e) e.style.display = bad ? 'block' : 'none';
+      const f = document.getElementById(id); if (f) f.style.borderColor = bad ? '#dc2626' : '#ddd';
+      if (bad) valid = false;
+    };
+    setErr('campo-nombre', 'err-nombre', !nombre);
+    setErr('campo-telefono', 'err-telefono', !telefono);
+    if (tipoEntrega === 'delivery') setErr('campo-direccion', 'err-direccion', !document.getElementById('campo-direccion').value.trim());
+    return valid;
   }
 
   function poblarHorarios() {
