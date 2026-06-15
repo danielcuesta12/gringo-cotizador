@@ -357,12 +357,13 @@ case 'enviar_recibo':
         $compLabel = ['ticket'=>'Ticket','boleta'=>'Boleta','factura'=>'Factura'][$p['comprobante_tipo']] ?? 'Ticket';
         $subject   = 'Tu comprobante — ' . $emp . ' · Pedido #' . $num;
     }
+    $brandHex = brandPrimaryHex('#FFDF00');
     // Botón al PDF oficial de SUNAT (solo si está emitido y hay enlace).
     $pdfBtn = '';
     if ($compEmitido && !empty($p['comprobante_pdf'])) {
         $pdfBtn = '<div style="margin:22px 0 0;text-align:center">'
             . '<a href="' . htmlspecialchars($p['comprobante_pdf'], ENT_QUOTES) . '" '
-            . 'style="display:inline-block;background:#FFDF00;color:#1E1E1E;font-weight:800;font-size:14px;'
+            . 'style="display:inline-block;background:' . $brandHex . ';color:#1E1E1E;font-weight:800;font-size:14px;'
             . 'text-decoration:none;padding:13px 26px;border-radius:10px">Descargar comprobante (PDF SUNAT)</a></div>';
     }
     $descHtml = ((float)($p['descuento_monto'] ?? 0) > 0)
@@ -372,7 +373,7 @@ case 'enviar_recibo':
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:20px 0"><tr><td align="center">
 <table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
   <tr><td style="background:#1A1A1A;padding:22px 26px">
-    <p style="margin:0;font-size:20px;font-weight:800;color:#FFDF00">' . clean($emp) . '</p>
+    <p style="margin:0;font-size:20px;font-weight:800;color:' . $brandHex . '">' . clean($emp) . '</p>
     <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.7)">' . $compLabel . ' · Pedido #' . $num . '</p>
   </td></tr>
   <tr><td style="padding:26px">

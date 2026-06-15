@@ -66,7 +66,7 @@ $pType = in_array(isset($_POST['type'])?$_POST['type']:'', array('empresa','pers
 function pv($k){ return clean(isset($_POST[$k]) ? $_POST[$k] : ''); }
 $embed = isset($_GET['embed']);   // incrustado en la landing (acordeón)
 ?>
-<meta name="theme-color" content="#FCDA13">
+<meta name="theme-color" content="<?= brandPrimaryHex('#FCDA13') ?>">
 <style>
   :root{ --brand:var(--c-brand,#FCDA13); --brand-dark:#e6c400; --ink:#1a1a1a; --bg:#f4f4f0; --card:#fff;
          --line:#e7e4dc; --muted:#8a877e; --green:#16a34a; }

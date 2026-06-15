@@ -30,7 +30,7 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#FCDA13">
+<meta name="theme-color" content="<?= brandPrimaryHex('#FCDA13') ?>">
 <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
 <title>El Gringo Burger Joint</title>
 <style>

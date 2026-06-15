@@ -276,6 +276,17 @@ function brandColor(string $key): string
 }
 
 /**
+ * Color primario de marca en HEX para contextos PHP donde NO sirven las variables
+ * CSS (correos, meta theme-color, colores de gráficos JS). Devuelve el configurado
+ * o el $fallback (el valor original) → la instancia base queda idéntica.
+ */
+function brandPrimaryHex(string $fallback = '#FFDF00'): string
+{
+    $v = brandColor('brand_primary');
+    return $v !== '' ? $v : $fallback;
+}
+
+/**
  * Bloque <style> que sobreescribe las variables de color de marca (POS/admin/carta)
  * SOLO si el cliente configuró colores. Si no hay ninguno, devuelve '' → la instancia
  * base (El Gringo) se ve EXACTAMENTE igual. Se incluye al final del <head>.

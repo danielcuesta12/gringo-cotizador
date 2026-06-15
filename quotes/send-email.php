@@ -20,6 +20,7 @@ $errors = array();
 $sent   = false;
 
 $company   = getSetting('company_name',  'Mi Restaurante');
+$brandHex  = brandPrimaryHex('#FFDF00');
 $fromEmail = mailFrom('cotizaciones');
 $replyTo   = getSetting('mail_cotizaciones_replyto', 'daniel@' . mailDomain() . ', eventos@' . mailDomain());
 $pubLink   = APP_URL . '/quotes/view.php?token=' . $quote['public_token'];
@@ -100,13 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <!-- Header amarillo con logo -->
   <tr>
-    <td style="background:#FFDF00;padding:26px 28px 22px;text-align:center">
+    <td style="background:' . $brandHex . ';padding:26px 28px 22px;text-align:center">
       ' . ($logoUrl
           ? '<img src="' . htmlspecialchars($logoUrl) . '" alt="' . htmlspecialchars($company) . '" style="height:46px;width:auto;display:inline-block">'
           : '<div style="font-size:26px;font-weight:800;color:#1A1A1A">' . htmlspecialchars($company) . '</div>'
       ) . '
       <div style="margin-top:12px">
-        <span style="display:inline-block;background:#1A1A1A;color:#FFDF00;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:20px">Cotizaci&oacute;n</span>
+        <span style="display:inline-block;background:#1A1A1A;color:' . $brandHex . ';font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:20px">Cotizaci&oacute;n</span>
       </div>
     </td>
   </tr>
@@ -141,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <tr>
           <td align="center">
             <a href="' . $pubLink . '"
-               style="display:inline-block;background:#FFDF00;color:#1A1A1A;padding:14px 28px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:700">
+               style="display:inline-block;background:' . $brandHex . ';color:#1A1A1A;padding:14px 28px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:700">
               Ver cotizaci&oacute;n completa &rarr;
             </a>
           </td>

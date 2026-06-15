@@ -29,7 +29,7 @@ $ig      = ltrim($ubi['instagram'] ?? '', '@');
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FCDA13">
+  <meta name="theme-color" content="<?= brandPrimaryHex('#FCDA13') ?>">
   <title>El Gringo Burger Joint · Carta</title>
   <style>
     @font-face {

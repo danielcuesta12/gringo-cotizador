@@ -126,7 +126,7 @@ $countryCodes = array(
     '593' => 'EC +593','591' => 'BO +591','595' => 'PY +595','598' => 'UY +598',
 );
 ?>
-<meta name="theme-color" content="#FCDA13">
+<meta name="theme-color" content="<?= brandPrimaryHex('#FCDA13') ?>">
 <style>
   :root{ --brand:var(--c-brand,#FCDA13); --brand-dark:#e6c400; --ink:#1a1a1a; --bg:#f4f4f0; --card:#fff;
          --line:#e7e4dc; --muted:#8a877e; --green:#16a34a; }
