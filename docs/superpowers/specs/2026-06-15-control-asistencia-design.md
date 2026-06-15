@@ -19,7 +19,7 @@ Módulo de control de asistencia para el personal de El Gringo, con marcaje **an
 - **Fuera de geocerca:** permitir la marca pero **marcarla en rojo** (no bloquear; el GPS impreciso no debe dejar a nadie sin marcar).
 - **PIN:** 4 dígitos por empleado, opcional, asignado por el admin, guardado con hash. Capa suave (el selfie es el anti-trampa real).
 - **Autoborrado de fotos:** 2 meses (como `gastos`).
-- **Marca:** solo **entrada/salida** en v1 (auto-detecta cuál según la última marca abierta). Refrigerios, reglas de tardanza y planilla → futuro.
+- **Marca:** **entrada/salida** en v1 con **botones explícitos** (el sistema sugiere el más probable; el trabajador confirma). Jornadas **incompletas** (entrada sin salida o viceversa) se **señalan en ámbar** y no se calculan. **Corrección manual** por el admin (marca etiquetada `manual` + nota + quién la hizo). Refrigerios, tardanzas y planilla → futuro.
 - **Permiso nuevo:** `asistencia`.
 
 ## Modelo de datos
@@ -28,7 +28,7 @@ Módulo de control de asistencia para el personal de El Gringo, con marcaje **an
 `id`, `nombre`, `foto_referencia` (ruta relativa, para futuro face-match), `ubicacion_id` (local asignado), `user_id` (NULL; vínculo opcional a `users`), `pin_hash` (NULL = sin PIN), `cargo` (opcional), `activo` (bool), `created_at`.
 
 ### Tabla `asistencia_marcas` (ledger)
-`id`, `empleado_id`, `ubicacion_id`, `tipo ENUM('entrada','salida')`, `foto` (ruta relativa, autoborra a 2 meses), `lat`, `lng`, `distancia_m` (a la geocerca), `dentro_geocerca` (bool), `fuente ENUM('tablet','celular')`, `verificacion VARCHAR` (reservado para facial/liveness futuro; v1 vacío), `marcada_at DATETIME` (hora del **servidor**, `NOW()`).
+`id`, `empleado_id`, `ubicacion_id`, `tipo ENUM('entrada','salida')`, `foto` (ruta relativa, autoborra a 2 meses), `lat`, `lng`, `distancia_m` (a la geocerca), `dentro_geocerca` (bool), `fuente ENUM('tablet','celular')`, `verificacion VARCHAR` (reservado para facial/liveness futuro; v1 vacío), `origen ENUM('app','manual') DEFAULT 'app'`, `nota VARCHAR(255) NULL` (motivo del ajuste manual), `registrada_por INT NULL` (user_id del admin si fue manual), `marcada_at DATETIME` (hora del **servidor**, `NOW()`).
 
 ### Cambios en `ubicaciones` (migración)
 `lat DECIMAL(10,7) NULL`, `lng DECIMAL(10,7) NULL`, `geocerca_radio INT DEFAULT 100` (metros), `geocerca_activa TINYINT DEFAULT 0`, `modo_marcaje ENUM('tablet','celular') DEFAULT 'tablet'`, `asistencia_token VARCHAR(40)` (para la URL de marcaje; se genera una vez).
@@ -38,20 +38,21 @@ Módulo de control de asistencia para el personal de El Gringo, con marcaje **an
 ### 1. Página pública de marcaje (`asistencia/marcar.php?u=<slug>&t=<token>`)
 - Validada por `asistencia_token` del local (no abierta a cualquiera). Sin login.
 - Muestra el **padrón de empleados activos de ese local** (foto de referencia + nombre, grilla).
-- Flujo: tocar su nombre → si tiene PIN, pedirlo → **selfie** (cámara, `getUserMedia`) → JS captura **GPS** (`navigator.geolocation`) → enviar a la API.
+- Flujo: tocar su nombre → si tiene PIN, pedirlo → **selfie** (cámara, `getUserMedia`) → JS captura **GPS** (`navigator.geolocation`) → elegir **Entrada** o **Salida** (la pantalla resalta la sugerida según su última marca) → enviar a la API.
 - Tablet vs celular: el mismo flujo; en `celular` el GPS es del teléfono del trabajador (geocerca aplica si activa), en `tablet` el GPS es el del equipo fijo.
 - Si el GPS es denegado/no disponible: se permite marcar igual, se registra sin coordenadas y `dentro_geocerca=0` (rojo).
 
 ### 2. API de marcaje (`api/asistencia.php`)
 - `requireLogin()` NO aplica (es público con token). Valida `asistencia_token` del local.
 - Acción `marcar`: recibe `empleado_id`, `pin` (si aplica), `foto` (base64 → guardar como archivo), `lat`, `lng`, `fuente`.
-- Verifica: empleado pertenece al local y está activo; PIN correcto si tiene; calcula `distancia_m` al centro de la geocerca (fórmula haversine) y `dentro_geocerca` (si `geocerca_activa`); determina `tipo` (si la última marca del empleado hoy es `entrada` sin `salida` → esta es `salida`; si no → `entrada`); guarda con `marcada_at = NOW()`.
+- Verifica: empleado pertenece al local y está activo; PIN correcto si tiene; calcula `distancia_m` al centro de la geocerca (fórmula haversine) y `dentro_geocerca` (si `geocerca_activa`); registra el `tipo` **elegido** por el trabajador (la pantalla solo sugiere el probable); si crea inconsistencia (p. ej. dos entradas seguidas sin salida), la jornada queda **incompleta** y se señala en revisión; guarda con `marcada_at = NOW()`, `origen='app'`.
 - Honeypot/anti-spam básico (campo oculto), como los forms públicos.
 
 ### 3. Admin `admin/asistencia/` (permiso `asistencia`)
 - **Empleados** (`index` + `form`): alta/edición — nombre, foto de referencia (subida), local, vínculo opcional a usuario, PIN (4 dígitos, opcional), cargo, activo.
-- **Marcajes** (`index`): tabla del día/periodo con **foto (thumbnail)**, hora, empleado, local, entrada/salida, y **bandera roja** si `dentro_geocerca=0`. Filtros por empleado/local/fecha. Click en foto → ver grande.
-- **Reporte de horas:** por empleado y periodo, suma de pares entrada→salida.
+- **Marcajes** (`index`): tabla del día/periodo con **foto (thumbnail)**, hora, empleado, local, entrada/salida, **bandera roja** si `dentro_geocerca=0`, y **bandera ámbar** si la jornada está **incompleta** (entrada sin salida o viceversa). Filtros por empleado/local/fecha. Click en foto → ver grande.
+- **Corrección manual:** el admin puede **agregar, editar o cerrar** una marca a mano; queda con `origen='manual'`, una **nota** (motivo) y `registrada_por` (rastro de quién la ajustó). Resuelve los olvidos sin trampa.
+- **Reporte de horas:** por empleado y periodo, suma de pares entrada→salida; las jornadas incompletas se listan aparte (no suman hasta corregirse).
 - Autoborrado de fotos >2 meses al entrar al módulo (como `gastos`).
 
 ### 4. Config de geocerca (en `admin/locations/form.php`)
