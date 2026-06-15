@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+<?php
+// Config/helpers ANTES de cualquier salida HTML: appIcon()/getSetting() ya
+// existen al imprimir el <head>, y el POST se procesa sin "headers already sent".
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/helpers.php';
+?><!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,10 +13,6 @@
 <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
 <title>Reserva tu mesa — El Gringo</title>
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/includes/helpers.php';
-
 $co = array(
     'name'  => getSetting('company_name',    'Mi Restaurante'),
     'logo'  => getSetting('company_logo',    ''),
