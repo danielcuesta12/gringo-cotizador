@@ -1,9 +1,25 @@
 <?php
 // ============================================================
-// config.php — Carga variables desde .env
+// config.php — Carga variables desde .env (multi-ciudad por dominio)
 // ============================================================
+//
+// Código compartido entre ciudades/clientes: según el DOMINIO entrante se elige
+// su archivo de configuración. Si entra por "ciudad.elgringo.pe" y existe el
+// archivo ".env.ciudad.elgringo.pe", se usa ese; si no, cae al ".env" por defecto.
+// Así una sola copia del código sirve a varias instancias (cada una con su BD).
 
-$envFile = __DIR__ . '/../.env';
+$envDir  = __DIR__ . '/..';
+$envFile = $envDir . '/.env';                          // por defecto (compatibilidad)
+
+$host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+$host = preg_replace('/:\d+$/', '', $host);            // quitar :puerto
+$host = preg_replace('/^www\./', '', $host);           // quitar www.
+$host = preg_replace('/[^a-z0-9.\-]/', '', $host);     // sanitizar (sin / ni .. → sin path traversal)
+if ($host !== '') {
+    $cand = $envDir . '/.env.' . $host;
+    if (is_file($cand)) $envFile = $cand;              // config propia de ese dominio
+}
+
 if (!file_exists($envFile)) {
     die('Error: archivo .env no encontrado en ' . $envFile);
 }
