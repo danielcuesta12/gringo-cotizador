@@ -637,6 +637,8 @@ if ($showCard) {
       .wz-modal{align-items:flex-start;justify-content:flex-end;background:rgba(0,0,0,.35);padding:20px 26px}
       .wz-card{max-width:380px;border-radius:16px}
     }
+    .conf-hero.ok{background:#F5C200}
+    .conf-hero.wa{background:#25D366}
   </style>
 <?php if ($izEnabled): ?>
   <!-- IZIPAY — carga estática (Safari no inicializa bien el script inyectado dinámicamente) -->
@@ -1906,6 +1908,34 @@ function cambiar(id, nombre, precio, delta) {
   loadCarta();
   if (window.track) track('page_view', 'carta', { ubicacion_id: CARTA_ID, meta: { sales_mode: SALES_MODE } });
 
+  // ── CONFIRMACIÓN UNIFICADA (WhatsApp + tarjeta) ─────────────────────────
+  let _waUrlActual = '';
+  function mostrarConfirmacion(data) {
+    cerrarModal();
+    const wa = data.metodo === 'whatsapp';
+    _waUrlActual = data.waUrl || '';
+    document.getElementById('conf-titulo').textContent = wa ? '¡Pedido enviado!' : '¡Pago confirmado!';
+    document.getElementById('conf-codigo').textContent = data.pedidoId ? ('#' + String(data.pedidoId).padStart(3,'0')) : '';
+    document.getElementById('conf-msg').textContent = wa
+      ? 'Envíale tu pedido a la tienda por WhatsApp para confirmarlo. Ahí coordinas pago y entrega.'
+      : 'Recibimos tu pago. La tienda ya está preparando tu pedido.';
+    document.getElementById('conf-msg').style.display = wa ? 'block' : 'none';
+    document.getElementById('conf-wa-btn').style.display = wa ? 'flex' : 'none';
+    document.getElementById('conf-prep').style.display = wa ? 'none' : 'flex';
+    document.getElementById('conf-hero').className = 'conf-hero ' + (wa ? 'wa' : 'ok');
+    document.getElementById('modal-confirmado').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function abrirWhatsApp() {
+    if (!_waUrlActual) return;
+    const w = window.open(_waUrlActual, '_blank');
+    if (!w) window.location.href = _waUrlActual;
+  }
+  function vaciarYVolver() {
+    if (typeof _pedidoData !== 'undefined' && _pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
+    resetPedido();
+  }
+
 <?php if ($showCard): ?>
   // ── IZIPAY ──────────────────────────────────────────────────────────────
   let _pedidoData = null;
@@ -1953,7 +1983,8 @@ function cambiar(id, nombre, precio, delta) {
       }).then(r=>r.json());
       localStorage.removeItem('_iz_pedido');
       document.getElementById('modal-cargando-pago').style.display = 'none';
-      mostrarConfirmacion({ pedidoId: saveData.id, total: verifData.amount ?? _pedidoData.total, cardLast4: verifData.cardLast4 });
+      if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'izipay', total: verifData.amount ?? _pedidoData.total } });
+      mostrarConfirmacion({ metodo:'izipay', pedidoId: saveData.id, total: verifData.amount ?? _pedidoData.total, cardLast4: verifData.cardLast4 });
     } catch(e) {
       document.getElementById('modal-cargando-pago').style.display = 'none';
       document.getElementById('error-pago-msg').textContent = e.message;
@@ -1971,8 +2002,8 @@ function cambiar(id, nombre, precio, delta) {
         _pedidoData = JSON.parse(saved);
         localStorage.removeItem('_iz_pedido');
         fetch('<?= APP_URL ?>/api/pedido.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ..._pedidoData, izipay:true, izipay_order_id:_pedidoData.orderId }) })
-          .then(r=>r.json()).then(d=>{ mostrarConfirmacion({ pedidoId:d.id, total:_pedidoData.total, cardLast4:'****' }); })
-          .catch(()=>{ mostrarConfirmacion({ pedidoId:null, total:_pedidoData.total, cardLast4:'****' }); });
+          .then(r=>r.json()).then(d=>{ mostrarConfirmacion({ metodo:'izipay', pedidoId:d.id, total:_pedidoData.total, cardLast4:'****' }); })
+          .catch(()=>{ mostrarConfirmacion({ metodo:'izipay', pedidoId:null, total:_pedidoData.total, cardLast4:'****' }); });
       }
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('iz_err')) {
@@ -1981,27 +2012,6 @@ function cambiar(id, nombre, precio, delta) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   })();
-
-  function mostrarConfirmacion(data) {
-    cerrarModal();
-    if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'izipay', total: data.total } });
-    const last4 = data.cardLast4 ? String(data.cardLast4).slice(-4) : '****';
-    const lines = [];
-    if (data.pedidoId) lines.push('Pedido #' + String(data.pedidoId).padStart(3,'0'));
-    lines.push('Total: S/' + Number(data.total).toFixed(2));
-    lines.push('Tarjeta terminada en ' + last4);
-    document.getElementById('confirmado-detalle').innerHTML = lines.join('<br>');
-    document.getElementById('modal-confirmado').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function vaciarYVolver() {
-    document.getElementById('modal-confirmado').style.display = 'none';
-    document.body.style.overflow = '';
-    if (_pedidoData && typeof handleLoyalty === 'function') handleLoyalty(_pedidoData.loyaltyEmail, _pedidoData.nombre);
-    _pedidoData = null;
-    vaciarCarrito();
-  }
 
   function cerrarIzipay()  { document.getElementById('modal-izipay').style.display = 'none'; }
   function reintentarPago(){ document.getElementById('modal-error-pago').style.display='none'; document.getElementById('modal-izipay').style.display='flex'; }
@@ -2047,16 +2057,6 @@ function cambiar(id, nombre, precio, delta) {
     </div>
   </div>
 
-  <!-- MODAL PAGO CONFIRMADO -->
-  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;">
-    <div style="width:80px;height:80px;border-radius:50%;background:var(--c-brand,#FCDA13);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-family:'Kimmy',sans-serif;font-size:28px;text-transform:uppercase;letter-spacing:2px;color:#fff;margin-bottom:8px;">¡Pedido confirmado!</div>
-    <div id="confirmado-detalle" style="font-size:14px;color:#888;line-height:1.9;margin-bottom:32px;"></div>
-    <button onclick="vaciarYVolver()" style="padding:14px 40px;background:var(--c-brand,#FCDA13);color:#1A1A1A;border:none;border-radius:10px;font-family:'Kimmy',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">Volver a la carta</button>
-  </div>
-
   <!-- MODAL ERROR PAGO -->
   <div id="modal-error-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:510;align-items:center;justify-content:center;padding:20px;">
     <div style="background:#1e1e1e;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;text-align:center;">
@@ -2070,5 +2070,24 @@ function cambiar(id, nombre, precio, delta) {
     </div>
   </div>
 <?php endif; ?>
+
+  <!-- PANTALLA PEDIDO CONFIRMADO (WhatsApp + tarjeta) -->
+  <div id="modal-confirmado" style="display:none;position:fixed;inset:0;background:#1A1A1A;z-index:500;flex-direction:column;align-items:center;text-align:center;padding:48px 26px 30px;overflow-y:auto;">
+    <div class="conf-hero wa" id="conf-hero" style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;">
+      <svg id="conf-icon" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/></svg>
+    </div>
+    <div id="conf-titulo" style="color:#fff;font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">¡Pedido enviado!</div>
+    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#F5C200;margin-bottom:22px;"></div>
+    <div style="width:100%;background:rgba(255,255,255,.05);border-radius:16px;padding:18px 16px;margin-bottom:14px;max-width:420px;">
+      <div id="conf-msg" style="font-size:14.5px;color:#e7e7e7;line-height:1.55;margin-bottom:14px;"></div>
+      <button id="conf-wa-btn" onclick="abrirWhatsApp()" style="width:100%;padding:15px;border:none;border-radius:13px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
+        Abrir WhatsApp
+      </button>
+      <div id="conf-prep" style="display:none;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:#F5C200;">🍔 Estamos preparando tu pedido</div>
+    </div>
+    <div id="conf-resumen" style="max-width:420px;width:100%;"></div>
+    <button onclick="vaciarYVolver()" style="width:100%;max-width:420px;background:none;border:1px solid rgba(255,255,255,.2);color:#cfcfcf;padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;">Hacer otro pedido</button>
+  </div>
 </body>
 </html>
