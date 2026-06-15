@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/asistencia.php';
 
 requirePermission('asistencia');
 
@@ -82,14 +83,12 @@ $empleadosAll = Database::fetchAll(
 
 // ── Agrupar marcas por empleado y calcular estado ─────────────────────────
 /*
-   Por cada empleado, se toman todas sus marcas del día en orden cronológico.
-   Se empareja iterativamente: la primera entrada sin par abre una jornada;
-   la primera salida posterior la cierra. Esto permite N pares (turno partido).
-   Para el resumen de la fila se usa solo la primera entrada y la última salida.
+   Usa el mismo helper asistenciaResumen() que el reporte de horas:
+   FIFO, turno partido (N pares), cruce de medianoche.
    Estado:
      - Si alguna marca tiene dentro_geocerca=0  → rojo "Fuera de geocerca"
-     - Si hay entrada sin salida o salida sin entrada → ámbar "Incompleta"
-     - Par(es) completo(s) y todo dentro              → verde "Completo"
+     - Si incompletas > 0                       → ámbar "Incompleta"
+     - Par(es) completo(s) y todo dentro        → verde "Completo"
    La prioridad de la bandera roja supera a la ámbar.
 */
 $porEmpleado = [];
@@ -101,41 +100,29 @@ foreach ($marcas as $m) {
             'cargo'      => $m['cargo'],
             'ubi_nombre' => $m['ubi_nombre'],
             'marcas'     => [],
+            'fueraGeo'   => false,
+            'algManual'  => false,
         ];
     }
     $porEmpleado[$eid]['marcas'][] = $m;
+    if ((int) $m['dentro_geocerca'] === 0) $porEmpleado[$eid]['fueraGeo'] = true;
+    if ($m['origen'] === 'manual')          $porEmpleado[$eid]['algManual'] = true;
 }
+
+// Preparar filas para el helper: necesitan 'empleado_id' y 'nombre'
+$marcasParaHelper = [];
+foreach ($marcas as $m) {
+    $marcasParaHelper[] = array_merge($m, ['nombre' => $m['emp_nombre']]);
+}
+$resumen = asistenciaResumen($marcasParaHelper);
 
 $filas = [];
 foreach ($porEmpleado as $eid => $emp) {
-    $ms        = $emp['marcas'];   // ya ordenadas por marcada_at ASC
-    $entradas  = [];               // marcas tipo 'entrada' pendientes de par
-    $salidas   = [];               // marcas tipo 'salida' sueltas (sin entrada previa)
-    $pares     = [];               // [entrada_row, salida_row]
-    $fueraGeo  = false;
-    $algManual = false;
+    $ms       = $emp['marcas']; // ya ordenadas por marcada_at ASC
+    $res      = $resumen[$eid] ?? ['segundos'=>0, 'incompletas'=>0, 'pares'=>[]];
+    $pares    = $res['pares'];
 
-    foreach ($ms as $m) {
-        if ((int) $m['dentro_geocerca'] === 0) $fueraGeo = true;
-        if ($m['origen'] === 'manual')          $algManual = true;
-
-        if ($m['tipo'] === 'entrada') {
-            $entradas[] = $m;
-        } else {
-            // busca la entrada más antigua sin par
-            if ($entradas) {
-                $ent = array_shift($entradas);
-                $pares[] = ['entrada' => $ent, 'salida' => $m];
-            } else {
-                $salidas[] = $m; // salida suelta
-            }
-        }
-    }
-
-    // entradas sin cerrar quedan en $entradas; salidas sueltas en $salidas
-    $huerfanas = array_merge($entradas, $salidas);
-
-    // primera entrada y última salida del día para mostrar en la tabla
+    // primera entrada y última salida del día (para mostrar en la tabla)
     $primeraEntrada = null;
     $ultimaSalida   = null;
     foreach ($ms as $m) {
@@ -143,43 +130,39 @@ foreach ($porEmpleado as $eid => $emp) {
         if ($m['tipo'] === 'salida')  $ultimaSalida = $m;
     }
 
-    // calcular horas trabajadas (suma de todos los pares)
-    $totalSeg = 0;
-    foreach ($pares as $par) {
-        $t1 = strtotime($par['entrada']['marcada_at']);
-        $t2 = strtotime($par['salida']['marcada_at']);
-        if ($t2 > $t1) $totalSeg += ($t2 - $t1);
-    }
+    // si el primer par tiene out=null, la jornada sigue abierta (para el botón "Cerrar marca")
+    $sinSalida = !empty($pares) && $pares[0]['out'] === null;
 
     // estado
-    if ($fueraGeo) {
-        $estado = 'geo';       // rojo — Fuera de geocerca (máxima prioridad)
-    } elseif ($huerfanas) {
+    if ($emp['fueraGeo']) {
+        $estado = 'geo';        // rojo — Fuera de geocerca (máxima prioridad)
+    } elseif ($res['incompletas'] > 0) {
         $estado = 'incompleta'; // ámbar
     } else {
-        $estado = 'completo';  // verde
+        $estado = 'completo';   // verde
     }
 
     // horas formateadas
+    $totalSeg = $res['segundos'];
     $horasStr = '';
     if ($totalSeg > 0) {
-        $h = intdiv($totalSeg, 3600);
-        $m2 = intdiv($totalSeg % 3600, 60);
+        $h  = (int) floor($totalSeg / 3600);
+        $m2 = (int) floor(($totalSeg % 3600) / 60);
         $horasStr = $h . 'h ' . str_pad($m2, 2, '0', STR_PAD_LEFT) . 'm';
     }
 
     $filas[] = [
-        'eid'            => $eid,
-        'nombre'         => $emp['nombre'],
-        'cargo'          => $emp['cargo'],
-        'ubi_nombre'     => $emp['ubi_nombre'],
-        'primera_entrada'=> $primeraEntrada,
-        'ultima_salida'  => $ultimaSalida,
-        'horas'          => $horasStr,
-        'estado'         => $estado,
-        'manual'         => $algManual,
-        'marcas'         => $ms,        // todas las marcas del día (para modal editar)
-        'sin_salida'     => !empty($entradas), // hay entrada abierta sin cerrar
+        'eid'             => $eid,
+        'nombre'          => $emp['nombre'],
+        'cargo'           => $emp['cargo'],
+        'ubi_nombre'      => $emp['ubi_nombre'],
+        'primera_entrada' => $primeraEntrada,
+        'ultima_salida'   => $ultimaSalida,
+        'horas'           => $horasStr,
+        'estado'          => $estado,
+        'manual'          => $emp['algManual'],
+        'marcas'          => $ms,        // todas las marcas del día (para modal editar)
+        'sin_salida'      => $sinSalida, // hay entrada abierta sin cerrar
     ];
 }
 

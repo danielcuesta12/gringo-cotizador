@@ -17,15 +17,32 @@ $emp = Database::fetch("SELECT * FROM empleados WHERE id=? AND ubicacion_id=? AN
 if (!$emp) { echo json_encode(['ok'=>false,'error'=>'Empleado no válido']); exit; }
 
 if (!empty($emp['pin_hash'])) {
+    // anti fuerza bruta: 5 fallos → bloqueo 5 min
+    if (!empty($emp['pin_bloqueado_hasta']) && strtotime($emp['pin_bloqueado_hasta']) > time()) {
+        $seg = strtotime($emp['pin_bloqueado_hasta']) - time();
+        echo json_encode(['ok'=>false,'error'=>'Demasiados intentos. Espera ' . ceil($seg/60) . ' min.']); exit;
+    }
     $pin = preg_replace('/\D/', '', $in['pin'] ?? '');
-    if (!password_verify($pin, $emp['pin_hash'])) { echo json_encode(['ok'=>false,'error'=>'PIN incorrecto']); exit; }
+    if (!password_verify($pin, $emp['pin_hash'])) {
+        $intentos = (int)($emp['pin_intentos'] ?? 0) + 1;
+        try {
+            if ($intentos >= 5) {
+                Database::execute("UPDATE empleados SET pin_intentos=0, pin_bloqueado_hasta=(NOW() + INTERVAL 5 MINUTE) WHERE id=?", [$empId]);
+                echo json_encode(['ok'=>false,'error'=>'PIN incorrecto. Bloqueado 5 minutos por seguridad.']); exit;
+            }
+            Database::execute("UPDATE empleados SET pin_intentos=? WHERE id=?", [$intentos, $empId]);
+        } catch (\Throwable $e) { /* columnas de bloqueo aún no migradas */ }
+        echo json_encode(['ok'=>false,'error'=>'PIN incorrecto (' . $intentos . '/5)']); exit;
+    }
+    // éxito → resetear contador
+    try { Database::execute("UPDATE empleados SET pin_intentos=0, pin_bloqueado_hasta=NULL WHERE id=?", [$empId]); } catch (\Throwable $e) {}
 }
 
 $fotoRel = null;
 $b64 = $in['foto'] ?? '';
 if (preg_match('#^data:image/\w+;base64,#', $b64)) {
     $bin = base64_decode(preg_replace('#^data:image/\w+;base64,#', '', $b64));
-    if ($bin !== false && strlen($bin) < 3000000) {
+    if ($bin !== false && strlen($bin) < 3000000 && @getimagesizefromstring($bin) !== false) {
         $name = 'asistencia/' . date('Ymd') . '_' . $empId . '_' . bin2hex(random_bytes(4)) . '.jpg';
         @mkdir(UPLOAD_PATH . 'asistencia', 0775, true);
         if (file_put_contents(UPLOAD_PATH . $name, $bin) !== false) $fotoRel = $name;
@@ -49,6 +66,11 @@ if (!empty($ubi['geocerca_activa'])) {
 }
 
 $fuente = in_array($ubi['modo_marcaje'] ?? '', ['tablet','celular']) ? $ubi['modo_marcaje'] : 'tablet';
+
+$ultima = Database::fetch("SELECT marcada_at FROM asistencia_marcas WHERE empleado_id=? AND tipo=? ORDER BY id DESC LIMIT 1", [$empId, $tipo]);
+if ($ultima && (time() - strtotime($ultima['marcada_at'])) < 90) {
+    echo json_encode(['ok'=>false,'error'=>'Acabas de marcar ' . $tipo . '. Espera unos segundos.']); exit;
+}
 
 Database::insert(
   "INSERT INTO asistencia_marcas (empleado_id,ubicacion_id,tipo,foto,lat,lng,distancia_m,dentro_geocerca,fuente,origen,marcada_at)

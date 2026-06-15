@@ -2,14 +2,14 @@
 if (!function_exists('asistenciaResumen')) {
     /**
      * @param array $rows filas con ['empleado_id','nombre','tipo','marcada_at'] ordenadas por empleado y marcada_at ASC
-     * @return array empleado_id => ['nombre','segundos','incompletas']
+     * @return array empleado_id => ['nombre','segundos','incompletas','pares']
      */
     function asistenciaResumen(array $rows): array {
         $acc = []; $abierta = [];
         $TOPE = 16 * 3600; // 16h máximo por turno
         foreach ($rows as $r) {
             $eid = $r['empleado_id'];
-            if (!isset($acc[$eid])) $acc[$eid] = ['nombre'=>$r['nombre'] ?? '', 'segundos'=>0, 'incompletas'=>0];
+            if (!isset($acc[$eid])) $acc[$eid] = ['nombre'=>$r['nombre'] ?? '', 'segundos'=>0, 'incompletas'=>0, 'pares'=>[]];
             $ts = strtotime($r['marcada_at']);
             if ($r['tipo'] === 'entrada') {
                 if (isset($abierta[$eid])) $acc[$eid]['incompletas']++; // entrada previa sin cerrar
@@ -17,13 +17,13 @@ if (!function_exists('asistenciaResumen')) {
             } else { // salida
                 if (isset($abierta[$eid])) {
                     $dur = $ts - $abierta[$eid];
-                    if ($dur >= 0 && $dur <= $TOPE) { $acc[$eid]['segundos'] += $dur; }
+                    if ($dur >= 0 && $dur <= $TOPE) { $acc[$eid]['segundos'] += $dur; $acc[$eid]['pares'][] = ['in'=>$abierta[$eid], 'out'=>$ts]; }
                     else { $acc[$eid]['incompletas']++; } // turno inverosímil → no sumar
                     unset($abierta[$eid]);
                 } else { $acc[$eid]['incompletas']++; } // salida sin entrada
             }
         }
-        foreach ($abierta as $eid => $_v) $acc[$eid]['incompletas']++; // entradas abiertas al final
+        foreach ($abierta as $eid => $tsOpen) { $acc[$eid]['incompletas']++; $acc[$eid]['pares'][] = ['in'=>$tsOpen, 'out'=>null]; }
         return $acc;
     }
 }
