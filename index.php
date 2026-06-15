@@ -2,12 +2,7 @@
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/helpers.php';
 
-// Raíz de la instancia:
-//  - Logueado  → al panel (atajo cómodo).
-//  - Visitante → el landing público (link-in-bio). Así, una instancia servida en
-//    su propio dominio (ej. marcona.elgringo.pe) muestra su landing en la raíz.
-if (isLoggedIn()) {
-    redirect('/admin/dashboard.php');
-} else {
-    require __DIR__ . '/landing.php';
-}
+// Raíz de la instancia = landing público (link-in-bio), SIEMPRE.
+// Aunque haya una sesión de admin abierta: la raíz es la cara pública del negocio
+// (igual que Lima, cuya raíz sirve landing.php directo). Para el panel se usa /admin.
+require __DIR__ . '/landing.php';
