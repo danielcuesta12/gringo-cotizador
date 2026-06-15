@@ -22,6 +22,8 @@ $data   = $loc ?? [
     'hora_apertura' => 18, 'hora_cierre' => 24, 'instagram' => '',
     'activa' => 1, 'cerrado_manual' => 0, 'es_principal' => 0, 'sort_order' => 0,
     'referencia' => '', 'serie_boleta' => '', 'serie_factura' => '', 'num_boleta' => 1, 'num_factura' => 1,
+    'lat' => null, 'lng' => null, 'geocerca_radio' => 100, 'geocerca_activa' => 0, 'modo_marcaje' => 'tablet',
+    'asistencia_token' => '',
 ];
 
 // Genera un slug a partir de un texto
@@ -55,6 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'serie_factura'   => strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $_POST['serie_factura'] ?? '')),
         'num_boleta'      => max(1, cleanInt($_POST['num_boleta'] ?? 1)),
         'num_factura'     => max(1, cleanInt($_POST['num_factura'] ?? 1)),
+        'lat'             => ($_POST['lat'] ?? '') !== '' ? (float)$_POST['lat'] : null,
+        'lng'             => ($_POST['lng'] ?? '') !== '' ? (float)$_POST['lng'] : null,
+        'geocerca_radio'  => max(20, (int)($_POST['geocerca_radio'] ?? 100)),
+        'geocerca_activa' => !empty($_POST['geocerca_activa']) ? 1 : 0,
+        'modo_marcaje'    => in_array($_POST['modo_marcaje'] ?? '', ['tablet','celular']) ? $_POST['modo_marcaje'] : 'tablet',
     ];
 
     if (!$data['nombre']) $errors[] = 'El nombre es obligatorio.';
@@ -119,6 +126,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             } catch (\Throwable $e) { /* columnas aún no creadas */ }
         }
+        // Campos de asistencia — tolerante si la migración aún no se aplicó
+        if (!empty($savedId)) {
+            try {
+                // asistencia_token: se genera una sola vez (COALESCE no lo sobreescribe)
+                $token = generateToken(20);
+                Database::execute(
+                    "UPDATE ubicaciones SET lat=?, lng=?, geocerca_radio=?, geocerca_activa=?, modo_marcaje=?, asistencia_token=COALESCE(NULLIF(asistencia_token,''),?) WHERE id=?",
+                    [
+                        $data['lat'],
+                        $data['lng'],
+                        $data['geocerca_radio'],
+                        $data['geocerca_activa'],
+                        $data['modo_marcaje'],
+                        $token,
+                        $savedId,
+                    ]
+                );
+            } catch (\Throwable $e) { /* columnas de asistencia aún no creadas */ }
+        }
         redirect('/admin/locations/index.php');
     }
 }
@@ -182,6 +208,51 @@ include __DIR__ . '/../layout-top.php';
           <div class="form-hint">Con código de país, sin +</div>
         </div>
       </div>
+
+      <div style="margin:22px 0 6px;padding-top:18px;border-top:1px solid var(--border)">
+        <strong style="font-size:14px">Control de asistencia</strong>
+        <div class="form-hint" style="margin-top:2px">Configura cómo marcan asistencia los colaboradores de este local.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Modo de marcaje de asistencia</label>
+        <select name="modo_marcaje">
+          <option value="tablet"  <?= ($data['modo_marcaje'] ?? 'tablet')==='tablet'?'selected':'' ?>>Tablet/equipo fijo en el local</option>
+          <option value="celular" <?= ($data['modo_marcaje'] ?? 'tablet')==='celular'?'selected':'' ?>>Celular propio (food truck / delivery)</option>
+        </select>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Latitud</label>
+          <input type="text" name="lat" id="loc-lat" value="<?= isset($data['lat']) && $data['lat'] !== null ? clean((string)$data['lat']) : '' ?>">
+        </div>
+        <div class="form-group">
+          <label>Longitud</label>
+          <input type="text" name="lng" id="loc-lng" value="<?= isset($data['lng']) && $data['lng'] !== null ? clean((string)$data['lng']) : '' ?>">
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="capturarUbicacion()">📍 Capturar mi ubicación actual</button>
+      <div class="form-row form-row-2" style="margin-top:12px">
+        <div class="form-group">
+          <label>Radio de geocerca (metros)</label>
+          <input type="number" name="geocerca_radio" min="20" value="<?= (int)($data['geocerca_radio'] ?? 100) ?>">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:24px">
+          <input type="checkbox" name="geocerca_activa" value="1" id="geo-act" <?= !empty($data['geocerca_activa'])?'checked':'' ?>>
+          <label for="geo-act" style="margin:0">Geocerca activa (apágala para el food truck)</label>
+        </div>
+      </div>
+      <script>
+      function capturarUbicacion(){
+        if(!navigator.geolocation){ alert('Tu navegador no da ubicación'); return; }
+        navigator.geolocation.getCurrentPosition(function(p){
+          document.getElementById('loc-lat').value = p.coords.latitude.toFixed(7);
+          document.getElementById('loc-lng').value = p.coords.longitude.toFixed(7);
+        }, function(){ alert('No se pudo obtener la ubicación. Da permiso de GPS.'); }, {enableHighAccuracy:true});
+      }
+      </script>
+
+      <div style="margin:22px 0 6px;padding-top:18px;border-top:1px solid var(--border)"></div>
 
       <div class="form-group">
         <label>Referencia / zona <small style="font-weight:400;color:var(--text-muted)">(la ve el cliente en el selector de tienda)</small></label>
