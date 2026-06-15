@@ -17,6 +17,8 @@ if (!$ubi) {
 }
 $ubiId     = (int) $ubi['id'];
 $salesMode = $ubi['sales_mode'];
+$showCard  = in_array($salesMode, ['izipay', 'ambos'], true);  // botón/maquinaria Izipay
+$showWa    = in_array($salesMode, ['whatsapp', 'ambos'], true); // botón WhatsApp
 $base      = rtrim(preg_replace('#/cotizador/?$#', '', APP_URL), '/');
 // Ubicación solo-menú: redirige a su menú de visualización
 if ($salesMode === 'menu') { header('Location: ' . $base . '/' . rawurlencode($ubi['slug']) . '/menu'); exit; }
@@ -25,9 +27,9 @@ $logoUrl = $logoRel ? UPLOAD_URL . $logoRel : '';
 $waNum   = preg_replace('/\D/', '', $ubi['whatsapp_number'] ?: getSetting('whatsapp_number', ''));
 $ig      = ltrim($ubi['instagram'] ?? '', '@');
 
-// Izipay — solo si esta ubicación cobra con tarjeta y hay credenciales (settings → .env)
+// Izipay — solo si esta ubicación cobra con tarjeta (o ambos) y hay credenciales (settings → .env)
 $izEnabled = false; $izKey = ''; $izJsUrl = '';
-if ($salesMode === 'izipay') {
+if ($showCard) {
     require_once __DIR__ . '/../includes/izipay.php';
     $izc = izipayCfg();
     $izKey     = $izc['public_key'];   // pública por diseño
@@ -1069,6 +1071,8 @@ if ($salesMode === 'izipay') {
 
   const CARTA_ID = <?= (int)$ubiId ?>;
   const SALES_MODE = '<?= $salesMode ?>';
+  const SHOW_CARD  = <?= $showCard ? 'true' : 'false' ?>;
+  const SHOW_WA    = <?= $showWa ? 'true' : 'false' ?>;
   const IZ_ENABLED = <?= $izEnabled ? 'true' : 'false' ?>;
   const OPEN_H = <?= (int)($ubi['hora_apertura'] ?? 0) ?>, CLOSE_H = <?= (int)($ubi['hora_cierre'] ?? 0) ?>;
   const CERRADO_MANUAL = <?= !empty($ubi['cerrado_manual']) ? 'true' : 'false' ?>;
@@ -1850,7 +1854,7 @@ function cambiar(id, nombre, precio, delta) {
   loadCarta();
   if (window.track) track('page_view', 'carta', { ubicacion_id: CARTA_ID, meta: { sales_mode: SALES_MODE } });
 
-<?php if ($salesMode === 'izipay'): ?>
+<?php if ($showCard): ?>
   // ── IZIPAY ──────────────────────────────────────────────────────────────
   let _pedidoData = null;
 
@@ -1959,7 +1963,7 @@ function cambiar(id, nombre, precio, delta) {
     }
   </script>
 
-<?php if ($salesMode === 'izipay'): ?>
+<?php if ($showCard): ?>
   <!-- MODAL CARGANDO PAGO -->
   <div id="modal-cargando-pago" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:520;align-items:center;justify-content:center;flex-direction:column;">
     <div style="width:54px;height:54px;border:4px solid rgba(255,255,255,0.15);border-top-color:var(--c-brand,#FCDA13);border-radius:50%;animation:spinIz .8s linear infinite;"></div>
