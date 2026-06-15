@@ -1464,39 +1464,28 @@ function cambiar(id, nombre, precio, delta) {
     }
   }
 
-  function confirmarPedido() {
+  function renderPasoPago() {
+    let total = 0;
+    const filas = Object.values(carrito).map(i => {
+      const sub = Math.round(i.precio * i.qty); total += sub;
+      return `<div class="wz-it"><span>${i.qty}x ${i.nombre}</span><span>S/${sub}</span></div>`;
+    }).join('');
+    document.getElementById('wz-resumen').innerHTML =
+      filas + `<div class="wz-it wz-ittot"><span>Total</span><span>S/${Math.round(total)}</span></div>`;
+    const card = `<button type="button" class="wz-pay wz-pay-card" onclick="confirmarPedido('izipay')">💳 Pagar con tarjeta</button>`;
+    const wa   = `<button type="button" class="wz-pay wz-pay-wa" onclick="confirmarPedido('whatsapp')">🟢 Pedir por WhatsApp</button>`;
+    let html = '';
+    if (SHOW_CARD && IZ_ENABLED) html += card;
+    if (SHOW_CARD && IZ_ENABLED && SHOW_WA) html += '<div class="wz-or">O</div>';
+    if (SHOW_WA) html += wa;
+    document.getElementById('wz-pagos').innerHTML = html;
+  }
+
+  function confirmarPedido(metodo) {
     if (!isStoreOpen()) { cerrarModal(); avisoCerrado(); return; }
-    let valid = true;
     const nombre   = document.getElementById('campo-nombre').value.trim();
     const telefono = document.getElementById('campo-telefono').value.trim();
     const direccion = tipoEntrega === 'delivery' ? document.getElementById('campo-direccion').value.trim() : '';
-
-    if (!nombre) {
-      document.getElementById('err-nombre').style.display = 'block';
-      document.getElementById('campo-nombre').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-nombre').style.display = 'none';
-      document.getElementById('campo-nombre').style.borderColor = '#ddd';
-    }
-    if (!telefono) {
-      document.getElementById('err-telefono').style.display = 'block';
-      document.getElementById('campo-telefono').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-telefono').style.display = 'none';
-      document.getElementById('campo-telefono').style.borderColor = '#ddd';
-    }
-    if (tipoEntrega === 'delivery' && !direccion) {
-      document.getElementById('err-direccion').style.display = 'block';
-      document.getElementById('campo-direccion').style.borderColor = '#dc2626';
-      valid = false;
-    } else {
-      document.getElementById('err-direccion').style.display = 'none';
-      if (document.getElementById('campo-direccion'))
-        document.getElementById('campo-direccion').style.borderColor = '#ddd';
-    }
-    if (!valid) return;
 
     const horario = document.getElementById('campo-horario').value;
     const horarioLabel = horario === 'asap' ? 'Lo antes posible' : horario;
@@ -1553,7 +1542,7 @@ function cambiar(id, nombre, precio, delta) {
     }
 
     // ── IZIPAY: cobrar con tarjeta ANTES de registrar el pedido ──
-    if (SALES_MODE === 'izipay') {
+    if (metodo === 'izipay') {
       if (!IZ_ENABLED) { alert('El pago con tarjeta no está disponible en este momento. Intenta más tarde.'); return; }
       let izTotal = 0;
       const izItems = Object.entries(carrito).map(([cid, i]) => {
@@ -1576,6 +1565,9 @@ function cambiar(id, nombre, precio, delta) {
       iniciarPago();
       return;
     }
+
+    // WhatsApp path
+    if (metodo !== 'whatsapp') return;
 
     // Save order to database (fire and forget)
     let saveTotal = 0;
@@ -1606,13 +1598,11 @@ function cambiar(id, nombre, precio, delta) {
 
     cerrarModal();
     if (window.track) track('order_placed', 'carta', { ubicacion_id: CARTA_ID, meta: { metodo: 'whatsapp', total: Math.round(saveTotal) } });
-    var _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
-    var _w = window.open(_waUrl, '_blank');
+    const _waUrl = 'https://wa.me/<?= $waNum ?>?text=' + msg;
+    handleLoyalty(loyaltyEmailWA, nombre);
+    mostrarConfirmacion({ metodo: 'whatsapp', pedidoId: null, total: Math.round(saveTotal), waUrl: _waUrl });
+    const _w = window.open(_waUrl, '_blank');
     if (!_w) window.location.href = _waUrl;   // si el navegador bloquea la pestaña nueva, navega en la misma
-
-    // Handle loyalty + generate code
-    const loyaltyEmailVal = document.getElementById('campo-loyalty-email')?.value.trim().toLowerCase() || '';
-    handleLoyalty(loyaltyEmailVal, nombre);
   }
 
   async function handleLoyalty(loyaltyEmail, nombre) {
