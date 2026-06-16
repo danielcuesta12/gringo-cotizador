@@ -256,6 +256,13 @@ try {
         </a>
         <?php endif; ?>
 
+        <?php if (can('inv_stock')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/operar.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-operar'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M7 7l10 10M17 7 7 17"/></svg></span> Operar
+        </a>
+        <?php endif; ?>
+
         <?php if (can('inv_recetas')): ?>
         <a href="<?php echo APP_URL; ?>/admin/inventory/recetas.php"
            class="nav-link <?php echo ($activePage??'')==='inv-recetas'?'active':''; ?>">
