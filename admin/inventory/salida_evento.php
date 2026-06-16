@@ -8,12 +8,39 @@ requirePermission('inv_evento');
 if (!inventarioListo()) { flashMessage('error', 'Aplica install/inventario.sql primero.'); redirect('/admin/inventory/stock.php'); }
 
 $ubicaciones = ubicacionesConInventario();
-$cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
+// Cotizaciones de evento. Tolerante: si falta la migración 50, cae a la consulta simple.
+try {
+    $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date, evento_nombre FROM quotes WHERE (origin='event' OR status='aceptada') AND COALESCE(evento_atendido,0)=0 ORDER BY id DESC LIMIT 100");
+    $gestionables = Database::fetchAll("SELECT id, quote_number, event_date, evento_nombre, COALESCE(evento_atendido,0) evento_atendido FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY COALESCE(evento_atendido,0) ASC, id DESC LIMIT 200");
+} catch (\Throwable $e) {
+    $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
+    $gestionables = [];
+}
 $eventosAbiertos = [];
 try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
+
+    // Gestionar cotizaciones de evento: nombre + marcar atendida (form aparte).
+    if (($_POST['accion'] ?? '') === 'gestionar_eventos') {
+        $nombres = is_array($_POST['nombre'] ?? null)   ? $_POST['nombre']   : [];
+        $atend   = is_array($_POST['atendido'] ?? null) ? $_POST['atendido'] : [];
+        try {
+            foreach (Database::fetchAll("SELECT id FROM quotes WHERE origin='event' OR status='aceptada'") as $q) {
+                $qid = (int)$q['id'];
+                if (!array_key_exists($qid, $nombres) && !array_key_exists($qid, $atend)) continue; // no estaba en el form
+                $nom = clean($nombres[$qid] ?? '');
+                $at  = isset($atend[$qid]) ? 1 : 0;
+                Database::execute("UPDATE quotes SET evento_nombre=?, evento_atendido=? WHERE id=?", [$nom ?: null, $at, $qid]);
+            }
+            flashMessage('success', 'Cotizaciones de evento actualizadas.');
+        } catch (\Throwable $e) {
+            flashMessage('error', 'Falta aplicar install/50_quotes_evento.sql en phpMyAdmin.');
+        }
+        redirect('/admin/inventory/salida_evento.php');
+    }
+
     $ubiId = cleanInt($_POST['ubicacion_id'] ?? 0);
     $ref   = clean($_POST['ref'] ?? '');
     $ins   = $_POST['insumo_id'] ?? [];
@@ -99,6 +126,33 @@ include __DIR__ . '/../layout-top.php';
   <p>Arma el evento por productos, explota a ingredientes y ajusta (ej. quita el tocino) antes de descontar del stock</p>
 </div></div>
 
+<?php if (!empty($gestionables)): ?>
+<details class="card" style="margin-bottom:18px">
+  <summary style="cursor:pointer;padding:14px 18px;font-weight:700">⚙️ Gestionar cotizaciones de evento <small style="font-weight:400;color:var(--text-muted)">— ponles nombre y marca las atendidas para limpiar el selector</small></summary>
+  <div class="card-body" style="border-top:1px solid var(--border)">
+    <form method="post">
+      <?= csrfField() ?>
+      <input type="hidden" name="accion" value="gestionar_eventos">
+      <div class="table-wrap" style="border:none">
+        <table class="data-table">
+          <thead><tr><th>Cotización</th><th>Nombre del evento</th><th style="width:100px;text-align:center">Atendida</th></tr></thead>
+          <tbody>
+            <?php foreach ($gestionables as $g): ?>
+            <tr<?= !empty($g['evento_atendido']) ? ' style="opacity:.55"' : '' ?>>
+              <td><strong><?= clean($g['quote_number']) ?></strong><?= $g['event_date'] ? ' <small style="color:var(--text-muted)">· ' . clean($g['event_date']) . '</small>' : '' ?></td>
+              <td><input type="text" name="nombre[<?= (int)$g['id'] ?>]" value="<?= clean($g['evento_nombre'] ?? '') ?>" placeholder="Ej: Boda Pérez" style="width:100%"></td>
+              <td style="text-align:center"><input type="checkbox" name="atendido[<?= (int)$g['id'] ?>]" value="1" <?= !empty($g['evento_atendido']) ? 'checked' : '' ?> style="width:18px;height:18px;accent-color:var(--brand)"></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:12px">Guardar cambios</button>
+    </form>
+  </div>
+</details>
+<?php endif; ?>
+
 <?php if (empty($products) || empty($insumos)): ?>
   <div class="card"><div class="empty-state"><h3>Faltan datos</h3><p>Necesitas productos con receta e insumos cargados.</p></div></div>
 <?php else: ?>
@@ -183,7 +237,7 @@ include __DIR__ . '/../layout-top.php';
             </div>
             <select name="evento_quote_id">
               <option value="">— Sin vincular a cotización —</option>
-              <?php foreach ($cotizaciones as $c): ?><option value="<?= (int)$c['id'] ?>"><?= clean($c['quote_number']) ?><?= $c['event_date'] ? ' · ' . clean($c['event_date']) : '' ?></option><?php endforeach; ?>
+              <?php foreach ($cotizaciones as $c): $lbl = !empty($c['evento_nombre'] ?? '') ? $c['evento_nombre'] : ($c['quote_number'] . ($c['event_date'] ? ' · ' . $c['event_date'] : '')); ?><option value="<?= (int)$c['id'] ?>"><?= clean($lbl) ?></option><?php endforeach; ?>
             </select>
             <select name="evento_truck_id" style="margin-top:6px">
               <option value="">— Truck / ubicación donde vende (opcional) —</option>

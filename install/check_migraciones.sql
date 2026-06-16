@@ -28,4 +28,5 @@ SELECT m.migracion, IF(m.existe > 0, '✅ aplicada', '❌ FALTA') AS estado FROM
   UNION ALL SELECT '47 evento_truck            (eventos.truck_ubicacion_id)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='eventos'   AND column_name='truck_ubicacion_id'
   UNION ALL SELECT '48 evento_gastos           (tabla evento_gastos)',     COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='evento_gastos'
   UNION ALL SELECT '49 almacen_central         (ubicaciones.es_almacen)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ubicaciones' AND column_name='es_almacen'
+  UNION ALL SELECT '50 quotes_evento           (quotes.evento_atendido)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'
 ) m;
