@@ -67,6 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('/admin/inventory/evento_detalle.php?id=' . $id);
     }
 
+    if ($accion === 'guardar_ingresos') {
+        $venta = ($_POST['venta_manual'] ?? '') !== '' ? max(0, cleanFloat($_POST['venta_manual'])) : null;
+        Database::execute("UPDATE eventos SET venta_manual=? WHERE id=?", [$venta, $id]);
+        flashMessage('success', 'Ingresos del evento guardados.');
+        redirect('/admin/inventory/evento_detalle.php?id=' . $id);
+    }
+
     if ($accion === 'gasto_add') {
         $monto = max(0, cleanFloat($_POST['monto'] ?? 0));
         $desc  = clean($_POST['descripcion'] ?? '');
@@ -135,6 +142,28 @@ $diaSel = cleanInt($_GET['dia'] ?? 0) ?: (int)($dias[count($dias) - 1]['id'] ?? 
 $catsGasto = Database::fetchAll("SELECT id, nombre FROM gasto_categorias ORDER BY nombre");
 $otrosGastos = Database::fetchAll("SELECT eg.*, gc.nombre AS cat_nombre FROM evento_gastos eg LEFT JOIN gasto_categorias gc ON gc.id=eg.categoria_id WHERE eg.evento_id=? ORDER BY eg.id DESC", [$id]);
 $totalOtros = 0; foreach ($otrosGastos as $g) { $totalOtros += (float)$g['monto']; }
+
+// Liquidación
+$saldoFin = eventoSaldoFinal($id);
+$costoMercaderia = 0.0; $costoPapeleria = 0.0;
+foreach ($insumos as $r) {
+    $iid = (int)$r['insumo_id'];
+    $consumo = max(0, (float)$r['cantidad_inicial'] - ($saldoFin[$iid] ?? 0));
+    $costo = $consumo * (float)$r['costo_unitario'];
+    if (($r['tipo'] ?? 'ingrediente') === 'descartable') $costoPapeleria += $costo; else $costoMercaderia += $costo;
+}
+$ventaPOS = 0.0;
+$truckId = (int)($ev['truck_ubicacion_id'] ?: $ev['ubicacion_id']);
+if ($truckId > 0) {
+    $fIni = $ev['fecha_inicio']; $fFin = $ev['fecha_fin'] ?: $ev['fecha_inicio'];
+    $ventaPOS = (float)(Database::fetch("SELECT COALESCE(SUM(total),0) t FROM pedidos WHERE ubicacion_id=? AND DATE(created_at) BETWEEN ? AND ? AND estado<>'cancelado'", [$truckId, $fIni, $fFin])['t'] ?? 0);
+}
+$ventaCot = 0.0;
+if (!empty($ev['quote_id'])) { $ventaCot = (float)(Database::fetch("SELECT total FROM quotes WHERE id=?", [$ev['quote_id']])['total'] ?? 0); }
+$ingresoDefault = $ventaPOS > 0 ? $ventaPOS : $ventaCot;
+$ingresos = $ev['venta_manual'] !== null ? (float)$ev['venta_manual'] : $ingresoDefault;
+$utilidad = $ingresos - $costoMercaderia - $costoPapeleria - $totalOtros;
+$rendimiento = $ingresos > 0 ? ($utilidad / $ingresos) * 100 : 0;
 
 $pageTitle = 'Evento · ' . $ev['nombre'];
 $activePage = 'inv-eventos';
@@ -336,6 +365,69 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
   </div>
 </div>
 <?php endif; // otros gastos $insumos ?>
+
+<?php if ($insumos): ?>
+<div class="card" style="border-top:3px solid var(--yellow,#FFDF00)">
+  <div class="card-header"><span class="card-title">Liquidación</span></div>
+  <div class="card-body">
+    <form method="post" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:20px">
+      <?= csrfField() ?>
+      <input type="hidden" name="accion" value="guardar_ingresos">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">
+        <label style="font-size:12px;font-weight:600">Ingresos del evento (S/)</label>
+        <input type="text" inputmode="decimal" name="venta_manual"
+               value="<?= $ingresos ? number_format($ingresos, 2, '.', '') : '' ?>"
+               placeholder="0.00" style="max-width:200px">
+        <span style="font-size:12px;color:var(--text-muted)">
+          Ventas POS: <?= formatMoney($ventaPOS) ?>
+          <?php if ($ventaCot > 0): ?> · Cotización: <?= formatMoney($ventaCot) ?><?php endif; ?>
+        </span>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar ingresos</button>
+    </form>
+
+    <table style="width:100%;border-collapse:collapse;font-size:14px;max-width:460px">
+      <tbody>
+        <tr>
+          <td style="padding:8px 0;color:var(--text-muted)">+ Ingresos</td>
+          <td style="padding:8px 0;text-align:right;font-weight:600;color:#1a7a1a"><?= formatMoney($ingresos) ?></td>
+        </tr>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 0;color:var(--text-muted)">− Mercadería</td>
+          <td style="padding:8px 0;text-align:right"><?= formatMoney($costoMercaderia) ?></td>
+        </tr>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 0;color:var(--text-muted)">− Papelería / descartables</td>
+          <td style="padding:8px 0;text-align:right"><?= formatMoney($costoPapeleria) ?></td>
+        </tr>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 0;color:var(--text-muted)">− Otros gastos</td>
+          <td style="padding:8px 0;text-align:right"><?= formatMoney($totalOtros) ?></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border)">
+          <td style="padding:10px 0;font-weight:800">= Utilidad</td>
+          <td style="padding:10px 0;text-align:right;font-weight:800;<?= $utilidad >= 0 ? 'color:#1a7a1a' : 'color:#c8102e' ?>"><?= formatMoney($utilidad) ?></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:20px">
+      <div style="flex:1;min-width:120px;background:var(--bg-alt,#f7f7f7);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Facturado</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px"><?= formatMoney($ingresos) ?></div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--bg-alt,#f7f7f7);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Utilidad</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px;<?= $utilidad >= 0 ? 'color:#1a7a1a' : 'color:#c8102e' ?>"><?= formatMoney($utilidad) ?></div>
+      </div>
+      <div style="flex:1;min-width:120px;background:var(--bg-alt,#f7f7f7);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Rendimiento</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px;<?= $rendimiento >= 0 ? 'color:#1a7a1a' : 'color:#c8102e' ?>"><?= number_format($rendimiento, 1) ?>%</div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; // liquidación $insumos ?>
 
 <?php if ($ev['estado'] === 'abierto'): ?>
 <div class="card" style="border-top:3px solid var(--red,#c8102e)">
