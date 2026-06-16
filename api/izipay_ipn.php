@@ -30,23 +30,37 @@ if ($pending) @unlink($pf);
 $ubiId = (int)($pending['ubicacion_id'] ?? $pending['carta_id'] ?? 0);
 if (!$ubiId) { http_response_code(200); exit('Sin ubicación'); }
 
+// Comprobante pedido en la carta (mismo mapeo que api/pedido.php) — para que llegue a la bandeja del POS.
+$compTipo = in_array($pending['comprobante_tipo'] ?? '', ['boleta', 'factura'], true) ? $pending['comprobante_tipo'] : 'ticket';
+$cDoc     = preg_replace('/[^0-9A-Za-z]/', '', (string)($pending['cliente_documento'] ?? ''));
+$cNom     = clean($pending['cliente_nombre'] ?? '');
+$cNombre  = $compTipo === 'factura' ? ''   : $cNom;
+$cRazon   = $compTipo === 'factura' ? $cNom : '';
+$cEmail   = cleanEmail($pending['cliente_email'] ?? '');
+$hasEmailCol = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='pedidos' AND column_name='cliente_email'");
+
 try {
-    Database::insert(
-        "INSERT INTO pedidos (ubicacion_id,nombre,telefono,tipo_entrega,direccion,horario,comentarios,items_json,total,estado,metodo_pago,izipay_order_id,aceptado_at)
-         VALUES (?,?,?,?,?,?,?,?,?, 'en_preparacion','izipay',?, NOW())",
-        [
-            $ubiId,
-            $pending['nombre']       ?? ($answer['customer']['billingDetails']['firstName'] ?? 'Cliente'),
-            $pending['telefono']     ?? '',
-            $pending['tipo_entrega'] ?? 'delivery',
-            $pending['direccion']    ?? '',
-            $pending['horario']      ?? 'Lo antes posible',
-            trim(($pending['comentarios'] ?? '') . ' | Izipay ' . $orderId . ' tx:' . $txId, ' |'),
-            json_encode($pending['items'] ?? []),
-            $pending['total'] ?? ($totalCents / 100),
-            $orderId,
-        ]
-    );
+    $cols = "ubicacion_id,nombre,telefono,tipo_entrega,direccion,horario,comentarios,items_json,total,estado,metodo_pago,izipay_order_id,comprobante_tipo,cliente_documento,cliente_nombre,cliente_razon_social"
+          . ($hasEmailCol ? ",cliente_email" : "") . ",aceptado_at";
+    $vals = "?,?,?,?,?,?,?,?,?, 'en_preparacion','izipay',?,?,?,?,?" . ($hasEmailCol ? ",?" : "") . ", NOW()";
+    $params = [
+        $ubiId,
+        $pending['nombre']       ?? ($answer['customer']['billingDetails']['firstName'] ?? 'Cliente'),
+        $pending['telefono']     ?? '',
+        $pending['tipo_entrega'] ?? 'delivery',
+        $pending['direccion']    ?? '',
+        $pending['horario']      ?? 'Lo antes posible',
+        trim(($pending['comentarios'] ?? '') . ' | Izipay ' . $orderId . ' tx:' . $txId, ' |'),
+        json_encode($pending['items'] ?? []),
+        $pending['total'] ?? ($totalCents / 100),
+        $orderId,
+        $compTipo,
+        ($cDoc ?: null),
+        ($cNombre ?: null),
+        ($cRazon ?: null),
+    ];
+    if ($hasEmailCol) $params[] = ($cEmail ?: null);
+    Database::insert("INSERT INTO pedidos ($cols) VALUES ($vals)", $params);
 } catch (PDOException $e) {
     if ($e->getCode() === '23000') { http_response_code(200); exit('OK (ya registrado)'); }
     http_response_code(500); exit('Error BD');
