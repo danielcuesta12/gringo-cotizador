@@ -200,3 +200,17 @@ if (!function_exists('eventoSaldoFinal')) {
         return $saldo;
     }
 }
+
+if (!function_exists('eventoEliminar')) {
+    /** Borra un evento y TODOS sus datos asociados (inventario, días, conteos, gastos). Solo lectura del ledger histórico: NO revierte movimientos de stock ya registrados. */
+    function eventoEliminar(int $eventoId): void
+    {
+        try {
+            Database::execute("DELETE dc FROM evento_dia_conteo dc JOIN evento_dias d ON d.id = dc.dia_id WHERE d.evento_id = ?", [$eventoId]);
+            Database::execute("DELETE FROM evento_dias    WHERE evento_id = ?", [$eventoId]);
+            Database::execute("DELETE FROM evento_insumos  WHERE evento_id = ?", [$eventoId]);
+            Database::execute("DELETE FROM evento_gastos    WHERE evento_id = ?", [$eventoId]);
+            Database::execute("DELETE FROM eventos          WHERE id = ?",        [$eventoId]);
+        } catch (\Throwable $e) { /* tablas faltantes: ignorar */ }
+    }
+}

@@ -2,7 +2,18 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/inventario.php';
 requirePermission('inv_evento');
+
+// Eliminar evento (SOLO admin, doble confirmación en el front).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'eliminar_evento') {
+    verifyCsrf();
+    if (!isAdmin()) { flashMessage('error', 'Solo un administrador puede eliminar eventos.'); redirect('/admin/inventory/eventos.php'); }
+    $eid = cleanInt($_POST['evento_id'] ?? 0);
+    if ($eid) { eventoEliminar($eid); flashMessage('success', 'Evento eliminado.'); }
+    redirect('/admin/inventory/eventos.php');
+}
+
 $eventos = Database::fetchAll(
   "SELECT e.*, u.nombre AS ubi_nombre, q.quote_number,
           (SELECT COUNT(*) FROM evento_insumos ei WHERE ei.evento_id=e.id) AS n_insumos
@@ -35,7 +46,17 @@ include __DIR__ . '/../layout-top.php';
         <td style="padding:10px"><?= $e['quote_number'] ? clean($e['quote_number']) : '—' ?></td>
         <td style="padding:10px;text-align:center"><?= (int)$e['n_insumos'] ?></td>
         <td style="padding:10px;text-align:center"><span class="badge <?= $e['estado']==='abierto'?'badge-success':'badge-secondary' ?>"><?= $e['estado']==='abierto'?'Abierto':'Cerrado' ?></span></td>
-        <td style="padding:10px;text-align:right"><a href="<?= APP_URL ?>/admin/inventory/evento_detalle.php?id=<?= (int)$e['id'] ?>" class="btn btn-secondary" style="padding:6px 14px;font-size:12px">Ver</a></td>
+        <td style="padding:10px;text-align:right;white-space:nowrap">
+          <a href="<?= APP_URL ?>/admin/inventory/evento_detalle.php?id=<?= (int)$e['id'] ?>" class="btn btn-secondary" style="padding:6px 14px;font-size:12px">Ver</a>
+          <?php if (isAdmin()): ?>
+          <form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar este evento y TODOS sus datos? No se puede deshacer.') && confirm('Confirma de nuevo: el borrado es permanente.');">
+            <?= csrfField() ?>
+            <input type="hidden" name="accion" value="eliminar_evento">
+            <input type="hidden" name="evento_id" value="<?= (int)$e['id'] ?>">
+            <button type="submit" class="btn" style="padding:6px 12px;font-size:12px;background:#fee2e2;color:#dc2626;border:1px solid #fecaca">Eliminar</button>
+          </form>
+          <?php endif; ?>
+        </td>
       </tr>
     <?php endforeach; ?>
     </tbody>

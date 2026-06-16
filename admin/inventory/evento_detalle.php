@@ -23,6 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $accion = $_POST['accion'] ?? '';
 
+    if ($accion === 'eliminar') {
+        if (!isAdmin()) { flashMessage('error', 'Solo un administrador puede eliminar eventos.'); redirect('/admin/inventory/evento_detalle.php?id=' . $id); }
+        eventoEliminar($id);
+        flashMessage('success', 'Evento eliminado.');
+        redirect('/admin/inventory/eventos.php');
+    }
+
     if ($accion === 'agregar_dia' && $ev['estado'] === 'abierto') {
         $max = (int)(Database::fetch("SELECT COALESCE(MAX(dia_num),0) m FROM evento_dias WHERE evento_id=?", [$id])['m'] ?? 0);
         $fecha = date('Y-m-d', strtotime($ev['fecha_inicio'] . ' +' . $max . ' day'));
@@ -449,6 +456,22 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
 <?php endif; ?>
 
 <?php endif; // $insumos ?>
+
+<?php if (isAdmin()): ?>
+<div class="card" style="border-top:3px solid var(--red,#c8102e)">
+  <div class="card-body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:220px">
+      <strong>Eliminar evento</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted)">Borra el evento y TODOS sus datos (inventario inicial, control diario, gastos, liquidación). Permanente. No revierte los movimientos de stock ya registrados.</p>
+    </div>
+    <form method="post" onsubmit="return confirm('¿Eliminar este evento y TODOS sus datos (inventario, control diario, gastos, liquidación)? No se puede deshacer.') && confirm('Confirma de nuevo: este borrado es permanente.');">
+      <?= csrfField() ?>
+      <input type="hidden" name="accion" value="eliminar">
+      <button type="submit" class="btn btn-danger">Eliminar evento</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 
 <script>
 document.querySelectorAll('[data-confirm]').forEach(btn => {
