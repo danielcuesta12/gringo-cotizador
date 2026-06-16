@@ -1205,7 +1205,7 @@ function openTerminal() {
   if (!state.productos.length) loadProductos();
   if (!state.metodos.length) loadMetodos();
   refreshPedidosBadge();
-  if (!state._pedidosPoll) state._pedidosPoll = setInterval(refreshPedidosBadge, 15000);
+  if (!state._pedidosPoll) state._pedidosPoll = setInterval(refreshPedidosBadge, 5000);
 }
 
 function updateCajaEstado(turno) {
