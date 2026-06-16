@@ -152,7 +152,13 @@ include __DIR__ . '/../layout-top.php';
     var agg = {};   // insumo_id -> cantidad
     evProds.forEach(function(x){
       (RECETAS[x.pid] || []).forEach(function(r){
+        if (x.excl.indexOf(r.insumo_id) >= 0) return;
         agg[r.insumo_id] = (agg[r.insumo_id] || 0) + r.cantidad * x.qty;
+      });
+      (x.mods || []).forEach(function(mid){
+        (RECETAS_MOD[mid] || []).forEach(function(r){
+          agg[r.insumo_id] = (agg[r.insumo_id] || 0) + r.cantidad * x.qty;
+        });
       });
     });
     var ids = Object.keys(agg);
