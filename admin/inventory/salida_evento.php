@@ -19,6 +19,9 @@ try {
 $eventoColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
 $eventosAbiertos = [];
 try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}
+// Eventos libres (agenda): seleccionables y renombrables en la salida a evento.
+$agendaEventos = [];
+try { $agendaEventos = Database::fetchAll("SELECT id, titulo, fecha FROM agenda ORDER BY fecha DESC LIMIT 100"); } catch (\Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -35,10 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $at  = isset($atend[$qid]) ? 1 : 0;
                 Database::execute("UPDATE quotes SET evento_nombre=?, evento_atendido=? WHERE id=?", [$nom ?: null, $at, $qid]);
             }
-            flashMessage('success', 'Cotizaciones de evento actualizadas.');
         } catch (\Throwable $e) {
-            flashMessage('error', 'Falta aplicar install/50_quotes_evento.sql en phpMyAdmin.');
+            flashMessage('error', 'Para nombrar cotizaciones falta aplicar install/50_quotes_evento.sql.');
         }
+        // Renombrar eventos libres (agenda)
+        $agNombres = is_array($_POST['agenda_nombre'] ?? null) ? $_POST['agenda_nombre'] : [];
+        try {
+            foreach ($agNombres as $aid => $nom) {
+                $aid = (int)$aid; $nom = clean($nom);
+                if ($aid > 0 && $nom !== '') Database::execute("UPDATE agenda SET titulo=? WHERE id=?", [$nom, $aid]);
+            }
+        } catch (\Throwable $e) { /* tabla agenda no migrada */ }
+        flashMessage('success', 'Cambios guardados.');
         redirect('/admin/inventory/salida_evento.php');
     }
 
@@ -128,33 +139,55 @@ include __DIR__ . '/../layout-top.php';
 </div></div>
 
 <details class="card" style="margin-bottom:18px" open>
-  <summary style="cursor:pointer;padding:14px 18px;font-weight:700">⚙️ Gestionar cotizaciones de evento <small style="font-weight:400;color:var(--text-muted)">— ponles nombre y marca las atendidas para limpiar el selector</small></summary>
+  <summary style="cursor:pointer;padding:14px 18px;font-weight:700">⚙️ Gestionar eventos <small style="font-weight:400;color:var(--text-muted)">— nombra cotizaciones y eventos libres; marca atendidas para limpiar el selector</small></summary>
   <div class="card-body" style="border-top:1px solid var(--border)">
-    <?php if (!$eventoColsOk): ?>
-      <div class="alert alert-error" style="margin:0">Falta aplicar <code>install/50_quotes_evento.sql</code> en phpMyAdmin para usar esta sección.</div>
-    <?php elseif (empty($gestionables)): ?>
-      <p style="margin:0;color:var(--text-muted);font-size:14px">No hay cotizaciones aceptadas ni eventos todavía. Cuando aceptes una cotización o crees un evento, aparecerá aquí para nombrarla.</p>
-    <?php else: ?>
     <form method="post">
       <?= csrfField() ?>
       <input type="hidden" name="accion" value="gestionar_eventos">
-      <div class="table-wrap" style="border:none">
-        <table class="data-table">
-          <thead><tr><th>Cotización</th><th>Nombre del evento</th><th style="width:100px;text-align:center">Atendida</th></tr></thead>
-          <tbody>
-            <?php foreach ($gestionables as $g): ?>
-            <tr<?= !empty($g['evento_atendido']) ? ' style="opacity:.55"' : '' ?>>
-              <td><strong><?= clean($g['quote_number']) ?></strong><?= $g['event_date'] ? ' <small style="color:var(--text-muted)">· ' . clean($g['event_date']) . '</small>' : '' ?></td>
-              <td><input type="text" name="nombre[<?= (int)$g['id'] ?>]" value="<?= clean($g['evento_nombre'] ?? '') ?>" placeholder="Ej: Boda Pérez" style="width:100%"></td>
-              <td style="text-align:center"><input type="checkbox" name="atendido[<?= (int)$g['id'] ?>]" value="1" <?= !empty($g['evento_atendido']) ? 'checked' : '' ?> style="width:18px;height:18px;accent-color:var(--brand)"></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <button type="submit" class="btn btn-primary" style="margin-top:12px">Guardar cambios</button>
+
+      <?php if (!$eventoColsOk): ?>
+        <div class="alert alert-error">Para nombrar/atender <strong>cotizaciones</strong> falta aplicar <code>install/50_quotes_evento.sql</code>. (Renombrar eventos libres de abajo sí funciona.)</div>
+      <?php elseif (!empty($gestionables)): ?>
+        <h4 style="margin:0 0 8px;font-size:13px;font-weight:800">Cotizaciones (aceptadas / eventos)</h4>
+        <div class="table-wrap" style="border:none">
+          <table class="data-table">
+            <thead><tr><th>Cotización</th><th>Nombre del evento</th><th style="width:100px;text-align:center">Atendida</th></tr></thead>
+            <tbody>
+              <?php foreach ($gestionables as $g): ?>
+              <tr<?= !empty($g['evento_atendido']) ? ' style="opacity:.55"' : '' ?>>
+                <td><strong><?= clean($g['quote_number']) ?></strong><?= $g['event_date'] ? ' <small style="color:var(--text-muted)">· ' . clean($g['event_date']) . '</small>' : '' ?></td>
+                <td><input type="text" name="nombre[<?= (int)$g['id'] ?>]" value="<?= clean($g['evento_nombre'] ?? '') ?>" placeholder="Ej: Boda Pérez" style="width:100%"></td>
+                <td style="text-align:center"><input type="checkbox" name="atendido[<?= (int)$g['id'] ?>]" value="1" <?= !empty($g['evento_atendido']) ? 'checked' : '' ?> style="width:18px;height:18px;accent-color:var(--brand)"></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+
+      <?php if (!empty($agendaEventos)): ?>
+        <h4 style="margin:16px 0 8px;font-size:13px;font-weight:800">Eventos libres (agenda)</h4>
+        <div class="table-wrap" style="border:none">
+          <table class="data-table">
+            <thead><tr><th style="width:120px">Fecha</th><th>Nombre del evento</th></tr></thead>
+            <tbody>
+              <?php foreach ($agendaEventos as $a): ?>
+              <tr>
+                <td><small style="color:var(--text-muted)"><?= clean($a['fecha']) ?></small></td>
+                <td><input type="text" name="agenda_nombre[<?= (int)$a['id'] ?>]" value="<?= clean($a['titulo']) ?>" style="width:100%"></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+
+      <?php if (($eventoColsOk && !empty($gestionables)) || !empty($agendaEventos)): ?>
+        <button type="submit" class="btn btn-primary" style="margin-top:12px">Guardar cambios</button>
+      <?php elseif ($eventoColsOk): ?>
+        <p style="margin:0;color:var(--text-muted);font-size:14px">No hay cotizaciones ni eventos libres todavía.</p>
+      <?php endif; ?>
     </form>
-    <?php endif; ?>
   </div>
 </details>
 
@@ -235,14 +268,23 @@ include __DIR__ . '/../layout-top.php';
             <?php if (!empty($eventosAbiertos)): ?><option value="existente">Agregar a un evento abierto</option><?php endif; ?>
           </select>
           <div id="evNuevo" style="display:none">
-            <input type="text" name="evento_nombre" placeholder="Nombre del evento (ej. Feria de Barranco)" style="margin-bottom:6px">
+            <input type="text" name="evento_nombre" id="evNombreInput" placeholder="Nombre del evento (ej. Feria de Barranco)" style="margin-bottom:6px">
             <div class="form-row form-row-2" style="margin-bottom:6px">
               <input type="date" name="evento_fecha_inicio" value="<?= date('Y-m-d') ?>">
               <input type="date" name="evento_fecha_fin">
             </div>
-            <select name="evento_quote_id">
-              <option value="">— Sin vincular a cotización —</option>
-              <?php foreach ($cotizaciones as $c): $lbl = !empty($c['evento_nombre'] ?? '') ? $c['evento_nombre'] : ($c['quote_number'] . ($c['event_date'] ? ' · ' . $c['event_date'] : '')); ?><option value="<?= (int)$c['id'] ?>"><?= clean($lbl) ?></option><?php endforeach; ?>
+            <select name="evento_quote_id" id="evQuoteSel" onchange="evQuotePick(this)">
+              <option value="">— Sin vincular (escribe el nombre arriba) —</option>
+              <?php if (!empty($cotizaciones)): ?>
+              <optgroup label="Cotizaciones (aceptadas / eventos)">
+                <?php foreach ($cotizaciones as $c): $lbl = !empty($c['evento_nombre'] ?? '') ? $c['evento_nombre'] : ($c['quote_number'] . ($c['event_date'] ? ' · ' . $c['event_date'] : '')); ?><option value="<?= (int)$c['id'] ?>" data-nombre="<?= clean($lbl) ?>"><?= clean($lbl) ?></option><?php endforeach; ?>
+              </optgroup>
+              <?php endif; ?>
+              <?php if (!empty($agendaEventos)): ?>
+              <optgroup label="Eventos libres (agenda)">
+                <?php foreach ($agendaEventos as $a): $albl = $a['titulo'] . ($a['fecha'] ? ' · ' . $a['fecha'] : ''); ?><option value="a:<?= (int)$a['id'] ?>" data-nombre="<?= clean($a['titulo']) ?>"><?= clean($albl) ?></option><?php endforeach; ?>
+              </optgroup>
+              <?php endif; ?>
             </select>
             <select name="evento_truck_id" style="margin-top:6px">
               <option value="">— Truck / ubicación donde vende (opcional) —</option>
@@ -478,6 +520,14 @@ include __DIR__ . '/../layout-top.php';
     var m = document.getElementById('evModo').value;
     document.getElementById('evNuevo').style.display = m==='nuevo' ? 'block' : 'none';
     var ex = document.getElementById('evExist'); if (ex) ex.style.display = m==='existente' ? 'block' : 'none';
+  }
+
+  // Al elegir una cotización o un evento libre, prefija el nombre del evento.
+  function evQuotePick(sel){
+    var opt = sel.options[sel.selectedIndex];
+    var nom = opt ? (opt.getAttribute('data-nombre') || '') : '';
+    var inp = document.getElementById('evNombreInput');
+    if (nom && inp && inp.value.trim()==='') inp.value = nom;
   }
 
   // Sincronizar ubicación y referencia al enviar (fuente autoritativa, por si el usuario cambió después de calcular)
