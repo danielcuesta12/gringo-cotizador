@@ -1100,12 +1100,18 @@ if ($showCard) {
       });
     }, { rootMargin: '-15% 0px -75% 0px' });
     secciones.forEach(s => { const el = document.getElementById('sec-' + s.id); if (el) io.observe(el); });
-    const _sb = document.getElementById('search-bar');
-    if (_sb) {
-      const _hh = (document.querySelector('header') || {}).offsetHeight || 64;
-      const _bh = (document.getElementById('category-bar') || {}).offsetHeight || 48;
-      _sb.style.top = (_hh + _bh) + 'px';
-    }
+    positionStickyBars();
+    if (!window._stickyResizeBound) { window._stickyResizeBound = true; window.addEventListener('resize', positionStickyBars); }
+  }
+
+  // Ancla las barras pegajosas a la altura REAL del header (que cambia con las 2 filas en móvil)
+  function positionStickyBars() {
+    const _hdr = document.querySelector('header');
+    const _cb  = document.getElementById('category-bar');
+    const _sb  = document.getElementById('search-bar');
+    const _hh  = (_hdr && _hdr.offsetHeight) || 64;
+    if (_cb) _cb.style.top = _hh + 'px';
+    if (_sb) _sb.style.top = (_hh + ((_cb && _cb.offsetHeight) || 48)) + 'px';
   }
 
   function scrollToSeccion(id) {
