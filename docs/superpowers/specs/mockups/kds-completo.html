@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · KDS completo — vistas + tiempos editables</title>
+<style>
+  :root{--bg:#0f1115;--panel:#181b21;--line:#2a2e36;--text:#e8e8ea;--mut:#9aa0aa;--yellow:#F5C200;
+        --green:#1f9d55;--orange:#d9920a;--red:#d64545;--gray:#6b7280;
+        --salon:#a78bfa;--deli:#38bdf8;--recojo:#34d399;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:16px 14px 70px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:19px;font-weight:900;margin-bottom:3px}
+  .sub{font-size:13px;color:var(--mut);margin-bottom:14px;line-height:1.5}
+
+  .topbar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;position:relative}
+  .t-title{font-weight:900;font-size:15px;margin-right:auto}
+  .seg{display:flex;background:#11141a;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+  .seg button{background:none;border:none;color:var(--mut);font-weight:800;font-size:12.5px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+  .seg button.on{background:var(--yellow);color:#1a1a1a}
+  .seg button .lock{font-size:10px;opacity:.8}
+  .tb-btn{background:#11141a;border:1px solid var(--line);color:var(--text);font-weight:800;font-size:12.5px;padding:9px 13px;border-radius:10px;cursor:pointer}
+
+  .pop{position:absolute;top:56px;right:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;width:270px;box-shadow:0 18px 50px rgba(0,0,0,.5);z-index:30;display:none}
+  .pop.on{display:block}
+  .pop h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--yellow);margin-bottom:12px}
+  .pop .fld{display:flex;align-items:center;gap:8px;margin-bottom:11px;font-size:13px}
+  .pop .fld label{flex:1;color:var(--mut)}
+  .pop .dot{width:12px;height:12px;border-radius:50%}
+  .pop input{width:62px;background:#11141a;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:7px;text-align:center;font-size:14px;font-weight:800}
+  .pop .hint{font-size:11px;color:var(--mut);line-height:1.5;margin-top:2px}
+
+  .catbar{display:none;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+  .catbar.on{display:flex}
+  .catbar .lbl{font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .chip{font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:20px;border:1.5px solid var(--line);background:#11141a;color:var(--mut);cursor:pointer;user-select:none}
+  .chip.on{background:var(--yellow);color:#1a1a1a;border-color:var(--yellow)}
+
+  .lane{margin-bottom:14px}
+  .lane.acc{border-left:3px solid var(--accent,#444);padding-left:11px}
+  .lane-h{display:flex;align-items:center;gap:9px;font-weight:900;font-size:13.5px;margin-bottom:9px}
+  .lane-h .ic{font-size:17px}
+  .lane-h .tag{font-size:10px;padding:3px 10px;border-radius:20px;color:#10131a;font-weight:900}
+  .lane-h .n{color:var(--mut);font-weight:700;font-size:12px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap}
+
+  .kc{width:158px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--gray);border-radius:11px;overflow:hidden;position:relative}
+  .kc.green{border-top-color:var(--green)}.kc.orange{border-top-color:var(--orange)}.kc.red{border-top-color:var(--red)}
+  .kc .h{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 10px;font-size:12px}
+  .kc .id{font-weight:900}
+  .kc .tp{font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;color:#10131a}
+  .kc .tp.salon{background:var(--salon)}.kc .tp.deli{background:var(--deli)}.kc .tp.recojo{background:var(--recojo)}
+  .kc .tm{font-weight:900;font-variant-numeric:tabular-nums;margin-left:auto}
+  .kc.green .tm{color:#5fd08a}.kc.orange .tm{color:#f0b44a}.kc.red .tm{color:#f08a8a}
+  .kc .b{padding:0 10px 10px;font-size:12.5px}
+  .kc .cl{color:var(--text);font-weight:700;margin-bottom:4px;font-size:12px}
+  .kc .ki{color:var(--text);margin-bottom:2px}.kc .ki .q{color:var(--yellow);font-weight:800;margin-right:4px}
+  .split-flag{display:inline-block;font-size:9.5px;font-weight:900;background:#3a2d12;color:var(--yellow);border:1px solid #5a4a1e;border-radius:6px;padding:2px 6px;margin-top:6px}
+  .pin{position:absolute;top:6px;right:7px;font-size:12px}
+  .kc .foot{padding:7px 10px;border-top:1px solid var(--line);display:flex;gap:6px}
+  .kc .foot button{flex:1;font-size:11px;font-weight:800;border:none;border-radius:7px;padding:6px;cursor:pointer;background:#11141a;color:var(--text)}
+  .kc .foot .ok{background:var(--green);color:#06250f}
+
+  .legend{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;line-height:1.65;margin-top:8px}
+  .legend b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍳 KDS completo — vistas + tiempos editables</h1>
+  <div class="sub">Todo integrado: cambia de vista, edita los tiempos (⚙️) y, en “Por categoría”, oculta categorías. Datos de ejemplo.</div>
+
+  <div class="topbar">
+    <span class="t-title">Cocina · Food truck Barranco</span>
+    <div class="seg">
+      <button id="v-all" class="on" onclick="setView('all')">Todo junto</button>
+      <button id="v-tipo" onclick="setView('tipo')">Por tipo</button>
+      <button id="v-cat" onclick="setView('cat')">Por categoría <span class="lock">🔒 admin</span></button>
+    </div>
+    <button class="tb-btn" onclick="togglePop()">⚙️ Tiempos</button>
+    <div class="pop" id="pop">
+      <h4>Umbrales de tiempo</h4>
+      <div class="fld"><span class="dot" style="background:var(--orange)"></span><label>Pasa a naranja a los</label><input id="tn" type="number" value="10" min="1" oninput="recolor()"> min</div>
+      <div class="fld"><span class="dot" style="background:var(--red)"></span><label>Pasa a rojo a los</label><input id="tr" type="number" value="20" min="2" oninput="recolor()"> min</div>
+      <div class="hint">Ajústalos según el ritmo del local. Aplican al instante.</div>
+    </div>
+  </div>
+
+  <div class="catbar" id="catbar">
+    <span class="lbl">Mostrar:</span>
+    <span class="chip on" data-cat="burger" onclick="toggleCat('burger')">🍔 Burgers</span>
+    <span class="chip on" data-cat="pollo"  onclick="toggleCat('pollo')">🍗 Pollos</span>
+    <span class="chip on" data-cat="papas"  onclick="toggleCat('papas')">🍟 Salchipapas</span>
+    <span class="chip on" data-cat="bebida" onclick="toggleCat('bebida')">🥤 Bebidas</span>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="legend">
+    <b>Todo junto:</b> tu vista actual (una grilla, color por tiempo, 📌 = fijada por drag).<br>
+    <b>Por tipo:</b> filas Salón · Delivery · Recojo.<br>
+    <b>Por categoría (admin):</b> filas por categoría; un pedido con varias categorías se <b>parte</b> en una tarjeta por categoría (mismo #) con sello “parte de #”; los chips ocultan categorías.<br>
+    <b>⚙️ Tiempos:</b> editas cuándo pasa a naranja/rojo (hoy fijo en 10/20).
+  </div>
+</div>
+
+<script>
+  var CATS={burger:{ic:'🍔',lbl:'Burgers',color:'#f59e0b'},pollo:{ic:'🍗',lbl:'Pollos crispy',color:'#fb7185'},papas:{ic:'🍟',lbl:'Salchipapas',color:'#fbbf24'},bebida:{ic:'🥤',lbl:'Bebidas',color:'#38bdf8'}};
+  var TIPO={salon:{lbl:'Salón',tag:'SALÓN',color:'var(--salon)'},deli:{lbl:'Delivery',tag:'DELIVERY',color:'var(--deli)'},recojo:{lbl:'Recojo',tag:'RECOJO',color:'var(--recojo)'}};
+  var PEDIDOS=[
+    {id:45,tipo:'salon', t:'12:30',cliente:'Mesa 3',pin:true, items:[{cat:'burger',q:2,n:'Gringo'},{cat:'pollo',q:1,n:'Crispy 1/4'},{cat:'bebida',q:2,n:'Limonada'}]},
+    {id:46,tipo:'recojo',t:'03:10',cliente:'Ana P.',items:[{cat:'papas',q:1,n:'Salchipapa XL'},{cat:'bebida',q:1,n:'Gaseosa'}]},
+    {id:47,tipo:'salon', t:'21:45',cliente:'Mesa 1',items:[{cat:'burger',q:3,n:'Gringo Doble'}]},
+    {id:48,tipo:'deli',  t:'01:20',cliente:'Marco',items:[{cat:'pollo',q:1,n:'Crispy entero'},{cat:'papas',q:1,n:'Salchipapa'}]},
+    {id:49,tipo:'deli',  t:'08:05',cliente:'Lucía R.',items:[{cat:'burger',q:1,n:'Gringo'},{cat:'bebida',q:1,n:'Chicha'}]},
+  ];
+  var TN=10,TR=20,view='all',hidden={};
+
+  function mins(t){var p=t.split(':');return parseInt(p[0],10)+parseInt(p[1],10)/60;}
+  function colorOf(p){var m=mins(p.t);return m>=TR?'red':m>=TN?'orange':'green';}
+  function itemsHTML(items){return items.map(function(i){return '<div class="ki"><span class="q">'+i.q+'x</span>'+i.n+'</div>';}).join('');}
+
+  function card(p,items,opts){
+    opts=opts||{};
+    var tag = opts.tipoTag ? '<span class="tp '+p.tipo+'">'+TIPO[p.tipo].tag+'</span>' : '';
+    return '<div class="kc '+colorOf(p)+'">'+(p.pin&&!opts.noPin?'<span class="pin">📌</span>':'')+
+      '<div class="h"><span class="id">#'+String(p.id).padStart(3,'0')+'</span>'+tag+'<span class="tm">'+p.t+'</span></div>'+
+      '<div class="b"><div class="cl">'+p.cliente+'</div>'+itemsHTML(items)+
+      (opts.split?'<span class="split-flag">✂️ '+opts.split+'</span>':'')+'</div>'+
+      '<div class="foot"><button class="ok">Listo</button><button>✕</button></div></div>';
+  }
+
+  function render(){
+    var b=document.getElementById('board');
+    document.getElementById('catbar').classList.toggle('on',view==='cat');
+
+    if(view==='all'){
+      b.innerHTML='<div class="lane"><div class="cards">'+PEDIDOS.map(function(p){return card(p,p.items,{tipoTag:true});}).join('')+'</div></div>';
+    } else if(view==='tipo'){
+      b.innerHTML=['salon','deli','recojo'].map(function(tp){
+        var ps=PEDIDOS.filter(function(p){return p.tipo===tp;});if(!ps.length)return '';
+        var m=TIPO[tp];
+        return '<div class="lane acc" style="--accent:'+m.color+'"><div class="lane-h"><span class="tag" style="background:'+m.color+'">'+m.tag+'</span> '+m.lbl+' <span class="n">· '+ps.length+'</span></div><div class="cards">'+ps.map(function(p){return card(p,p.items,{noPin:false});}).join('')+'</div></div>';
+      }).join('');
+    } else {
+      b.innerHTML=Object.keys(CATS).filter(function(c){return !hidden[c];}).map(function(c){
+        var meta=CATS[c];
+        var rows=PEDIDOS.map(function(p){
+          var its=p.items.filter(function(i){return i.cat===c;});if(!its.length)return '';
+          var nCats=new Set(p.items.map(function(i){return i.cat;})).size;
+          var split=nCats>1?('parte de #'+String(p.id).padStart(3,'0')+' · '+nCats+' estaciones'):null;
+          return card(p,its,{split:split,noPin:true});
+        }).join('');
+        if(!rows)return '';
+        var nP=PEDIDOS.filter(function(p){return p.items.some(function(i){return i.cat===c;});}).length;
+        return '<div class="lane acc" style="--accent:'+meta.color+'"><div class="lane-h"><span class="ic">'+meta.ic+'</span>'+meta.lbl+' <span class="n">· '+nP+' pedido(s)</span></div><div class="cards">'+rows+'</div></div>';
+      }).join('')||'<div class="legend">Todas las categorías ocultas. Enciende alguna arriba.</div>';
+    }
+  }
+  function setView(v){view=v;['all','tipo','cat'].forEach(function(x){document.getElementById('v-'+x).classList.toggle('on',x===v);});render();}
+  function togglePop(){document.getElementById('pop').classList.toggle('on');}
+  function recolor(){TN=parseFloat(document.getElementById('tn').value)||10;TR=parseFloat(document.getElementById('tr').value)||20;render();}
+  function toggleCat(c){hidden[c]=!hidden[c];document.querySelector('[data-cat="'+c+'"]').classList.toggle('on',!hidden[c]);render();}
+  render();
+</script>
+</body>
+</html>
