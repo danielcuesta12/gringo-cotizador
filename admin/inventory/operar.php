@@ -128,8 +128,17 @@ include __DIR__ . '/../layout-top.php';
   <div class="card"><div class="empty-state"><h3>Sin ubicaciones</h3><p>Crea una ubicación primero.</p></div></div>
 <?php else: ?>
 
+<style>
+  .op-ubi-select{
+    -webkit-appearance:none; appearance:none;
+    padding:13px 42px 13px 16px; border-radius:10px; border:1.5px solid var(--border);
+    font-size:15px; font-weight:700; color:var(--ink); background-color:#fff; min-width:240px; cursor:pointer; line-height:1.2;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231e1e1e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right 15px center;
+  }
+</style>
 <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-  <select onchange="location.href='?ubi='+this.value+'&modo=<?= $modo ?>'" style="padding:12px 36px 12px 16px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;font-weight:700;background:#fff;min-width:240px;line-height:1.2">
+  <select class="op-ubi-select" onchange="location.href='?ubi='+this.value+'&modo=<?= $modo ?>'">
     <?php foreach ($ubicaciones as $u): ?>
       <option value="<?= (int)$u['id'] ?>" <?= $ubiF==$u['id']?'selected':'' ?>><?= !empty($u['es_almacen']) ? '🏬 ' : '🍔 ' ?><?= clean($u['nombre']) ?></option>
     <?php endforeach; ?>
