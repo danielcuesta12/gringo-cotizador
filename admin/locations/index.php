@@ -76,6 +76,7 @@ include __DIR__ . '/../layout-top.php';
               <span style="width:14px;height:14px;border-radius:4px;background:<?= clean($u['color_header']) ?>;flex-shrink:0"></span>
               <strong><?= clean($u['nombre']) ?></strong>
               <?php if ($u['es_principal']): ?><span class="badge badge-warning" style="font-size:10px">Principal</span><?php endif; ?>
+              <?php if (!empty($u['es_almacen'])): ?><span class="badge" style="font-size:10px;background:var(--brand);color:#1e1e1e">Almacén</span><?php endif; ?>
             </span>
           </td>
           <td style="font-family:monospace;font-size:13px;color:var(--text-secondary)">
