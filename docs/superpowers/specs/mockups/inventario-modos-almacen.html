@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Inventario por ubicación · 3 modos</title>
+<style>
+  :root{
+    --brand:#FFDF00; --pink:#FFBBC8; --ink:#1E1E1E; --cream:#FFEFBC;
+    --muted:#8a8a93; --line:#e7e7ec; --green:#1f9d55; --red:#d64545; --amber:#d9920a;
+    --bg:#ececed;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:22px 12px 90px}
+  .wrap{max-width:920px;margin:0 auto}
+  .note{font-size:13px;color:#666;text-align:center;margin-bottom:14px;line-height:1.55}.note b{color:#1e1e1e}
+
+  .card{background:#fff;border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.08);overflow:hidden}
+
+  /* Header */
+  .head{background:var(--ink);color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .head .ttl{font-size:17px;font-weight:900;display:flex;align-items:center;gap:9px}
+  .head .ubi{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);padding:7px 12px;border-radius:10px;cursor:pointer}
+  .head .ubi select{background:transparent;border:none;color:#fff;font-size:14px;font-weight:800;outline:none;cursor:pointer}
+  .head .ubi select option{color:#1e1e1e}
+  .badge{font-size:10px;font-weight:900;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+  .badge.central{background:var(--brand);color:#1e1e1e}
+  .badge.resto{background:var(--pink);color:#1e1e1e}
+
+  /* Mode tabs */
+  .modes{display:flex;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);background:#fafafb;flex-wrap:wrap}
+  .mode{flex:1;min-width:130px;border:2px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;cursor:pointer;text-align:left;transition:.15s}
+  .mode .m-t{font-size:14px;font-weight:900;display:flex;align-items:center;gap:7px}
+  .mode .m-d{font-size:11px;color:var(--muted);margin-top:2px}
+  .mode.on.ingresos{border-color:var(--green);background:#eefaf1}
+  .mode.on.salidas{border-color:var(--red);background:#fdeeee}
+  .mode.on.conteo{border-color:var(--amber);background:#fdf6e8}
+  .mode.on .m-t{color:inherit}
+
+  /* Alert bar */
+  .alert{padding:11px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .alert.ingresos{background:#eefaf1;color:#147a3b;border-bottom:1px solid #cdeed7}
+  .alert.salidas{background:#fdeeee;color:#b53030;border-bottom:1px solid #f4d2d2}
+  .alert.conteo{background:#fdf6e8;color:#9a6b08;border-bottom:1px solid #f0e2c0}
+
+  /* Destino (solo salidas desde central) */
+  .destino{padding:13px 18px;background:#fff7d6;border-bottom:1px solid #f0e2a8;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+  .destino b{font-weight:900}
+  .destino select{padding:8px 11px;border:1.5px solid #e2cf6a;border-radius:9px;font-size:13px;font-weight:800;background:#fff}
+  .destino .arrow{font-size:16px;color:#b59a14}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th:nth-child(2),td:nth-child(2){text-align:left}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#fafafb;font-weight:800}
+  td .ins{font-weight:800}
+  td small{color:var(--muted);font-weight:400}
+  .num{font-variant-numeric:tabular-nums}
+  .tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:#f0f0f3;color:#777}
+  .tag.desc{background:#eef1ff;color:#4456c8}
+  input.cell{width:84px;padding:8px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums}
+  input.cell:focus{outline:none;border-color:var(--ink)}
+  input.cell.changed{border-color:var(--amber);background:#fffaf0;font-weight:800}
+  .diff{font-weight:900}
+  .diff.up{color:var(--green)} .diff.down{color:var(--red)} .diff.zero{color:var(--muted);font-weight:500}
+  .hide{display:none !important}
+
+  .legend{font-size:11.5px;color:var(--muted);padding:12px 16px;border-top:1px solid var(--line);line-height:1.7}
+  .foot{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--line);flex-wrap:wrap;align-items:center}
+  .foot .resumen{font-size:13px;color:#555}.foot .resumen b{color:var(--ink)}
+  .btn{padding:11px 18px;border:none;border-radius:10px;font-size:13.5px;font-weight:900;cursor:pointer}
+  .btn-y{background:var(--brand);color:#1e1e1e;margin-left:auto}
+  .btn-g{background:#f1f1f4;color:#555}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note"><b>Inventario por ubicación · 3 modos</b> · Eliges la <b>ubicación</b> arriba y un <b>modo</b>. Es una capa de UI sobre el mismo kardex (<code>inventario_movimientos</code>).</div>
+
+  <div class="card">
+    <!-- Header con selector de ubicación -->
+    <div class="head">
+      <div class="ttl">📦 Inventario</div>
+      <div class="ubi">
+        <span id="ubiBadge" class="badge central">Almacén</span>
+        <select id="ubiSel" onchange="onUbi()">
+          <option value="central" data-tipo="central">🏬 Almacén Central</option>
+          <option value="r1" data-tipo="resto">🍔 Restaurante San Isidro</option>
+          <option value="r2" data-tipo="resto">🍔 Restaurante Miraflores</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabs de modo -->
+    <div class="modes">
+      <button class="mode ingresos on" data-mode="ingresos" onclick="setMode('ingresos')">
+        <div class="m-t">⬇️ Ingresos</div>
+        <div class="m-d">Recepción / compra entra</div>
+      </button>
+      <button class="mode salidas" data-mode="salidas" onclick="setMode('salidas')">
+        <div class="m-t">⬆️ Salidas</div>
+        <div class="m-d" id="salidasDesc">Despacho a restaurante</div>
+      </button>
+      <button class="mode conteo" data-mode="conteo" onclick="setMode('conteo')">
+        <div class="m-t">🔢 Conteo</div>
+        <div class="m-d">Cuadra el stock real</div>
+      </button>
+    </div>
+
+    <!-- Alert bar -->
+    <div id="alert" class="alert ingresos">✅ <span id="alertTxt">Modo ingresos — ingresa la cantidad recibida por insumo.</span></div>
+
+    <!-- Destino (solo salidas desde central) -->
+    <div id="destino" class="destino hide">
+      <span class="arrow">↦</span>
+      <b>Despachar a:</b>
+      <select>
+        <option>🍔 Restaurante San Isidro</option>
+        <option>🍔 Restaurante Miraflores</option>
+      </select>
+      <span style="color:#9a7d10;font-size:12px">El stock <b>baja aquí</b> y <b>sube</b> en el destino (transferencia enlazada).</span>
+    </div>
+
+    <!-- Tabla -->
+    <table>
+      <thead>
+        <tr>
+          <th>Insumo</th>
+          <th>Tipo</th>
+          <th>Stock actual</th>
+          <th id="thInput">Cantidad recibida</th>
+          <th id="thDiff" class="hide">Diferencia</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="foot">
+      <span class="resumen" id="resumen">Llena las cantidades y guarda.</span>
+      <button class="btn btn-y" id="saveBtn">Guardar ingresos</button>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:14px">
+    El <b>Almacén Central</b> nunca vende (oculto de carta/POS). En <b>Salidas</b> su única vía es <b>despachar a un restaurante</b> (transferencia).
+    Un <b>restaurante</b> recibe, cuenta, y vende (el descuento de venta lo hace el KDS aparte). El <b>foodtruck</b> se maneja con la salida a eventos + conteo diario (ya existe).
+  </div>
+</div>
+
+<script>
+  const INSUMOS = [
+    {n:'Carne smash 90g',  u:'porción', t:'ing',  stock:240},
+    {n:'Pan brioche',       u:'unidad',  t:'ing',  stock:180},
+    {n:'Papa precortada',   u:'kg',      t:'ing',  stock:55},
+    {n:'Queso americano',   u:'lámina',  t:'ing',  stock:300},
+    {n:'Caja burger',       u:'unidad',  t:'desc', stock:420},
+    {n:'Vaso 16oz',         u:'unidad',  t:'desc', stock:600},
+    {n:'Gas (balón)',       u:'balón',   t:'ing',  stock:3},
+  ];
+
+  let mode = 'ingresos';
+  let ubiTipo = 'central';
+
+  const CFG = {
+    ingresos:{ cls:'ingresos', alert:'Modo ingresos — ingresa la cantidad recibida por insumo.', icon:'✅',
+               thInput:'Cantidad recibida', btn:'Guardar ingresos', sign:'+', signCls:'up' },
+    salidas: { cls:'salidas',  alert:'Modo salidas — cantidad a despachar por insumo.', icon:'⬆️',
+               thInput:'Cantidad salida', btn:'Despachar', sign:'−', signCls:'down' },
+    conteo:  { cls:'conteo',   alert:'Modo conteo — escribe el stock REAL contado. Solo se guardan los que cambien.', icon:'🔢',
+               thInput:'Stock real (conteo)', btn:'Guardar conteo', sign:'', signCls:'' },
+  };
+
+  function onUbi(){
+    const opt = document.getElementById('ubiSel').selectedOptions[0];
+    ubiTipo = opt.dataset.tipo;
+    const badge = document.getElementById('ubiBadge');
+    if(ubiTipo==='central'){ badge.className='badge central'; badge.textContent='Almacén'; }
+    else { badge.className='badge resto'; badge.textContent='Restaurante'; }
+    document.getElementById('salidasDesc').textContent = ubiTipo==='central' ? 'Despacho a restaurante' : 'Merma / despacho';
+    render();
+  }
+
+  function setMode(m){
+    mode = m;
+    document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on', b.dataset.mode===m));
+    render();
+  }
+
+  function render(){
+    const c = CFG[mode];
+    document.getElementById('alert').className = 'alert '+c.cls;
+    document.getElementById('alertTxt').textContent = c.alert;
+    document.getElementById('alert').firstChild.textContent = c.icon+' ';
+    document.getElementById('thInput').textContent = c.thInput;
+    document.getElementById('saveBtn').textContent = c.btn;
+    document.getElementById('saveBtn').className = 'btn btn-y';
+
+    // destino solo en salidas + central
+    const showDest = (mode==='salidas' && ubiTipo==='central');
+    document.getElementById('destino').classList.toggle('hide', !showDest);
+
+    // columna diferencia solo en conteo
+    document.getElementById('thDiff').classList.toggle('hide', mode!=='conteo');
+
+    // legend
+    let leg = '';
+    if(mode==='ingresos') leg = 'Genera movimiento <b>ingreso (+)</b> en esta ubicación. Para compras con proveedor y costo, usa el módulo de Compras.';
+    else if(mode==='salidas' && ubiTipo==='central') leg = 'Genera una <b>transferencia enlazada</b>: salida (−) aquí + ingreso (+) en el restaurante destino. Una sola acción.';
+    else if(mode==='salidas') leg = 'Genera <b>salida (−)</b> de esta ubicación (merma o despacho).';
+    else leg = 'Compara contra el stock del sistema y genera un <b>ajuste (±)</b> para dejar el stock igual al conteo. Sólo se guardan los insumos cuyo conteo difiere.';
+    document.getElementById('legend').innerHTML = leg;
+
+    // rows
+    const tb = document.getElementById('rows');
+    tb.innerHTML = '';
+    INSUMOS.forEach((it,i)=>{
+      const tr = document.createElement('tr');
+      const tag = it.t==='desc' ? '<span class="tag desc">descartable</span>' : '<span class="tag">ingrediente</span>';
+      tr.innerHTML =
+        '<td><span class="ins">'+it.n+'</span></td>'+
+        '<td>'+tag+'</td>'+
+        '<td class="num">'+it.stock+' <small>'+it.u+'</small></td>'+
+        '<td><input class="cell" type="text" inputmode="decimal" data-i="'+i+'" placeholder="0"></td>'+
+        '<td class="diff'+(mode==='conteo'?'':' hide')+'" data-diff="'+i+'">—</td>';
+      tb.appendChild(tr);
+    });
+    tb.querySelectorAll('input.cell').forEach(inp=>inp.addEventListener('input', onInput));
+    updateResumen();
+  }
+
+  function onInput(e){
+    const inp = e.target, i = +inp.dataset.i;
+    const v = parseFloat(inp.value);
+    inp.classList.toggle('changed', !isNaN(v) && v!=='' && inp.value.trim()!=='');
+    if(mode==='conteo'){
+      const cell = document.querySelector('[data-diff="'+i+'"]');
+      if(isNaN(v) || inp.value.trim()===''){ cell.textContent='—'; cell.className='diff zero'; }
+      else{
+        const d = +(v - INSUMOS[i].stock).toFixed(2);
+        cell.textContent = (d>0?'+':'')+d;
+        cell.className = 'diff '+(d>0?'up':d<0?'down':'zero');
+      }
+    }
+    updateResumen();
+  }
+
+  function updateResumen(){
+    const inps = [...document.querySelectorAll('input.cell')];
+    const n = inps.filter(x=>x.value.trim()!=='' && !isNaN(parseFloat(x.value))).length;
+    const r = document.getElementById('resumen');
+    if(mode==='conteo') r.innerHTML = '<b>'+n+'</b> insumo(s) con conteo ingresado.';
+    else r.innerHTML = '<b>'+n+'</b> insumo(s) con cantidad.';
+  }
+
+  render();
+</script>
+</body>
+</html>
