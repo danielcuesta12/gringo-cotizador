@@ -9,6 +9,14 @@ if (!can('inv_compras')) { echo json_encode(['ok'=>false,'error'=>'Sin permisos'
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+if ($action === 'buscar') {
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q === '') { echo json_encode(['ok'=>true,'items'=>[]]); exit; }
+    $rows = Database::fetchAll("SELECT id, nombre FROM proveedores WHERE activo=1 AND nombre LIKE ? ORDER BY nombre LIMIT 12", ['%' . $q . '%']);
+    echo json_encode(['ok'=>true, 'items'=>$rows]);
+    exit;
+}
+
 if ($action === 'crear') {
     verifyCsrf();
     $nombre = clean($_POST['nombre'] ?? '');

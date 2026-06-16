@@ -151,7 +151,7 @@ include __DIR__ . '/../layout-top.php';
   <p>Arma el evento por productos, explota a ingredientes y ajusta (ej. quita el tocino) antes de descontar del stock</p>
 </div></div>
 
-<details class="card" style="margin-bottom:18px" open>
+<details class="card" style="margin-bottom:18px">
   <summary style="cursor:pointer;padding:14px 18px;font-weight:700">⚙️ Gestionar eventos <small style="font-weight:400;color:var(--text-muted)">— nombra cotizaciones y eventos libres; marca atendidas para limpiar el selector</small></summary>
   <div class="card-body" style="border-top:1px solid var(--border)">
     <form method="post">
