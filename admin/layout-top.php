@@ -284,6 +284,13 @@ try {
         </a>
         <?php endif; ?>
 
+        <?php if (can('inv_compras')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/proveedores.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-proveedores'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 13h6"/></svg></span> Proveedores
+        </a>
+        <?php endif; ?>
+
         <?php if (can('inv_evento')): ?>
         <a href="<?php echo APP_URL; ?>/admin/inventory/salida_evento.php"
            class="nav-link <?php echo ($activePage??'')==='inv-evento'?'active':''; ?>">
@@ -433,6 +440,15 @@ try {
           save();
         });
       }
+    });
+
+    // Mantener la posición de scroll del sidebar entre navegaciones (recarga completa por PHP).
+    var SKEY = 'sb_scroll';
+    try { var sv = parseInt(localStorage.getItem(SKEY) || '0', 10); if (sv > 0) nav.scrollTop = sv; } catch (e) {}
+    var _sbScrollT = null;
+    nav.addEventListener('scroll', function () {
+      if (_sbScrollT) return;
+      _sbScrollT = setTimeout(function () { _sbScrollT = null; try { localStorage.setItem(SKEY, String(nav.scrollTop)); } catch (e) {} }, 120);
     });
   })();
   </script>

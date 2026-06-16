@@ -31,7 +31,7 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
 $proveedores = $ready ? Database::fetchAll("SELECT * FROM proveedores ORDER BY activo DESC, nombre") : [];
 
 $pageTitle  = 'Proveedores';
-$activePage = 'inv-compras';
+$activePage = 'inv-proveedores';
 include __DIR__ . '/../layout-top.php';
 ?>
 
