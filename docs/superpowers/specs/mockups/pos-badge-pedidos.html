@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Notificación de pedidos nuevos (POS)</title>
+<style>
+  :root{
+    --bg:#161412; --surface:#1f1c19; --surface2:#2a2622; --border:#3a352f;
+    --yellow:#FFDF00; --red:#C8102E; --text:#f5f0ea; --text2:#b8b0a6; --muted:#8a8178;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0e0d0c;color:var(--text);padding:26px 14px 60px}
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:18px;font-weight:900;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+  .ctrl{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+  .ctrl button{background:var(--yellow);color:#000;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:800;cursor:pointer}
+  .ctrl button.ghost{background:var(--surface2);color:var(--text)}
+
+  .variant{margin-bottom:30px}
+  .variant .lbl{font-size:12px;font-weight:800;color:var(--yellow);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+  .variant .desc{font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.5}
+
+  /* ── Barra inferior fiel al POS ── */
+  .phone{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:18px;overflow:hidden;height:170px;display:flex;flex-direction:column}
+  .screen{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;background:radial-gradient(circle at 50% 0,#211d19,transparent 70%)}
+  .bottombar{height:64px;display:flex;background:var(--surface);border-top:1px solid var(--border)}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;color:var(--muted);border-right:1px solid var(--border);position:relative}
+  .nav-btn:last-child{border-right:none}
+  .nav-btn.active{color:var(--yellow)}
+  .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+  /* Badge base */
+  .nav-badge{position:absolute;top:6px;right:calc(50% - 24px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  /* A) Badge pulsante */
+  .v-a .nav-badge.on{min-width:22px;height:22px;font-size:11px;animation:pop .4s ease, pulse 1.4s ease-in-out infinite}
+  .v-a .nav-badge.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--red);animation:ring 1.4s ease-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+  @keyframes ring{0%{opacity:.7;transform:scale(.7)}100%{opacity:0;transform:scale(1.7)}}
+  @keyframes pop{0%{transform:scale(.2)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+  /* B) Botón resaltado + badge grande */
+  .v-b .nav-btn.alert{color:var(--yellow);background:linear-gradient(180deg,rgba(255,223,0,.16),rgba(255,223,0,.04));animation:glow 1.3s ease-in-out infinite}
+  .v-b .nav-btn.alert .nav-badge{background:var(--yellow);color:#000;min-width:20px;height:20px;font-size:11px;box-shadow:0 0 0 0 rgba(255,223,0,.6);animation:halo 1.3s ease-out infinite}
+  @keyframes glow{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,223,0,0)}50%{box-shadow:inset 0 2px 16px rgba(255,223,0,.22)}}
+  @keyframes halo{0%{box-shadow:0 0 0 0 rgba(255,223,0,.55)}100%{box-shadow:0 0 0 9px rgba(255,223,0,0)}}
+
+  /* C) Mini-banner sobre la barra */
+  .v-c .banner{position:absolute;left:10px;right:10px;bottom:74px;background:var(--yellow);color:#000;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.5);transform:translateY(120px);opacity:0;transition:transform .35s cubic-bezier(.2,.9,.3,1.3),opacity .35s}
+  .v-c .banner.on{transform:translateY(0);opacity:1}
+  .v-c .banner .bell{font-size:18px;animation:swing .6s ease-in-out 3}
+  .v-c .banner .go{margin-left:auto;background:#000;color:var(--yellow);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:800}
+  @keyframes swing{0%,100%{transform:rotate(0)}25%{transform:rotate(18deg)}75%{transform:rotate(-18deg)}}
+  .v-c .nav-badge.on{min-width:18px;height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛎️ Notificación de pedidos nuevos · POS</h1>
+  <div class="sub">El cajero está en <b>Vender</b>. Cuando entra un pedido de carta, la pestaña <b>Pedidos</b> debe avisar de forma vistosa con el número. Pulsa <b>“Simular pedido nuevo”</b> para ver cada variante animada. (Todas suenan 🔔 además.)</div>
+
+  <div class="ctrl">
+    <button onclick="fire()">🔔 Simular pedido nuevo</button>
+    <button class="ghost" onclick="reset()">Limpiar</button>
+  </div>
+
+  <!-- A -->
+  <div class="variant v-a">
+    <div class="lbl">A · Badge pulsante</div>
+    <div class="desc">El badge actual pero más grande, con “latido” y un anillo que se expande. Discreto pero llama la atención. Cero cambios de layout.</div>
+    <div class="phone">
+      <div class="screen">Pantalla de venta…</div>
+      <div class="bottombar">
+        <div class="nav-btn active">🛒<span>Vender</span></div>
+        <div class="nav-btn">🧾<span>Pedidos</span><span class="nav-badge" data-badge>0</span></div>
+        <div class="nav-btn">💵<span>Caja</span></div>
+        <div class="nav-btn">📜<span>Historial</span></div>
+        <div class="nav-btn">👥<span>Clientes</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="variant v-b">
+    <div class="lbl">B · Botón “Pedidos” resaltado (recomendado)</div>
+    <div class="desc">Además del badge (en amarillo de marca), todo el botón <b>Pedidos</b> se ilumina y late. Imposible no verlo desde la pantalla de venta.</div>
+    <div class="phone">
+      <div class="screen">Pantalla de venta…</div>
+      <div class="bottombar">
+        <div class="nav-btn active">🛒<span>Vender</span></div>
+        <div class="nav-btn" data-alert>🧾<span>Pedidos</span><span class="nav-badge" data-badge>0</span></div>
+        <div class="nav-btn">💵<span>Caja</span></div>
+        <div class="nav-btn">📜<span>Historial</span></div>
+        <div class="nav-btn">👥<span>Clientes</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="variant v-c">
+    <div class="lbl">C · Mini-banner + badge</div>
+    <div class="desc">Aparece un aviso deslizante sobre la barra (“2 pedidos nuevos · Ver”) que puedes tocar para ir directo. Se va solo a los pocos segundos; el badge queda.</div>
+    <div class="phone">
+      <div class="screen">Pantalla de venta…</div>
+      <div class="banner"><span class="bell">🛎️</span><span data-bannertext>2 pedidos nuevos</span><span class="go">Ver</span></div>
+      <div class="bottombar">
+        <div class="nav-btn active">🛒<span>Vender</span></div>
+        <div class="nav-btn">🧾<span>Pedidos</span><span class="nav-badge" data-badge>0</span></div>
+        <div class="nav-btn">💵<span>Caja</span></div>
+        <div class="nav-btn">📜<span>Historial</span></div>
+        <div class="nav-btn">👥<span>Clientes</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var n = 0, bannerT = null;
+  function fire(){
+    n += 1;
+    document.querySelectorAll('[data-badge]').forEach(function(b){ b.textContent = n; b.style.display='flex'; b.classList.add('on'); });
+    document.querySelectorAll('.v-b [data-alert]').forEach(function(el){ el.classList.add('alert'); });
+    var bn = document.querySelector('.v-c .banner');
+    document.querySelector('[data-bannertext]').textContent = n + (n===1?' pedido nuevo':' pedidos nuevos');
+    bn.classList.add('on');
+    clearTimeout(bannerT); bannerT = setTimeout(function(){ bn.classList.remove('on'); }, 4000);
+  }
+  function reset(){
+    n = 0;
+    document.querySelectorAll('[data-badge]').forEach(function(b){ b.textContent='0'; b.style.display='none'; b.classList.remove('on'); });
+    document.querySelectorAll('[data-alert]').forEach(function(el){ el.classList.remove('alert'); });
+    document.querySelector('.v-c .banner').classList.remove('on');
+  }
+  reset();
+</script>
+</body>
+</html>
