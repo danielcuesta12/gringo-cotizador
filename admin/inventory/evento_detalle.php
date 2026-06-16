@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cfg     = $cont2[(int)$d['id']][$iid] ?? null;
                 $corr    = ($cfg && $cfg['corregido'] !== null) ? (float)$cfg['corregido'] : null;
                 $cnt     = ($cfg && $cfg['conteo']    !== null) ? (float)$cfg['conteo']    : null;
-                $consumo = $corr !== null ? $corr : ($teo[$iid] ?? 0);
-                $saldoEsp = ($saldo[$iid] ?? 0) - $consumo;
+                $consumo = $corr !== null ? $corr : round($teo[$iid] ?? 0, 3);   // mismo redondeo que el display
+                $saldoEsp = round(($saldo[$iid] ?? 0) - $consumo, 3);
                 $saldo[$iid] = $cnt !== null ? $cnt : $saldoEsp;
             }
         }
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($ubiEv > 0) {
             foreach ($saldo as $iid => $s) {
                 if ($s > 0.0001) {
-                    invMovimiento($ubiEv, (int)$iid, 'ajuste', (float)$s, ['motivo' => 'Cierre evento #' . $id . ': sobrante devuelto']);
+                    invMovimiento($ubiEv, (int)$iid, 'evento', (float)$s, ['motivo' => 'Cierre evento #' . $id . ': sobrante devuelto']);
                 }
             }
         }
