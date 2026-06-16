@@ -13,7 +13,7 @@ if ($action === 'buscar') {
     $q = trim((string)($_GET['q'] ?? ''));
     if ($q === '') { echo json_encode(['ok'=>true,'items'=>[]]); exit; }
     $rows = Database::fetchAll(
-        "SELECT id, nombre, unidad, tipo FROM insumos WHERE activo=1 AND nombre LIKE ? ORDER BY nombre LIMIT 12",
+        "SELECT id, nombre, unidad, tipo, costo_unitario FROM insumos WHERE activo=1 AND nombre LIKE ? ORDER BY nombre LIMIT 12",
         ['%' . $q . '%']
     );
     echo json_encode(['ok'=>true, 'items'=>$rows]);
