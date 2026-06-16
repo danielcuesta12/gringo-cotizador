@@ -61,11 +61,6 @@ include __DIR__ . '/../layout-top.php';
 <div class="page-header"><div class="page-header-left"><h1>Receta · <?= clean($prod['name']) ?></h1>
   <p>Define cuánto de cada insumo consume una unidad de este producto</p></div></div>
 
-<?php if (empty($insumos)): ?>
-  <div class="card"><div class="empty-state"><h3>No hay insumos</h3><p>Crea insumos primero en la sección «Insumos».</p>
-    <a href="<?= APP_URL ?>/admin/inventory/insumo_form.php" class="btn btn-primary">+ Nuevo insumo</a></div></div>
-<?php else: ?>
-
 <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
   <div class="card"><div class="card-body">
     <form method="post">
@@ -197,7 +192,6 @@ function recalc(){
 document.addEventListener('click', e=>{ if(!e.target.closest('.add-wrap')){ const d=document.getElementById('rec-drop'); if(d) d.style.display='none'; } });
 recalc();
 </script>
-<?php endif; ?>
 
 <div id="ins-ov" style="display:none;position:fixed;inset:0;background:rgba(15,15,20,.5);z-index:50;align-items:center;justify-content:center;padding:18px">
   <div style="width:340px;max-width:100%;background:#fff;border-radius:14px;overflow:hidden">
