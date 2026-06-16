@@ -20,7 +20,7 @@ $data   = $loc ?? [
     'nombre' => '', 'slug' => '', 'descripcion' => '', 'color_header' => '#FCDA13',
     'sales_mode' => 'menu', 'whatsapp_number' => '', 'direccion' => '', 'maps_url' => '',
     'hora_apertura' => 18, 'hora_cierre' => 24, 'instagram' => '',
-    'activa' => 1, 'cerrado_manual' => 0, 'es_principal' => 0, 'sort_order' => 0,
+    'activa' => 1, 'cerrado_manual' => 0, 'es_principal' => 0, 'es_almacen' => 0, 'sort_order' => 0,
     'referencia' => '', 'serie_boleta' => '', 'serie_factura' => '', 'num_boleta' => 1, 'num_factura' => 1,
     'lat' => null, 'lng' => null, 'geocerca_radio' => 100, 'geocerca_activa' => 0, 'modo_marcaje' => 'tablet',
     'asistencia_token' => '',
@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'activa'          => isset($_POST['activa']) ? 1 : 0,
         'cerrado_manual'  => isset($_POST['cerrado_manual']) ? 1 : 0,
         'es_principal'    => isset($_POST['es_principal']) ? 1 : 0,
+        'es_almacen'      => isset($_POST['es_almacen']) ? 1 : 0,
         'sort_order'      => cleanInt($_POST['sort_order'] ?? 0),
         'referencia'      => clean($_POST['referencia'] ?? ''),
         'serie_boleta'    => strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $_POST['serie_boleta'] ?? '')),
@@ -125,6 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]
                 );
             } catch (\Throwable $e) { /* columnas aún no creadas */ }
+        }
+        // Flag almacén central — UPDATE aparte y tolerante (migración 49)
+        if (!empty($savedId)) {
+            try {
+                Database::execute("UPDATE ubicaciones SET es_almacen=? WHERE id=?", [$data['es_almacen'], $savedId]);
+            } catch (\Throwable $e) { /* columna es_almacen aún no creada */ }
         }
         // Campos de asistencia — tolerante si la migración aún no se aplicó
         if (!empty($savedId)) {
@@ -351,7 +358,12 @@ include __DIR__ . '/../layout-top.php';
               <input type="checkbox" name="es_principal" value="1" <?= $data['es_principal']?'checked':'' ?> style="width:18px;height:18px;accent-color:var(--brand)">
               <span class="toggle-label">Principal</span>
             </label>
+            <label class="toggle-wrap" style="cursor:pointer" title="Solo guarda y despacha; no vende">
+              <input type="checkbox" name="es_almacen" value="1" <?= !empty($data['es_almacen'])?'checked':'' ?> style="width:18px;height:18px;accent-color:var(--brand)">
+              <span class="toggle-label">Almacén central</span>
+            </label>
           </div>
+          <div class="form-hint" style="margin-top:6px">Si marcas <strong>Almacén central</strong>, desmarca <strong>Activa</strong>: el almacén no vende, solo guarda y despacha insumos.</div>
         </div>
 
         <div class="form-group" style="margin-top:4px">
