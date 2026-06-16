@@ -443,12 +443,19 @@ try {
     });
 
     // Mantener la posición de scroll del sidebar entre navegaciones (recarga completa por PHP).
+    // OJO: el elemento que scrollea es .sidebar (overflow-y:auto), no .sidebar-nav (flex:1).
+    var scroller = document.getElementById('sidebar') || nav;
     var SKEY = 'sb_scroll';
-    try { var sv = parseInt(localStorage.getItem(SKEY) || '0', 10); if (sv > 0) nav.scrollTop = sv; } catch (e) {}
+    function restoreScroll() {
+      try { var sv = parseInt(localStorage.getItem(SKEY) || '0', 10); if (sv > 0) scroller.scrollTop = sv; } catch (e) {}
+    }
+    restoreScroll();                                   // inmediato
+    requestAnimationFrame(restoreScroll);              // tras el primer layout
+    window.addEventListener('load', restoreScroll);    // tras cargar el logo/imágenes (puede cambiar la altura)
     var _sbScrollT = null;
-    nav.addEventListener('scroll', function () {
+    scroller.addEventListener('scroll', function () {
       if (_sbScrollT) return;
-      _sbScrollT = setTimeout(function () { _sbScrollT = null; try { localStorage.setItem(SKEY, String(nav.scrollTop)); } catch (e) {} }, 120);
+      _sbScrollT = setTimeout(function () { _sbScrollT = null; try { localStorage.setItem(SKEY, String(scroller.scrollTop)); } catch (e) {} }, 100);
     });
   })();
   </script>
