@@ -19,4 +19,12 @@ SELECT m.migracion, IF(m.existe > 0, '✅ aplicada', '❌ FALTA') AS estado FROM
   UNION ALL SELECT 'nubefact.sql               (pedidos.comprobante_estado)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='pedidos' AND column_name='comprobante_estado'
   UNION ALL SELECT 'nubefact_email.sql         (pedidos.cliente_email)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='pedidos'      AND column_name='cliente_email'
   UNION ALL SELECT 'multilocal_facturacion.sql (ubicaciones.serie_boleta)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ubicaciones' AND column_name='serie_boleta'
+  UNION ALL SELECT '41 sales_mode_ambos        (ubicaciones.sales_mode=ambos)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ubicaciones' AND column_name='sales_mode' AND COLUMN_TYPE LIKE '%ambos%'
+  UNION ALL SELECT '42 asistencia              (tabla empleados)',         COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='empleados'
+  UNION ALL SELECT '43 asistencia_pin_lockout  (empleados.pin_bloqueado_hasta)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='empleados'   AND column_name='pin_bloqueado_hasta'
+  UNION ALL SELECT '44 insumo_tipo/receta_mod  (insumos.tipo)',            COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='insumos'     AND column_name='tipo'
+  UNION ALL SELECT '45 eventos                 (tabla eventos)',           COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='eventos'
+  UNION ALL SELECT '46 evento_dias             (tabla evento_dias)',       COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='evento_dias'
+  UNION ALL SELECT '47 evento_truck            (eventos.truck_ubicacion_id)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='eventos'   AND column_name='truck_ubicacion_id'
+  UNION ALL SELECT '48 evento_gastos           (tabla evento_gastos)',     COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='evento_gastos'
 ) m;
