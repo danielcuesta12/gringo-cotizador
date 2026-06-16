@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/helpers.php';
 header('Content-Type: application/json; charset=utf-8');
 
 requireLogin();
-if (!can('inv_recetas') && !can('inv_insumos')) { echo json_encode(['ok'=>false,'error'=>'Sin permisos']); exit; }
+if (!can('inv_recetas') && !can('inv_insumos') && !can('modifiers')) { echo json_encode(['ok'=>false,'error'=>'Sin permisos']); exit; }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -31,6 +31,36 @@ if ($action === 'crear') {
     if ($exist) { echo json_encode(['ok'=>true, 'insumo'=>$exist, 'reusado'=>true]); exit; }
     $id = Database::insert("INSERT INTO insumos (nombre,unidad,costo_unitario,tipo,activo) VALUES (?,?,?,?,1)", [$nombre,$unidad,$costo,$tipo]);
     echo json_encode(['ok'=>true, 'insumo'=>['id'=>$id,'nombre'=>$nombre,'unidad'=>$unidad,'tipo'=>$tipo]]);
+    exit;
+}
+
+if ($action === 'receta_mod_get') {
+    $mid = cleanInt($_GET['modificador_id'] ?? 0);
+    $rows = Database::fetchAll(
+        "SELECT rm.insumo_id, rm.cantidad, i.nombre, i.unidad, i.costo_unitario
+           FROM receta_modificadores rm JOIN insumos i ON i.id = rm.insumo_id
+          WHERE rm.modificador_id = ? ORDER BY i.nombre",
+        [$mid]
+    );
+    echo json_encode(['ok'=>true, 'items'=>$rows]);
+    exit;
+}
+
+if ($action === 'receta_mod_save') {
+    verifyCsrf();
+    $mid = cleanInt($_POST['modificador_id'] ?? 0);
+    if ($mid <= 0) { echo json_encode(['ok'=>false,'error'=>'Modificador inválido']); exit; }
+    $ins  = $_POST['insumo_id'] ?? [];
+    $cant = $_POST['cantidad'] ?? [];
+    Database::execute("DELETE FROM receta_modificadores WHERE modificador_id = ?", [$mid]);
+    $seen = [];
+    foreach ($ins as $idx => $iid) {
+        $iid = (int)$iid; $c = (float)($cant[$idx] ?? 0);
+        if ($iid <= 0 || $c <= 0 || isset($seen[$iid])) continue;
+        $seen[$iid] = true;
+        Database::insert("INSERT INTO receta_modificadores (modificador_id,insumo_id,cantidad) VALUES (?,?,?)", [$mid, $iid, $c]);
+    }
+    echo json_encode(['ok'=>true]);
     exit;
 }
 
