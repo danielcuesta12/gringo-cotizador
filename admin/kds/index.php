@@ -223,16 +223,18 @@ function rKDS(){var g=document.getElementById("kg");if(vista==="all"){g.classLis
 
 function computeCounts(){var now=Date.now();var ct={gray:0,green:0,orange:0,red:0};D.pedidos.forEach(function(p){if(p.estado==="pendiente"){ct.gray++;return;}var ms=Math.max(0,(p._base+(now-p._recv)/1000)/60);ct[gc(ms)]++;});return ct;}
 
+function srtLane(ps){var now=Date.now();var pn=ps.filter(function(p){return p.estado==="pendiente";});var ep=ps.filter(function(p){return p.estado!=="pendiente";});ep.sort(function(a,b){var ma=a._recv!==undefined?(a._base+(now-a._recv)/1000):0;var mb=b._recv!==undefined?(b._base+(now-b._recv)/1000):0;return mb-ma;});return ep.concat(pn);}
+
 function lanesData(){
   var groups=[];
   if(vista==="tipo"){
     var defs=[["salon","Salón","#a78bfa",function(p){return p.origen==="pos";}],
               ["delivery","Delivery","#38bdf8",function(p){return p.origen!=="pos"&&p.tipo_entrega==="delivery";}],
               ["recojo","Recojo","#34d399",function(p){return p.origen!=="pos"&&p.tipo_entrega!=="delivery";}]];
-    defs.forEach(function(d){var ps=srt(D.pedidos.filter(d[3]));if(ps.length)groups.push({key:d[0],label:d[1],color:d[2],rows:ps.map(function(p){return {p:p,items:p.items,nCats:1,parteCat:null};})});});
+    defs.forEach(function(d){var ps=srtLane(D.pedidos.filter(d[3]));if(ps.length)groups.push({key:d[0],label:d[1],color:d[2],rows:ps.map(function(p){return {p:p,items:p.items,nCats:1,parteCat:null};})});});
   }else{
     var order=[],by={};
-    srt(D.pedidos).forEach(function(p){
+    srtLane(D.pedidos).forEach(function(p){
       var cats={};(p.items||[]).forEach(function(i){var cn=i.categoria||"Sin categoría";(cats[cn]=cats[cn]||[]).push(i);});
       var nC=Object.keys(cats).length;
       Object.keys(cats).forEach(function(cn){var sl=slugCat(cn);if(!by[sl]){by[sl]={key:sl,label:cn,color:"#f59e0b",rows:[]};order.push(sl);}by[sl].rows.push({p:p,items:cats[cn],nCats:nC,parteCat:sl});});
@@ -299,8 +301,9 @@ function tick(){const now=Date.now();const cl=document.getElementById("clk");if(
 }
 
 async function ac(id){const r=await req("kds_update.php",{action:"aceptar",id});if(r.ok){const p=D.pedidos.find(x=>x.id==id);if(p){p.estado="en_preparacion";p._base=0;p._recv=Date.now();}rKDS();}}
-async function ls(id){const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"marcar_listo",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());sv();setTimeout(rKDS,350);if(histOpen)fHist();}
-async function cn(id){if(!confirm("¿Cancelar este pedido?"))return;const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"cancelar",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());sv();setTimeout(rKDS,350);if(histOpen)fHist();}
+function purgarPartes(id){var pre=id+":";[...partesListas].forEach(function(k){if(k.indexOf(pre)===0)partesListas.delete(k);});saveParts();}
+async function ls(id){const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"marcar_listo",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
+async function cn(id){if(!confirm("¿Cancelar este pedido?"))return;const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"cancelar",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
 
 function sv(){if(vista==="all"){const cs=document.querySelectorAll("#kg .kc");mo=[...cs].map(c=>c.dataset.id);localStorage.setItem(lsKey("ko"),JSON.stringify(mo));}localStorage.setItem(lsKey("km"),JSON.stringify([...mm]));}
 
