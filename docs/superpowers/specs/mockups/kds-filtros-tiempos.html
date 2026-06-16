@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · KDS — tiempos editables + filtro salón/delivery + drag</title>
+<style>
+  :root{--bg:#0f1115;--panel:#181b21;--line:#2a2e36;--text:#e8e8ea;--mut:#9aa0aa;--yellow:#F5C200;
+        --green:#1f9d55;--orange:#d9920a;--red:#d64545;--gray:#6b7280;
+        --salon:#a78bfa;--deli:#38bdf8;--recojo:#fbbf24;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:18px 14px 60px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:19px;font-weight:900;margin-bottom:3px}
+  .sub{font-size:13px;color:var(--mut);margin-bottom:18px;line-height:1.5}
+
+  /* Topbar KDS */
+  .topbar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:16px;flex-wrap:wrap;position:relative}
+  .topbar .t-title{font-weight:900;font-size:15px;margin-right:auto}
+  .seg{display:flex;background:#11141a;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{background:none;border:none;color:var(--mut);font-weight:800;font-size:12.5px;padding:8px 13px;cursor:pointer}
+  .seg button.on{background:var(--yellow);color:#1a1a1a}
+  .tb-btn{background:#11141a;border:1px solid var(--line);color:var(--text);font-weight:800;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer}
+
+  /* Popover tiempos */
+  .pop{position:absolute;top:54px;right:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;width:260px;box-shadow:0 18px 50px rgba(0,0,0,.5);z-index:20;display:none}
+  .pop.on{display:block}
+  .pop h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--yellow);margin-bottom:10px}
+  .pop .fld{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
+  .pop .fld label{flex:1;color:var(--mut)}
+  .pop .dot{width:12px;height:12px;border-radius:50%}
+  .pop input{width:64px;background:#11141a;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:7px;text-align:center;font-size:14px;font-weight:700}
+  .pop .hint{font-size:11px;color:var(--mut);line-height:1.5;margin-top:4px}
+
+  /* Lanes / grid */
+  .lane{margin-bottom:14px}
+  .lane-h{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-left:2px}
+  .lane-h .tag{font-size:10px;padding:3px 9px;border-radius:20px;color:#10131a;font-weight:900}
+  .lane-h .n{color:var(--mut);font-weight:700;font-size:12px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap}
+  .lane.salon{border-left:3px solid var(--salon);padding-left:10px}
+  .lane.deli{border-left:3px solid var(--deli);padding-left:10px}
+  .lane.recojo{border-left:3px solid var(--recojo);padding-left:10px}
+
+  /* Card */
+  .kc{width:150px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--gray);border-radius:11px;overflow:hidden;position:relative}
+  .kc.green{border-top-color:var(--green)} .kc.orange{border-top-color:var(--orange)} .kc.red{border-top-color:var(--red)}
+  .kc .h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px}
+  .kc .id{font-weight:900}
+  .kc .tm{font-weight:900;font-variant-numeric:tabular-nums}
+  .kc.green .tm{color:#5fd08a}.kc.orange .tm{color:#f0b44a}.kc.red .tm{color:#f08a8a}
+  .kc .tp{font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;color:#10131a}
+  .kc .tp.salon{background:var(--salon)}.kc .tp.deli{background:var(--deli)}.kc .tp.recojo{background:var(--recojo)}
+  .kc .b{padding:0 10px 10px;font-size:12px;color:var(--mut)}
+  .kc .b .cl{color:var(--text);font-weight:700;margin-bottom:3px}
+  .pin{position:absolute;top:6px;right:6px;font-size:12px}
+
+  .legend{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;line-height:1.6;margin-top:6px}
+  .legend b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍳 KDS — tiempos editables · filtro salón/delivery · drag</h1>
+  <div class="sub">Mockup de las 3 mejoras. Cambia la vista y los tiempos para ver cómo se sentiría. Datos de ejemplo.</div>
+
+  <div class="topbar">
+    <span class="t-title">Cocina · Local Centro</span>
+    <div class="seg">
+      <button id="v-all" class="on" onclick="setView('all')">Todo junto</button>
+      <button id="v-split" onclick="setView('split')">Separar por tipo</button>
+    </div>
+    <button class="tb-btn" onclick="togglePop()">⚙️ Tiempos</button>
+
+    <div class="pop" id="pop">
+      <h4>Umbrales de tiempo</h4>
+      <div class="fld"><span class="dot" style="background:var(--orange)"></span><label>Pasa a naranja a los</label><input id="tn" type="number" value="10" min="1" oninput="recolor()"> min</div>
+      <div class="fld"><span class="dot" style="background:var(--red)"></span><label>Pasa a rojo a los</label><input id="tr" type="number" value="20" min="2" oninput="recolor()"> min</div>
+      <div class="hint">Se ajustan según el ritmo del local. Se guardan por pantalla y aplican al instante.</div>
+    </div>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="legend">
+    <b>Drag &amp; drop (confirmado):</b> arrastrar una tarjeta la <b>“fija” 📌</b> en esa posición — el orden automático por tiempo deja de moverla; las demás siguen ordenándose solas. Propongo marcar las fijadas con <b>📌</b> y un botón para <b>“soltar”</b> (devolverla al orden automático). En la vista <b>Separar por tipo</b>, el drag reordena dentro de su propia fila.
+  </div>
+</div>
+
+<script>
+  var PEDIDOS = [
+    {id:1,  tipo:'salon',  cl:'red',    t:'22:14', cliente:'Mesa 4',     items:'2x Gringo · 1x Salchipapa', pin:true},
+    {id:2,  tipo:'deli',   cl:'orange', t:'12:40', cliente:'Lucía R.',   items:'1x Crispy · 1x Gaseosa'},
+    {id:3,  tipo:'salon',  cl:'orange', t:'11:02', cliente:'Mesa 7',     items:'3x Gringo'},
+    {id:4,  tipo:'recojo', cl:'green',  t:'04:18', cliente:'Marco',      items:'2x Salchipapa XL'},
+    {id:5,  tipo:'deli',   cl:'green',  t:'02:55', cliente:'Ana P.',     items:'1x Gringo Doble'},
+    {id:6,  tipo:'salon',  cl:'green',  t:'01:30', cliente:'Mesa 2',     items:'1x Crispy · 2x Limonada'},
+  ];
+  var TN=10, TR=20, view='all';
+  var TIPO={salon:{lbl:'Salón',tag:'SALÓN'},deli:{lbl:'Delivery',tag:'DELIVERY'},recojo:{lbl:'Recojo',tag:'RECOJO'}};
+
+  function mins(t){var p=t.split(':');return parseInt(p[0],10)+parseInt(p[1],10)/60;}
+  function colorOf(p){var m=mins(p.t);return m>=TR?'red':m>=TN?'orange':'green';}
+
+  function card(p){
+    var cl=colorOf(p);
+    return '<div class="kc '+cl+'">'+(p.pin?'<span class="pin">📌</span>':'')+
+      '<div class="h"><span class="id">#'+String(p.id).padStart(3,'0')+'</span>'+
+      '<span class="tp '+p.tipo+'">'+TIPO[p.tipo].tag+'</span>'+
+      '<span class="tm">'+p.t+'</span></div>'+
+      '<div class="b"><div class="cl">'+p.cliente+'</div>'+p.items+'</div></div>';
+  }
+
+  function render(){
+    var b=document.getElementById('board');
+    if(view==='all'){
+      b.innerHTML='<div class="lane"><div class="cards">'+PEDIDOS.map(card).join('')+'</div></div>';
+    } else {
+      var order=['salon','deli','recojo'];
+      b.innerHTML=order.map(function(tp){
+        var ps=PEDIDOS.filter(function(p){return p.tipo===tp;});
+        if(!ps.length) return '';
+        return '<div class="lane '+tp+'"><div class="lane-h"><span class="tag" style="background:var(--'+(tp==='salon'?'salon':tp==='deli'?'deli':'recojo')+')">'+TIPO[tp].tag+'</span> '+TIPO[tp].lbl+' <span class="n">· '+ps.length+'</span></div><div class="cards">'+ps.map(card).join('')+'</div></div>';
+      }).join('');
+    }
+  }
+  function setView(v){view=v;document.getElementById('v-all').classList.toggle('on',v==='all');document.getElementById('v-split').classList.toggle('on',v==='split');render();}
+  function togglePop(){document.getElementById('pop').classList.toggle('on');}
+  function recolor(){TN=parseFloat(document.getElementById('tn').value)||10;TR=parseFloat(document.getElementById('tr').value)||20;render();}
+  render();
+</script>
+</body>
+</html>
