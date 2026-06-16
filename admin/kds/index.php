@@ -116,7 +116,7 @@ $csrf    = csrfToken();
 <script>
 const API="<?= APP_URL ?>/api", CSRF="<?= $csrf ?>";
 let UBI=<?= (int)$defaultUbi ?>;
-let D={pedidos:[],cfg:{tn:10,tr:20,rs:15},ids:new Set()},tmr=null,actx=null;
+let D={pedidos:[],cfg:{tn:10,tr:20,rs:3},ids:new Set()},tmr=null,actx=null;
 let mo=[], mm=new Set();
 function lsKey(k){return k+"_"+UBI;}
 function loadOrder(){mo=JSON.parse(localStorage.getItem(lsKey("ko"))||"[]");mm=new Set(JSON.parse(localStorage.getItem(lsKey("km"))||"[]"));}

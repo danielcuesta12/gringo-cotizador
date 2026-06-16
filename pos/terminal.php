@@ -426,9 +426,19 @@ a{color:inherit;text-decoration:none}
 #panel-caja.active, #panel-historial.active, #panel-clientes.active, #panel-pedidos.active{display:flex}
 /* Badge del nav Pedidos */
 .nav-btn{position:relative}
-.nav-badge{position:absolute;top:6px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;
+.nav-badge{position:absolute;top:6px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;
   border-radius:9px;background:var(--red,#e23744);color:#fff;font-size:10px;font-weight:800;
   display:flex;align-items:center;justify-content:center;line-height:1}
+.nav-badge.pulse{animation:nbpulse 1.25s ease-in-out infinite}
+@keyframes nbpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}
+/* Banner de pedidos nuevos (badge pulsante + aviso deslizante) */
+#ped-banner{position:fixed;left:12px;right:12px;bottom:calc(var(--btmbar-h) + 12px);z-index:120;
+  background:var(--yellow);color:#000;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;
+  font-weight:800;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.55);cursor:pointer;
+  transform:translateY(150px);opacity:0;transition:transform .35s cubic-bezier(.2,.9,.3,1.3),opacity .3s;pointer-events:none}
+#ped-banner.on{transform:translateY(0);opacity:1;pointer-events:auto}
+#ped-banner .pb-bell{font-size:18px}
+#ped-banner .pb-go{margin-left:auto;background:#000;color:var(--yellow);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:800}
 /* Tarjetas de pedidos de carta */
 .ped-empty{color:var(--text2);font-size:13px;text-align:center;padding:24px}
 .ped-card{border:1px solid var(--border);border-radius:13px;padding:13px;background:var(--surface2);display:flex;flex-direction:column;gap:9px}
@@ -908,6 +918,13 @@ body.panel-open #ver-pedido-bar{display:none !important}
   <span id="vpb-label">Sin productos</span>
 </div>
 
+<!-- Aviso de pedidos nuevos (se desliza sobre la barra) -->
+<div id="ped-banner" onclick="showPanel('pedidos')">
+  <span class="pb-bell">🛎️</span>
+  <span id="ped-banner-txt">pedidos por atender</span>
+  <span class="pb-go">Ver</span>
+</div>
+
 <!-- ── Bottombar ──────────────────────────────────────── -->
 <div id="bottombar">
   <button class="nav-btn active" id="nav-vender" title="Vender">
@@ -1188,7 +1205,7 @@ function openTerminal() {
   if (!state.productos.length) loadProductos();
   if (!state.metodos.length) loadMetodos();
   refreshPedidosBadge();
-  if (!state._pedidosPoll) state._pedidosPoll = setInterval(refreshPedidosBadge, 60000);
+  if (!state._pedidosPoll) state._pedidosPoll = setInterval(refreshPedidosBadge, 15000);
 }
 
 function updateCajaEstado(turno) {
@@ -2311,6 +2328,7 @@ function showPanel(name) {
   state.histOpen     = (name === 'historial');
   state.clientesOpen = (name === 'clientes');
   state.pedidosOpen  = (name === 'pedidos');
+  if (name === 'pedidos') { var _pb = document.getElementById('ped-banner'); if (_pb) _pb.classList.remove('on'); }
   document.getElementById('panel-caja').classList.toggle('active', name === 'caja');
   document.getElementById('panel-historial').classList.toggle('active', name === 'historial');
   var pcl = document.getElementById('panel-clientes');
@@ -2383,8 +2401,32 @@ function usarCliente(i) {
 function setPedidosBadge(n) {
   var b = document.getElementById('nav-pedidos-badge');
   if (!b) return;
-  if (n > 0) { b.textContent = n > 99 ? '99+' : n; b.style.display = 'flex'; }
-  else { b.style.display = 'none'; }
+  if (n > 0) { b.textContent = n > 99 ? '99+' : n; b.style.display = 'flex'; b.classList.add('pulse'); }
+  else { b.style.display = 'none'; b.classList.remove('pulse'); }
+  // Avisar solo cuando ENTRAN pedidos nuevos (sube el conteo) y no estás ya en la bandeja.
+  var prev = state._badgeCount;
+  state._badgeCount = n;
+  if (prev !== undefined && n > prev && !state.pedidosOpen) pedidoAlert(n);
+}
+function pedidoAlert(n) {
+  try { beepPos(); } catch (e) {}
+  var banner = document.getElementById('ped-banner');
+  if (!banner) return;
+  document.getElementById('ped-banner-txt').textContent = n + (n === 1 ? ' pedido por atender' : ' pedidos por atender');
+  banner.classList.add('on');
+  clearTimeout(state._bannerT);
+  state._bannerT = setTimeout(function(){ banner.classList.remove('on'); }, 6000);
+}
+function beepPos() {
+  var ac = state._actx || (state._actx = new (window.AudioContext || window.webkitAudioContext)());
+  if (ac.state === 'suspended') ac.resume();
+  var o = ac.createOscillator(), g = ac.createGain();
+  o.connect(g); g.connect(ac.destination);
+  o.type = 'sine'; o.frequency.value = 880;
+  g.gain.setValueAtTime(0.0001, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.25, ac.currentTime + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.35);
+  o.start(); o.stop(ac.currentTime + 0.36);
 }
 function refreshPedidosBadge() {
   if (!state.turno) { setPedidosBadge(0); return; }
