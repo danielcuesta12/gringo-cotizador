@@ -62,11 +62,17 @@ include __DIR__ . '/../layout-top.php';
   <?php else: ?>
   <div class="table-wrap" style="border:none;border-radius:0">
     <table class="data-table">
-      <thead><tr><th>Insumo</th><th>Unidad</th><th>Costo unit.</th><th>Stock total</th><th>En recetas</th><th style="width:150px"></th></tr></thead>
+      <thead><tr><th>Insumo</th><th>Tipo</th><th>Unidad</th><th>Costo unit.</th><th>Stock total</th><th>En recetas</th><th style="width:150px"></th></tr></thead>
       <tbody>
         <?php foreach ($insumos as $i): ?>
         <tr<?= $i['activo'] ? '' : ' style="opacity:.5"' ?>>
           <td><strong><?= clean($i['nombre']) ?></strong></td>
+          <td><?php
+            $tipoBadge = ($i['tipo'] ?? 'ingrediente') === 'descartable'
+              ? '<span class="badge" style="background:var(--text-muted);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">Descartable</span>'
+              : '<span class="badge" style="background:var(--brand);color:#1e1e1e;font-size:11px;padding:2px 7px;border-radius:10px">Ingrediente</span>';
+            echo $tipoBadge;
+          ?></td>
           <td><?= clean($i['unidad']) ?></td>
           <td><?= formatMoney($i['costo_unitario']) ?></td>
           <td><?= rtrim(rtrim(number_format($i['stock_total'], 3, '.', ''), '0'), '.') ?> <span style="color:var(--text-muted);font-size:12px"><?= clean($i['unidad']) ?></span></td>
