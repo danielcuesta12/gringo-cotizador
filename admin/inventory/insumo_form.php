@@ -11,7 +11,7 @@ if ($id && !$ins) { flashMessage('error', 'Insumo no encontrado.'); redirect('/a
 
 $isEdit = (bool)$ins;
 $errors = [];
-$data   = $ins ?? ['nombre'=>'','unidad'=>'g','costo_unitario'=>'','activo'=>1];
+$data   = $ins ?? ['nombre'=>'','unidad'=>'g','costo_unitario'=>'','activo'=>1,'tipo'=>'ingrediente'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -20,17 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'unidad'         => clean($_POST['unidad'] ?? 'unidad') ?: 'unidad',
         'costo_unitario' => max(0, cleanFloat($_POST['costo_unitario'] ?? 0)),
         'activo'         => isset($_POST['activo']) ? 1 : 0,
+        'tipo'           => in_array($_POST['tipo'] ?? '', ['ingrediente','descartable']) ? $_POST['tipo'] : 'ingrediente',
     ];
     if (!$data['nombre']) $errors[] = 'El nombre es obligatorio.';
 
     if (empty($errors)) {
         if ($isEdit) {
-            Database::execute("UPDATE insumos SET nombre=?,unidad=?,costo_unitario=?,activo=? WHERE id=?",
-                [$data['nombre'],$data['unidad'],$data['costo_unitario'],$data['activo'],$id]);
+            Database::execute("UPDATE insumos SET nombre=?,unidad=?,costo_unitario=?,activo=?,tipo=? WHERE id=?",
+                [$data['nombre'],$data['unidad'],$data['costo_unitario'],$data['activo'],$data['tipo'],$id]);
             flashMessage('success', 'Insumo actualizado.');
         } else {
-            Database::insert("INSERT INTO insumos (nombre,unidad,costo_unitario,activo) VALUES (?,?,?,?)",
-                [$data['nombre'],$data['unidad'],$data['costo_unitario'],$data['activo']]);
+            Database::insert("INSERT INTO insumos (nombre,unidad,costo_unitario,activo,tipo) VALUES (?,?,?,?,?)",
+                [$data['nombre'],$data['unidad'],$data['costo_unitario'],$data['activo'],$data['tipo']]);
             flashMessage('success', 'Insumo creado.');
         }
         redirect('/admin/inventory/insumos.php');
@@ -76,6 +77,14 @@ include __DIR__ . '/../layout-top.php';
         <input type="text" inputmode="decimal" name="costo_unitario" value="<?= $data['costo_unitario']!=='' ? number_format((float)$data['costo_unitario'],4,'.','') : '' ?>" placeholder="0.0000">
         <div class="form-hint">Ej: si 1 kg de carne cuesta S/24 y manejas en g → 0.024</div>
       </div>
+    </div>
+    <div class="form-group">
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="ingrediente" <?= ($data['tipo']??'ingrediente')==='ingrediente'?'selected':'' ?>>Ingrediente (va en recetas)</option>
+        <option value="descartable" <?= ($data['tipo']??'')==='descartable'?'selected':'' ?>>Descartable / papelería</option>
+      </select>
+      <div class="form-hint">Los descartables (cajas, vasos) no se cargan en recetas; se controlan como papelería.</div>
     </div>
     <label class="toggle-wrap" style="cursor:pointer">
       <input type="checkbox" name="activo" value="1" <?= $data['activo']?'checked':'' ?> style="width:18px;height:18px;accent-color:var(--brand)">
