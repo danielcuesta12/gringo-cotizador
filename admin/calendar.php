@@ -319,6 +319,8 @@ function evClass(q) {
   if (q.origin==='event') return 'cal-ev-v';
   return q.status==='aceptada' ? 'cal-ev-a' : 'cal-ev-e';
 }
+// Etiqueta del evento en el calendario: nombre personalizado si lo tiene, si no el código.
+function evLabel(q) { return (q.evento_nombre && (''+q.evento_nombre).trim()) ? q.evento_nombre : q.quote_number; }
 function badgeStyle(q) {
   if (q.origin==='event') return 'background:#ede9fe;color:#5b21b6';
   return q.status==='aceptada' ? 'background:#dcfce7;color:#166534' : 'background:#dbeafe;color:#1e40af';
@@ -372,7 +374,7 @@ function renderMonth() {
     ags.forEach(function(a){ dayEv.push({k:timeKey(a.hora), t:'a', d:a}); });
     dayEv.sort(function(x,y){ return x.k<y.k?-1:(x.k>y.k?1:0); });
     dayEv.forEach(function(e){
-      if (e.t==='q') html += '<button class="cal-ev '+evClass(e.d)+'" onclick="showTooltip(event,'+e.d.id+')">'+e.d.quote_number+'</button>';
+      if (e.t==='q') html += '<button class="cal-ev '+evClass(e.d)+'" onclick="showTooltip(event,'+e.d.id+')">'+esc(evLabel(e.d))+'</button>';
       else html += '<button class="cal-ev cal-ev-g" onclick="showAgendaTooltip(event,'+e.d.id+')">'+esc(e.d.titulo)+'</button>';
     });
     html += '</div>';
@@ -613,7 +615,7 @@ function renderList() {
     html += '<div class="list-main" onclick="toggleListDetail('+q.id+')">';
     html += '<div style="text-align:center;min-width:38px;flex-shrink:0"><div style="font-size:20px;font-weight:700;line-height:1;color:var(--text-primary)">'+d+'</div><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase">'+dow+'</div></div>';
     html += '<div style="width:3px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0;background:'+bc+'"></div>';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+nc+'">'+q.quote_number+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.client_name+'</div>';
+    html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+nc+'">'+esc(evLabel(q))+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+q.client_name+'</div>';
     if (q.event_type||q.event_time) html += '<div style="font-size:11px;color:var(--text-muted)">'+(q.event_type||'')+(q.event_time?' · '+q.event_time:'')+'</div>';
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0"><div>'+nBadge+'</div><div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:3px">'+fmtMoney(q.total)+'</div></div>';
