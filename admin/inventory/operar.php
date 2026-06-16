@@ -129,15 +129,15 @@ include __DIR__ . '/../layout-top.php';
 <?php else: ?>
 
 <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-  <select onchange="location.href='?ubi='+this.value+'&modo=<?= $modo ?>'" style="padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:14px;font-weight:700;background:#fff">
+  <select onchange="location.href='?ubi='+this.value+'&modo=<?= $modo ?>'" style="padding:12px 36px 12px 16px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;font-weight:700;background:#fff;min-width:240px;line-height:1.2">
     <?php foreach ($ubicaciones as $u): ?>
       <option value="<?= (int)$u['id'] ?>" <?= $ubiF==$u['id']?'selected':'' ?>><?= !empty($u['es_almacen']) ? '🏬 ' : '🍔 ' ?><?= clean($u['nombre']) ?></option>
     <?php endforeach; ?>
   </select>
   <?php if ($esAlmacen): ?>
-    <span class="badge" style="background:var(--brand);color:#1e1e1e">Almacén central · no vende</span>
+    <span class="badge" style="background:var(--brand);color:#1e1e1e;padding:6px 12px;font-size:12px">🏬 Almacén central · no vende</span>
   <?php else: ?>
-    <span class="badge badge-secondary" style="background:#FFBBC8;color:#1e1e1e">Restaurante</span>
+    <span class="badge" style="background:#FFBBC8;color:#1e1e1e;padding:6px 12px;font-size:12px">🍔 Punto de venta</span>
   <?php endif; ?>
 </div>
 
