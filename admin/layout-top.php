@@ -35,7 +35,7 @@ try {
         <div class="sidebar-logo-fallback">EG</div>
       <?php endif; ?>
     </div>
-    <div class="sidebar-brand-sub">Cotizador</div>
+    <div class="sidebar-brand-sub">OPS PRO v2.0</div>
   </div>
 
   <nav class="sidebar-nav">
