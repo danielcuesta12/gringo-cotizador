@@ -5,8 +5,9 @@ require_once __DIR__ . '/../../includes/helpers.php';
 requirePermission('inv_evento');
 $id = cleanInt($_GET['id'] ?? 0);
 $ev = $id ? Database::fetch(
-  "SELECT e.*, u.nombre AS ubi_nombre, q.quote_number FROM eventos e
-     LEFT JOIN ubicaciones u ON u.id=e.ubicacion_id LEFT JOIN quotes q ON q.id=e.quote_id WHERE e.id=?",
+  "SELECT e.*, u.nombre AS ubi_nombre, q.quote_number, t.nombre AS truck_nombre FROM eventos e
+     LEFT JOIN ubicaciones u ON u.id=e.ubicacion_id LEFT JOIN quotes q ON q.id=e.quote_id
+     LEFT JOIN ubicaciones t ON t.id=e.truck_ubicacion_id WHERE e.id=?",
   [$id]
 ) : null;
 if (!$ev) { flashMessage('error','Evento no encontrado.'); redirect('/admin/inventory/eventos.php'); }
@@ -140,6 +141,7 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
   <p><?= clean($ev['fecha_inicio']) ?><?= $ev['fecha_fin'] ? ' → ' . clean($ev['fecha_fin']) : '' ?>
      <?= $ev['ubi_nombre'] ? ' · ' . clean($ev['ubi_nombre']) : '' ?>
      <?= $ev['quote_number'] ? ' · ' . clean($ev['quote_number']) : '' ?>
+     <?= !empty($ev['truck_nombre']) ? ' · 🚚 ' . clean($ev['truck_nombre']) : '' ?>
      · <span class="badge <?= $ev['estado']==='abierto'?'badge-success':'badge-secondary' ?>"><?= $ev['estado']==='abierto'?'Abierto':'Cerrado' ?></span></p></div></div>
 
 <div class="card"><div class="card-header"><span class="card-title">Inventario inicial (apertura)</span></div>
