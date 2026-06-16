@@ -50,10 +50,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$data['nombre'],$data['descripcion'],$data['tipo'],$data['max_opciones'],$data['requerido'],$data['orden'],$data['activo']]
             );
         }
-        // Sincronizar opciones: borrar y reinsertar
-        Database::execute("DELETE FROM modificadores WHERE grupo_id = ?", [$gid]);
-        foreach ($opciones as $i => $o) {
-            Database::insert("INSERT INTO modificadores (grupo_id,nombre,precio_adicional,orden) VALUES (?,?,?,?)", [$gid, $o['nombre'], $o['precio_adicional'], $i]);
+        // Upsert de opciones (IDs estables → no rompe receta_modificadores)
+        $optIds = $_POST['opt_id'] ?? [];
+        $optNom = $_POST['opt_nombre'] ?? [];
+        $optPre = $_POST['opt_precio'] ?? [];
+        $kept = [];
+        foreach ($optNom as $i => $nombre) {
+            $nombre = clean($nombre);
+            if ($nombre === '') continue;
+            $precio = max(0, cleanFloat($optPre[$i] ?? 0));
+            $oid = (int)($optIds[$i] ?? 0);
+            if ($oid > 0) {
+                Database::execute(
+                    "UPDATE modificadores SET nombre=?, precio_adicional=?, orden=? WHERE id=? AND grupo_id=?",
+                    [$nombre, $precio, $i, $oid, $gid]
+                );
+                $kept[] = $oid;
+            } else {
+                $kept[] = (int) Database::insert(
+                    "INSERT INTO modificadores (grupo_id,nombre,precio_adicional,orden) VALUES (?,?,?,?)",
+                    [$gid, $nombre, $precio, $i]
+                );
+            }
+        }
+        $existentes = Database::fetchAll("SELECT id FROM modificadores WHERE grupo_id=?", [$gid]);
+        foreach ($existentes as $e) {
+            if (!in_array((int)$e['id'], $kept, true)) {
+                Database::execute("DELETE FROM receta_modificadores WHERE modificador_id=?", [(int)$e['id']]);
+                Database::execute("DELETE FROM modificadores WHERE id=?", [(int)$e['id']]);
+            }
         }
         flashMessage('success', 'Grupo de adicionales guardado.');
         redirect('/admin/modifiers/index.php');
@@ -127,6 +152,7 @@ include __DIR__ . '/../layout-top.php';
           <?php if (empty($opciones)) $opciones = [['nombre'=>'','precio_adicional'=>'']]; ?>
           <?php foreach ($opciones as $o): ?>
           <div class="opt-row">
+            <input type="hidden" name="opt_id[]" value="<?= (int)($o['id'] ?? 0) ?>">
             <input type="text" name="opt_nombre[]" class="opt-n" value="<?= clean($o['nombre']) ?>" placeholder="Ej: Mayonesa de la casa">
             <div class="opt-p"><span class="cur">S/</span><input type="text" inputmode="decimal" name="opt_precio[]" value="<?= $o['precio_adicional']!=='' ? number_format((float)$o['precio_adicional'],2,'.','') : '' ?>" placeholder="0.00"></div>
             <button type="button" class="opt-del" onclick="this.closest('.opt-row').remove()" title="Quitar">
