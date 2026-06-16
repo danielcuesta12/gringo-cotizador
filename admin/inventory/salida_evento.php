@@ -17,10 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cant  = $_POST['cantidad'] ?? [];
     if (!$ubiId) { flashMessage('error', 'Elige una ubicación.'); redirect('/admin/inventory/salida_evento.php'); }
 
-    $n = 0;
+    $agg = [];
     foreach ($ins as $idx => $iid) {
         $iid = (int)$iid; $c = (float)($cant[$idx] ?? 0);
         if ($iid <= 0 || $c <= 0) continue;
+        $agg[$iid] = ($agg[$iid] ?? 0) + $c;
+    }
+    $n = 0;
+    foreach ($agg as $iid => $c) {
         invMovimiento($ubiId, $iid, 'evento', -$c, ['ref' => $ref ?: null, 'motivo' => 'Salida evento' . ($ref ? ': ' . $ref : '')]);
         $n++;
     }
@@ -139,11 +143,11 @@ include __DIR__ . '/../layout-top.php';
 </div>
 
 <script>
-  var RECETAS = <?= json_encode($recByProd) ?>;
-  var RECETAS_MOD = <?= json_encode($recMod) ?>;
-  var MODS_BY_PROD = <?= json_encode($modsByProd) ?>;
-  var INSUMOS = <?= json_encode($insMap) ?>;
-  var PRODNAMES = {}; <?php foreach ($products as $p): ?>PRODNAMES[<?= (int)$p['id'] ?>] = <?= json_encode($p['name']) ?>;<?php endforeach; ?>
+  var RECETAS = <?= json_encode($recByProd, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+  var RECETAS_MOD = <?= json_encode($recMod, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+  var MODS_BY_PROD = <?= json_encode($modsByProd, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+  var INSUMOS = <?= json_encode($insMap, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+  var PRODNAMES = {}; <?php foreach ($products as $p): ?>PRODNAMES[<?= (int)$p['id'] ?>] = <?= json_encode($p['name'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;<?php endforeach; ?>
   var evProds = [];   // [{pid, qty, mods:[], excl:[]}]
 
   function addProd(){
@@ -186,7 +190,8 @@ include __DIR__ . '/../layout-top.php';
     });
     var ids = Object.keys(agg);
     var list = document.getElementById('ingList');
-    if (!ids.length){ list.innerHTML = '<p style="color:var(--text-muted);font-size:14px;margin:0">Esos productos no tienen receta definida.</p>'; document.getElementById('ingFoot').style.display='none'; return; }
+    var sueltas = Array.prototype.slice.call(list.querySelectorAll('.ev-row[data-suelto]'));
+    if (!ids.length && !sueltas.length){ list.innerHTML = '<p style="color:var(--text-muted);font-size:14px;margin:0">Esos productos no tienen receta definida.</p>'; document.getElementById('ingFoot').style.display='none'; return; }
     list.innerHTML = ids.map(function(iid){
       var info = INSUMOS[iid] || {nombre:'#'+iid, unidad:'', costo:0};
       var qty = Math.round(agg[iid]*1000)/1000;
@@ -197,6 +202,8 @@ include __DIR__ . '/../layout-top.php';
         + '<span style="width:36px;font-size:12px;color:var(--text-muted)">'+info.unidad+'</span>'
         + '<button type="button" onclick="this.closest(\'.ev-row\').remove();sumCost()" style="background:none;border:none;color:#dc2626;cursor:pointer">✕</button></div>';
     }).join('');
+    // Re-anexar las filas sueltas que NO estén ya en la explosión (evita duplicar insumo_id[])
+    sueltas.forEach(function(r){ if (agg[r.dataset.iid] === undefined) list.appendChild(r); });
     document.getElementById('ingFoot').style.display = 'block';
     document.getElementById('fUbi').value = document.getElementById('ubiSel').value;
     document.getElementById('fRef').value = document.getElementById('refInput').value;
@@ -226,7 +233,7 @@ include __DIR__ . '/../layout-top.php';
           drop.innerHTML = '';
           var items = Array.isArray(data) ? data : (data.insumos || []);
           var qLower = q.trim().toLowerCase();
-          var exactMatch = items.some(function(i){ return i.nombre.toLowerCase() === qLower; });
+          var exactMatch = items.some(function(i){ return (i.nombre||'').toLowerCase() === qLower; });
           items.forEach(function(i){
             var el = document.createElement('div');
             el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border)';
@@ -265,8 +272,9 @@ include __DIR__ . '/../layout-top.php';
     // Crear fila con mismo formato que calcular()
     var row = document.createElement('div');
     row.className = 'ev-row';
-    row.dataset.iid   = iid;
-    row.dataset.costo = costo;
+    row.dataset.iid    = iid;
+    row.dataset.costo  = costo;
+    row.dataset.suelto = '1';
     row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)';
     var nameSpan = document.createElement('span');
     nameSpan.style.cssText = 'flex:1;font-size:14px';
@@ -337,6 +345,12 @@ include __DIR__ . '/../layout-top.php';
     })
     .catch(function(){ alert('Error de red al crear insumo'); });
   }
+
+  // Sincronizar ubicación y referencia al enviar (fuente autoritativa, por si el usuario cambió después de calcular)
+  document.getElementById('evForm').addEventListener('submit', function(){
+    document.getElementById('fUbi').value = document.getElementById('ubiSel').value;
+    document.getElementById('fRef').value = document.getElementById('refInput').value;
+  });
 
   // Cerrar dropdown al hacer click fuera
   document.addEventListener('click', function(e){
