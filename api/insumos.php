@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/helpers.php';
 header('Content-Type: application/json; charset=utf-8');
 
 requireLogin();
-if (!can('inv_recetas') && !can('inv_insumos') && !can('modifiers')) { echo json_encode(['ok'=>false,'error'=>'Sin permisos']); exit; }
+if (!can('inv_recetas') && !can('inv_insumos') && !can('modifiers') && !can('inv_compras')) { echo json_encode(['ok'=>false,'error'=>'Sin permisos']); exit; }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
@@ -27,10 +27,10 @@ if ($action === 'crear') {
     $tipo   = in_array($_POST['tipo'] ?? '', ['ingrediente','descartable']) ? $_POST['tipo'] : 'ingrediente';
     $costo  = max(0, cleanFloat($_POST['costo_unitario'] ?? 0));
     if ($nombre === '') { echo json_encode(['ok'=>false,'error'=>'Falta el nombre']); exit; }
-    $exist = Database::fetch("SELECT id, nombre, unidad, tipo FROM insumos WHERE activo=1 AND LOWER(nombre)=LOWER(?) LIMIT 1", [$nombre]);
+    $exist = Database::fetch("SELECT id, nombre, unidad, tipo, costo_unitario FROM insumos WHERE activo=1 AND LOWER(nombre)=LOWER(?) LIMIT 1", [$nombre]);
     if ($exist) { echo json_encode(['ok'=>true, 'insumo'=>$exist, 'reusado'=>true]); exit; }
     $id = Database::insert("INSERT INTO insumos (nombre,unidad,costo_unitario,tipo,activo) VALUES (?,?,?,?,1)", [$nombre,$unidad,$costo,$tipo]);
-    echo json_encode(['ok'=>true, 'insumo'=>['id'=>$id,'nombre'=>$nombre,'unidad'=>$unidad,'tipo'=>$tipo]]);
+    echo json_encode(['ok'=>true, 'insumo'=>['id'=>$id,'nombre'=>$nombre,'unidad'=>$unidad,'tipo'=>$tipo,'costo_unitario'=>$costo]]);
     exit;
 }
 

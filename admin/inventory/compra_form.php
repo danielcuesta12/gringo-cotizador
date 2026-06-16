@@ -74,9 +74,12 @@ include __DIR__ . '/../layout-top.php';
   <?= csrfField() ?>
   <div class="form-row form-row-3">
     <div class="form-group"><label>Proveedor</label>
-      <select name="proveedor_id"><option value="">— sin proveedor —</option>
-        <?php foreach ($proveedores as $p): ?><option value="<?= (int)$p['id'] ?>"><?= clean($p['nombre']) ?></option><?php endforeach; ?>
-      </select>
+      <div style="display:flex;gap:6px">
+        <select name="proveedor_id" id="provSel" style="flex:1"><option value="">— sin proveedor —</option>
+          <?php foreach ($proveedores as $p): ?><option value="<?= (int)$p['id'] ?>"><?= clean($p['nombre']) ?></option><?php endforeach; ?>
+        </select>
+        <button type="button" class="btn btn-ghost" onclick="nuevoProveedor()" title="Nuevo proveedor" style="padding:0 12px;font-size:18px;line-height:1">+</button>
+      </div>
     </div>
     <div class="form-group"><label class="form-required">Ubicación que recibe</label>
       <select name="ubicacion_id" required>
@@ -99,7 +102,10 @@ include __DIR__ . '/../layout-top.php';
         <button type="button" class="cp-del" onclick="this.closest('.cp-row').remove();calc()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
       </div>
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()" style="margin-top:4px;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Agregar insumo</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()" style="gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Agregar fila</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="nuevoInsumo()" style="gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Nuevo insumo</button>
+    </div>
   </div>
 
   <div class="form-group"><label>Nota <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label><input type="text" name="nota" placeholder="Ej: factura 0123"></div>
@@ -116,6 +122,53 @@ include __DIR__ . '/../layout-top.php';
 </div></div></form>
 
 <script>
+const INS_API  = '<?= APP_URL ?>/api/insumos.php';
+const PROV_API = '<?= APP_URL ?>/api/proveedores.php';
+const CSRF     = '<?= csrfToken() ?>';
+
+function nuevoProveedor(){
+  inlineCreate({
+    title:'Nuevo proveedor', endpoint:PROV_API, action:'crear', csrf:CSRF,
+    fields:[
+      {key:'nombre',   label:'Nombre',              placeholder:'Ej: Distribuidora XYZ'},
+      {key:'telefono', label:'Teléfono (opcional)', placeholder:'999 888 777', inputmode:'tel'}
+    ],
+    onCreated:function(d){
+      var s=document.getElementById('provSel');
+      var o=document.createElement('option'); o.value=d.proveedor.id; o.textContent=d.proveedor.nombre; o.selected=true;
+      s.appendChild(o);
+    }
+  });
+}
+
+function nuevoInsumo(){
+  inlineCreate({
+    title:'Nuevo insumo', endpoint:INS_API, action:'crear', csrf:CSRF,
+    fields:[
+      {key:'nombre', label:'Nombre', placeholder:'Ej: Pan brioche'},
+      {key:'unidad', label:'Unidad', type:'select', value:'unidad', options:[
+        {value:'unidad',label:'unidad'},{value:'g',label:'gramos (g)'},{value:'kg',label:'kg'},
+        {value:'ml',label:'ml'},{value:'l',label:'l'},{value:'lonja',label:'lonja'},{value:'porcion',label:'porción'}]},
+      {key:'tipo', label:'Tipo', type:'select', value:'ingrediente', options:[
+        {value:'ingrediente',label:'Ingrediente'},{value:'descartable',label:'Descartable / papelería'}]},
+      {key:'costo_unitario', label:'Costo por unidad (opcional)', placeholder:'0.00', inputmode:'decimal'}
+    ],
+    onCreated:function(d){
+      var ins=d.insumo;
+      document.querySelectorAll('#cpList .cp-row select').forEach(function(sel){
+        if (sel.querySelector('option[value="'+ins.id+'"]')) return;
+        var o=document.createElement('option'); o.value=ins.id; o.textContent=ins.nombre;
+        o.setAttribute('data-costo', ins.costo_unitario||0); o.setAttribute('data-unidad', ins.unidad||'');
+        sel.appendChild(o);
+      });
+      var rows=document.querySelectorAll('#cpList .cp-row'), target=null;
+      rows.forEach(function(r){ if(!target && !r.querySelector('select').value) target=r; });
+      if(!target){ addRow(); rows=document.querySelectorAll('#cpList .cp-row'); target=rows[rows.length-1]; }
+      var ts=target.querySelector('select'); ts.value=ins.id; prefill(ts);
+    }
+  });
+}
+
 function prefill(sel){
   var opt = sel.options[sel.selectedIndex];
   var row = sel.closest('.cp-row');
@@ -144,4 +197,5 @@ function calc(){
 </script>
 <?php endif; ?>
 
+<?php include __DIR__ . '/../inline-create.php'; ?>
 <?php include __DIR__ . '/../layout-bottom.php'; ?>

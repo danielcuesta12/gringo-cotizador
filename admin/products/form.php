@@ -143,14 +143,17 @@ include __DIR__ . '/../layout-top.php';
 
         <div class="form-group">
           <label>Categoría</label>
-          <select name="category_id">
-            <option value="">Sin categoría</option>
-            <?php foreach ($categories as $c): ?>
-            <option value="<?= $c['id'] ?>" <?= $data['category_id'] == $c['id'] ? 'selected' : '' ?>>
-              <?= clean($c['name']) ?>
-            </option>
-            <?php endforeach; ?>
-          </select>
+          <div style="display:flex;gap:6px">
+            <select name="category_id" id="catSel" style="flex:1">
+              <option value="">Sin categoría</option>
+              <?php foreach ($categories as $c): ?>
+              <option value="<?= $c['id'] ?>" <?= $data['category_id'] == $c['id'] ? 'selected' : '' ?>>
+                <?= clean($c['name']) ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="btn btn-ghost" onclick="nuevaCategoria()" title="Nueva categoría" style="padding:0 12px;font-size:18px;line-height:1">+</button>
+          </div>
         </div>
 
       </div>
@@ -306,6 +309,21 @@ document.getElementById('imageInput').addEventListener('change', function() {
     document.getElementById('imgPreview').style.display = 'block';
   }
 });
+
+const CAT_API = '<?= APP_URL ?>/api/categorias.php';
+const CSRF    = '<?= csrfToken() ?>';
+function nuevaCategoria(){
+  inlineCreate({
+    title:'Nueva categoría', endpoint:CAT_API, action:'crear', csrf:CSRF,
+    fields:[{key:'name', label:'Nombre', placeholder:'Ej: Hamburguesas'}],
+    onCreated:function(d){
+      var s=document.getElementById('catSel');
+      var o=document.createElement('option'); o.value=d.categoria.id; o.textContent=d.categoria.name; o.selected=true;
+      s.appendChild(o);
+    }
+  });
+}
 </script>
 
+<?php include __DIR__ . '/../inline-create.php'; ?>
 <?php include __DIR__ . '/../layout-bottom.php'; ?>
