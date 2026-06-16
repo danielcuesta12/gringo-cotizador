@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Control diario food truck</title>
+<style>
+  :root{ --navy:#1B1F4B; --yellow:#F5C200; --ink:#1e1e1e; --muted:#8a8a93; --line:#e7e7ec; --green:#1f9d55; --red:#d64545; --amber:#d9920a; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ececed;color:var(--ink);padding:24px 12px 80px}
+  .wrap{max-width:880px;margin:0 auto}
+  .note{font-size:13px;color:#666;text-align:center;margin-bottom:14px;line-height:1.5}.note b{color:#1e1e1e}
+  .card{background:#fff;border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.08);overflow:hidden}
+  .head{background:var(--navy);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .head h2{font-size:17px;font-weight:900}
+  .head .sub{font-size:12.5px;color:#cfcfe0;margin-top:2px}
+  .days{display:flex;gap:6px}
+  .day{font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+  .day.on{background:var(--yellow);color:var(--navy)}
+  .day.add{background:rgba(255,255,255,.06);color:#bfbfd8}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#fafafb}
+  td .ins{font-weight:700;color:var(--navy)}
+  td small{color:var(--muted);font-weight:400}
+  .num{font-variant-numeric:tabular-nums}
+  input.cell{width:74px;padding:7px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;text-align:right}
+  .sug{color:var(--muted)}
+  .dif-ok{color:var(--green);font-weight:800}
+  .dif-bad{color:var(--red);font-weight:800}
+  .legend{font-size:11.5px;color:var(--muted);padding:12px 16px;border-top:1px solid var(--line);line-height:1.7}
+  .foot{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .btn{padding:11px 16px;border:none;border-radius:10px;font-size:13.5px;font-weight:800;cursor:pointer}
+  .btn-y{background:var(--yellow);color:var(--navy)}
+  .btn-g{background:#f1f1f4;color:#555}
+  .btn-r{background:#fee2e2;color:#dc2626;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note"><b>Control diario del food truck</b> · 3 columnas por insumo: <b>teórico</b> (del POS) · <b>corregido</b> (tú) · <b>conteo</b> físico → diferencia.</div>
+
+  <div class="card">
+    <div class="head">
+      <div>
+        <h2>🚚 Food truck · Feria de Barranco</h2>
+        <div class="sub">Vinculado a evento EV-2026-0007 · 3 días</div>
+      </div>
+      <div class="days">
+        <span class="day">Día 1</span>
+        <span class="day on">Día 2</span>
+        <span class="day">Día 3</span>
+        <span class="day add">+ día</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Insumo</th>
+          <th>Inicial<br><small>(saldo día 1)</small></th>
+          <th>Consumo teórico<br><small>(ventas POS)</small></th>
+          <th>Corregido</th>
+          <th>Saldo<br><small>esperado</small></th>
+          <th>Conteo<br><small>físico</small></th>
+          <th>Diferencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="ins">Carne de res</span> <small>g</small></td>
+          <td class="num">8 400</td>
+          <td class="num sug">5 760</td>
+          <td><input class="cell" value="5760"></td>
+          <td class="num">2 640</td>
+          <td><input class="cell" value="2600"></td>
+          <td class="num dif-bad">−40</td>
+        </tr>
+        <tr>
+          <td><span class="ins">Pan de papa</span> <small>und</small></td>
+          <td class="num">120</td>
+          <td class="num sug">82</td>
+          <td><input class="cell" value="82"></td>
+          <td class="num">38</td>
+          <td><input class="cell" value="38"></td>
+          <td class="num dif-ok">0</td>
+        </tr>
+        <tr>
+          <td><span class="ins">Queso cheddar</span> <small>g</small></td>
+          <td class="num">2 000</td>
+          <td class="num sug">1 230</td>
+          <td><input class="cell" value="1350"></td>
+          <td class="num">650</td>
+          <td><input class="cell" value="640"></td>
+          <td class="num dif-bad">−10</td>
+        </tr>
+        <tr>
+          <td><span class="ins">Salsa de la casa</span> <small>ml</small></td>
+          <td class="num">3 000</td>
+          <td class="num sug">1 900</td>
+          <td><input class="cell" value="1900"></td>
+          <td class="num">1 100</td>
+          <td><input class="cell" value="1100"></td>
+          <td class="num dif-ok">0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="legend">
+      <b>Teórico</b> = lo que dicen las ventas del POS del truck ese día (explotando recetas). <b>Corregido</b> = tú ajustas (ej. ventas en efectivo no registradas, cortesías). <b>Saldo esperado</b> = inicial − corregido. <b>Diferencia</b> = conteo − saldo esperado (faltante en rojo). El saldo del día pasa como inicial del día siguiente.
+    </div>
+    <div class="foot">
+      <button class="btn btn-y">Guardar día 2</button>
+      <button class="btn btn-g">Agregar día 3</button>
+      <button class="btn btn-r">Cerrar evento (devolver sobrante al stock)</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

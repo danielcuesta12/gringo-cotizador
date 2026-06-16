@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Editor de receta con insumos al vuelo</title>
+<style>
+  :root{ --navy:#1B1F4B; --yellow:#F5C200; --ink:#1e1e1e; --muted:#8a8a93; --line:#e7e7ec; --green:#1f9d55; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ececed;color:var(--ink);padding:26px 14px 80px}
+  .wrap{max-width:680px;margin:0 auto}
+  .note{font-size:13px;color:#666;text-align:center;margin-bottom:16px;line-height:1.5}
+  .note b{color:#1e1e1e}
+  .card{background:#fff;border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.08);overflow:hidden}
+  .card-h{background:var(--navy);color:#fff;padding:16px 20px}
+  .card-h h2{font-size:17px;font-weight:900}
+  .card-h p{font-size:12.5px;color:#cfcfe0;margin-top:2px}
+  .body{padding:20px}
+
+  .rec-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;background:#fafafb;border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+  .rec-row .nm{flex:1;font-size:14px;font-weight:700;color:var(--navy)}
+  .rec-row .badge-new{font-size:9.5px;font-weight:800;color:var(--green);background:#e6f5ec;border-radius:8px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+  .rec-row input.q{width:84px;padding:8px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;text-align:right}
+  .rec-row .u{width:42px;font-size:12px;color:var(--muted)}
+  .rec-row .del{background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:4px}
+
+  .add-wrap{position:relative;margin-top:6px}
+  .add-input{width:100%;padding:12px 13px;border:1.5px dashed #c9c9d2;border-radius:11px;font-size:14px;background:#fff}
+  .add-input:focus{border-color:var(--yellow);border-style:solid;outline:none}
+  .drop{position:absolute;left:0;right:0;top:52px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);overflow:hidden;z-index:20;display:none}
+  .drop.on{display:block}
+  .opt{padding:11px 14px;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .opt:hover{background:#fffbe9}
+  .opt .u{font-size:11px;color:var(--muted)}
+  .opt.create{color:var(--green);font-weight:800;border-top:1px dashed var(--line)}
+
+  /* mini modal crear insumo */
+  .ov{display:none;position:fixed;inset:0;background:rgba(15,15,20,.5);z-index:50;align-items:center;justify-content:center;padding:18px}
+  .ov.on{display:flex}
+  .mini{width:340px;max-width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .mini-h{background:#fafafb;padding:14px 18px;border-bottom:1px solid var(--line);font-size:14px;font-weight:900;color:var(--navy)}
+  .mini-b{padding:18px}
+  .fld{margin-bottom:13px}
+  .fld label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:5px}
+  .fld input,.fld select{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;background:#fff}
+  .opt-note{font-size:11px;color:var(--muted);margin-top:3px}
+  .mini-f{display:flex;gap:8px;padding:0 18px 18px}
+  .btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer}
+  .btn-y{background:var(--yellow);color:var(--navy)}
+  .btn-g{background:#f1f1f4;color:#666}
+
+  .save{width:100%;margin-top:16px;padding:14px;border:none;border-radius:12px;background:var(--navy);color:#fff;font-size:15px;font-weight:900;cursor:pointer}
+  .totcost{font-size:13px;color:var(--muted);text-align:right;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note"><b>Editor de receta — con creación de insumos al vuelo.</b><br>
+  Escribe en "Agregar insumo": prueba <b>"queso"</b> (aparece coincidencia) o <b>"pan brioche"</b> (no existe → "Crear").</div>
+
+  <div class="card">
+    <div class="card-h">
+      <h2>Receta · Smash Clásica</h2>
+      <p>Cuánto de cada insumo consume una unidad de este producto</p>
+    </div>
+    <div class="body">
+
+      <div id="rows">
+        <div class="rec-row">
+          <span class="nm">Carne de res molida</span>
+          <input class="q" value="120"><span class="u">g</span>
+          <button class="del" onclick="this.closest('.rec-row').remove()">✕</button>
+        </div>
+        <div class="rec-row">
+          <span class="nm">Pan de papa</span>
+          <input class="q" value="1"><span class="u">und</span>
+          <button class="del" onclick="this.closest('.rec-row').remove()">✕</button>
+        </div>
+      </div>
+
+      <div class="add-wrap">
+        <input class="add-input" id="add" placeholder="🔍 Agregar insumo (escribe para buscar o crear)…" autocomplete="off"
+               oninput="buscar(this.value)" onfocus="buscar(this.value)">
+        <div class="drop" id="drop"></div>
+      </div>
+
+      <div class="totcost">Costo estimado por unidad: <b>S/ 2.40</b></div>
+      <button class="save">Guardar receta</button>
+    </div>
+  </div>
+</div>
+
+<!-- mini modal crear insumo -->
+<div class="ov" id="ov">
+  <div class="mini">
+    <div class="mini-h">Crear insumo: «<span id="newName">Pan brioche</span>»</div>
+    <div class="mini-b">
+      <div class="fld">
+        <label>Unidad de medida</label>
+        <select id="newUnit">
+          <option value="unidad">unidad</option>
+          <option value="g">gramos (g)</option>
+          <option value="ml">mililitros (ml)</option>
+          <option value="kg">kilos (kg)</option>
+          <option value="l">litros (l)</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Costo por unidad (opcional)</label>
+        <input id="newCost" inputmode="decimal" placeholder="Ej: 0.80">
+        <div class="opt-note">Puedes dejarlo vacío y completarlo después en Insumos.</div>
+      </div>
+    </div>
+    <div class="mini-f">
+      <button class="btn btn-g" onclick="cerrar()">Cancelar</button>
+      <button class="btn btn-y" onclick="crear()">Crear y agregar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // insumos existentes (simulados)
+  var INSUMOS = [
+    {nombre:'Queso cheddar', unidad:'g'},
+    {nombre:'Queso suizo', unidad:'g'},
+    {nombre:'Cebolla', unidad:'g'},
+    {nombre:'Tocino', unidad:'g'},
+    {nombre:'Salsa de la casa', unidad:'ml'},
+    {nombre:'Lechuga', unidad:'g'}
+  ];
+  var pendiente = '';
+  function buscar(q){
+    var drop = document.getElementById('drop');
+    q = (q||'').trim();
+    if(!q){ drop.classList.remove('on'); return; }
+    var ql = q.toLowerCase();
+    var hits = INSUMOS.filter(function(i){ return i.nombre.toLowerCase().indexOf(ql) >= 0; });
+    var html = hits.map(function(i){
+      return '<div class="opt" onclick="agregar(\''+i.nombre+'\',\''+i.unidad+'\',false)"><span>'+i.nombre+'</span><span class="u">'+i.unidad+'</span></div>';
+    }).join('');
+    // si no hay match exacto, opción de crear
+    var exacto = INSUMOS.some(function(i){ return i.nombre.toLowerCase() === ql; });
+    if(!exacto){ html += '<div class="opt create" onclick="abrirCrear(\''+q.replace(/'/g,"")+'\')">+ Crear «'+q+'»</div>'; }
+    drop.innerHTML = html;
+    drop.classList.add('on');
+  }
+  function agregar(nombre, unidad, nuevo){
+    var row = document.createElement('div');
+    row.className = 'rec-row';
+    row.innerHTML = '<span class="nm">'+nombre+(nuevo?' <span class="badge-new">NUEVO</span>':'')+'</span>'+
+      '<input class="q" value="1"><span class="u">'+unidad+'</span>'+
+      '<button class="del" onclick="this.closest(\'.rec-row\').remove()">✕</button>';
+    document.getElementById('rows').appendChild(row);
+    document.getElementById('add').value=''; document.getElementById('drop').classList.remove('on');
+  }
+  function abrirCrear(nombre){
+    pendiente = nombre;
+    document.getElementById('newName').textContent = nombre;
+    document.getElementById('drop').classList.remove('on');
+    document.getElementById('ov').classList.add('on');
+  }
+  function cerrar(){ document.getElementById('ov').classList.remove('on'); }
+  function crear(){
+    var u = document.getElementById('newUnit').value;
+    INSUMOS.push({nombre:pendiente, unidad:u});   // queda reutilizable + iría a la pestaña Insumos
+    agregar(pendiente, u, true);
+    document.getElementById('newCost').value='';
+    cerrar();
+  }
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.add-wrap')) document.getElementById('drop').classList.remove('on');
+  });
+</script>
+</body>
+</html>
