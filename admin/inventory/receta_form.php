@@ -41,10 +41,13 @@ $pageTitle  = 'Receta · ' . $prod['name'];
 $activePage = 'inv-recetas';
 $extraHead  = '<style>
 .rec-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
-.rec-row select{flex:1}
+.rec-nm{flex:1;font-weight:700;color:var(--navy,#1B1F4B)}
 .rec-row .rec-q{width:120px}
 .rec-row .rec-u{width:48px;font-size:12px;color:var(--text-muted)}
 .rec-row .rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:6px;flex-shrink:0}
+.rec-opt{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.rec-opt:hover{background:#fffbe9}
+.rec-create{color:#1f9d55;font-weight:800;border-top:1px dashed #eee}
 </style>';
 include __DIR__ . '/../layout-top.php';
 ?>
@@ -67,25 +70,26 @@ include __DIR__ . '/../layout-top.php';
   <div class="card"><div class="card-body">
     <form method="post">
       <?= csrfField() ?>
-      <div id="recList">
-        <?php if (empty($receta)) $receta = [['insumo_id'=>'','cantidad'=>'']]; ?>
-        <?php foreach ($receta as $r): ?>
+      <div id="rec-rows">
+        <?php foreach ($receta as $r):
+            $ins = null; foreach ($insumos as $ix) { if ((int)$ix['id'] === (int)$r['insumo_id']) { $ins = $ix; break; } }
+            if (!$ins) continue; ?>
         <div class="rec-row">
-          <select name="insumo_id[]" class="rec-i" onchange="recalc()">
-            <option value="">— insumo —</option>
-            <?php foreach ($insumos as $i): ?>
-              <option value="<?= $i['id'] ?>" data-costo="<?= $i['costo_unitario'] ?>" data-unidad="<?= clean($i['unidad']) ?>" <?= $r['insumo_id']==$i['id']?'selected':'' ?>><?= clean($i['nombre']) ?></option>
-            <?php endforeach; ?>
-          </select>
-          <input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="<?= $r['cantidad']!=='' ? nf($r['cantidad']) : '' ?>" placeholder="cant." oninput="recalc()">
-          <span class="rec-u"></span>
-          <button type="button" class="rec-del" onclick="this.closest('.rec-row').remove();recalc()" title="Quitar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+          <span class="rec-nm"><?= clean($ins['nombre']) ?></span>
+          <input type="hidden" name="insumo_id[]" value="<?= (int)$ins['id'] ?>" data-costo="<?= (float)$ins['costo_unitario'] ?>" data-unidad="<?= clean($ins['unidad']) ?>">
+          <input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="<?= nf($r['cantidad']) ?>" oninput="recalc()">
+          <span class="rec-u"><?= clean($ins['unidad']) ?></span>
+          <button type="button" class="rec-del" onclick="this.closest('.rec-row').remove();recalc()">✕</button>
         </div>
         <?php endforeach; ?>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="addRow()" style="margin-top:4px;gap:6px">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Agregar insumo
-      </button>
+
+      <div class="add-wrap" style="position:relative;margin-top:8px">
+        <input type="text" id="rec-add" autocomplete="off" placeholder="🔍 Agregar insumo (busca o crea)…"
+               oninput="recBuscar(this.value)" onfocus="recBuscar(this.value)"
+               style="width:100%;padding:11px 13px;border:1.5px dashed #c9c9d2;border-radius:10px">
+        <div id="rec-drop" style="display:none;position:absolute;left:0;right:0;top:48px;background:#fff;border:1px solid var(--border,#eee);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.14);z-index:30;overflow:hidden"></div>
+      </div>
       <div style="display:flex;gap:12px;margin-top:18px">
         <button type="submit" class="btn btn-primary" style="gap:6px">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar receta
@@ -116,23 +120,68 @@ include __DIR__ . '/../layout-top.php';
 </div>
 
 <script>
-function addRow(){
-  var row = document.querySelector('#recList .rec-row');
-  var clone = row.cloneNode(true);
-  clone.querySelector('select').value = '';
-  clone.querySelector('.rec-q').value = '';
-  clone.querySelector('.rec-u').textContent = '';
-  document.getElementById('recList').appendChild(clone);
+const INS_API = '<?= APP_URL ?>/api/insumos.php';
+const CSRF = '<?= csrfToken() ?>';
+let insPend = '';
+
+function recBuscar(q){
+  q = (q||'').trim();
+  const drop = document.getElementById('rec-drop');
+  if(!q){ drop.style.display='none'; return; }
+  fetch(INS_API + '?action=buscar&q=' + encodeURIComponent(q))
+    .then(r=>r.json()).then(d=>{
+      let html = (d.items||[]).map(i =>
+        `<div class="rec-opt" onclick="recAgregar(${i.id},'${i.nombre.replace(/'/g,"\\'")}','${i.unidad}',${parseFloat(i.costo_unitario)||0})"><span>${i.nombre}</span><span class="rec-u">${i.unidad}</span></div>`).join('');
+      const exacto = (d.items||[]).some(i => i.nombre.toLowerCase() === q.toLowerCase());
+      if(!exacto){ html += `<div class="rec-opt rec-create" onclick="insAbrir('${q.replace(/'/g,"\\'")}')">+ Crear «${q}»</div>`; }
+      drop.innerHTML = html; drop.style.display = 'block';
+    });
+}
+
+function recAgregar(id, nombre, unidad, costo){
+  costo = parseFloat(costo)||0;
+  if (document.querySelector('input[name="insumo_id[]"][value="'+id+'"]')) {
+    document.getElementById('rec-drop').style.display='none';
+    document.getElementById('rec-add').value='';
+    return;
+  }
+  const row = document.createElement('div'); row.className='rec-row';
+  row.innerHTML = '<span class="rec-nm">'+nombre+'</span>'+
+    '<input type="hidden" name="insumo_id[]" value="'+id+'" data-costo="'+costo+'" data-unidad="'+unidad+'">'+
+    '<input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="1" oninput="recalc()">'+
+    '<span class="rec-u">'+unidad+'</span>'+
+    '<button type="button" class="rec-del" onclick="this.closest(\'.rec-row\').remove();recalc()">✕</button>';
+  document.getElementById('rec-rows').appendChild(row);
+  document.getElementById('rec-add').value='';
+  document.getElementById('rec-drop').style.display='none';
   recalc();
 }
+
+function insAbrir(nombre){
+  insPend = nombre;
+  document.getElementById('ins-name').textContent = nombre;
+  document.getElementById('rec-drop').style.display='none';
+  document.getElementById('ins-ov').style.display='flex';
+}
+function insCerrar(){ document.getElementById('ins-ov').style.display='none'; }
+function insCrear(){
+  const body = new URLSearchParams({action:'crear', nombre:insPend, unidad:document.getElementById('ins-unidad').value, tipo:document.getElementById('ins-tipo').value, costo_unitario:document.getElementById('ins-costo').value||'0'});
+  fetch(INS_API, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':CSRF}, body})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){
+        recAgregar(d.insumo.id, d.insumo.nombre, d.insumo.unidad, 0);
+        document.getElementById('ins-costo').value='';
+        insCerrar();
+      } else { alert(d.error||'No se pudo crear'); }
+    });
+}
+
 function recalc(){
   var total = 0;
-  document.querySelectorAll('#recList .rec-row').forEach(function(row){
-    var sel = row.querySelector('select'); var q = parseFloat(row.querySelector('.rec-q').value) || 0;
-    var opt = sel.options[sel.selectedIndex];
-    var costo = opt ? parseFloat(opt.dataset.costo)||0 : 0;
-    var uni = opt ? (opt.dataset.unidad||'') : '';
-    row.querySelector('.rec-u').textContent = uni;
+  document.querySelectorAll('#rec-rows .rec-row').forEach(function(row){
+    var hid = row.querySelector('input[name="insumo_id[]"]');
+    var q = parseFloat(row.querySelector('.rec-q').value) || 0;
+    var costo = hid ? parseFloat(hid.dataset.costo)||0 : 0;
     total += costo * q;
   });
   document.getElementById('costoTotal').textContent = 'S/ ' + total.toFixed(2);
@@ -144,8 +193,27 @@ function recalc(){
     else el.textContent = '—';
   });
 }
+
+document.addEventListener('click', e=>{ if(!e.target.closest('.add-wrap')){ const d=document.getElementById('rec-drop'); if(d) d.style.display='none'; } });
 recalc();
 </script>
 <?php endif; ?>
+
+<div id="ins-ov" style="display:none;position:fixed;inset:0;background:rgba(15,15,20,.5);z-index:50;align-items:center;justify-content:center;padding:18px">
+  <div style="width:340px;max-width:100%;background:#fff;border-radius:14px;overflow:hidden">
+    <div style="background:#fafafb;padding:13px 16px;border-bottom:1px solid var(--border,#eee);font-weight:800">Crear insumo: «<span id="ins-name"></span>»</div>
+    <div style="padding:16px">
+      <div class="form-group"><label>Unidad</label>
+        <select id="ins-unidad"><option value="unidad">unidad</option><option value="g">gramos (g)</option><option value="ml">ml</option><option value="kg">kg</option><option value="l">l</option><option value="lonja">lonja</option><option value="porcion">porción</option></select></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="ins-tipo"><option value="ingrediente">Ingrediente</option><option value="descartable">Descartable / papelería</option></select></div>
+      <div class="form-group"><label>Costo por unidad (opcional)</label><input id="ins-costo" inputmode="decimal" placeholder="0.00"></div>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 16px 16px">
+      <button type="button" class="btn btn-ghost" style="flex:1" onclick="insCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" style="flex:1" onclick="insCrear()">Crear y agregar</button>
+    </div>
+  </div>
+</div>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>
