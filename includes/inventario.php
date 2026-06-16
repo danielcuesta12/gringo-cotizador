@@ -128,3 +128,45 @@ function comprasListo(): bool
         );
     } catch (Exception $e) { return false; }
 }
+
+if (!function_exists('eventoConsumoTeorico')) {
+    /**
+     * Consumo teórico de un evento en una fecha: explota las ventas (pedidos) del
+     * local del evento ese día por receta de producto + recetas de modificador.
+     * @return array insumo_id => cantidad
+     */
+    function eventoConsumoTeorico(int $eventoId, string $fecha): array
+    {
+        $out = [];
+        try {
+            $ev = Database::fetch("SELECT ubicacion_id FROM eventos WHERE id=?", [$eventoId]);
+            if (!$ev || empty($ev['ubicacion_id'])) return $out;
+            $ubi = (int)$ev['ubicacion_id'];
+            $pedidos = Database::fetchAll(
+                "SELECT items_json FROM pedidos WHERE ubicacion_id=? AND DATE(created_at)=? AND estado<>'cancelado'",
+                [$ubi, $fecha]
+            );
+            foreach ($pedidos as $p) {
+                $items = json_decode($p['items_json'] ?? '[]', true) ?: [];
+                foreach ($items as $it) {
+                    $qty = (float)($it['qty'] ?? 0);
+                    if ($qty <= 0) continue;
+                    $pid = (int)($it['product_id'] ?? 0);
+                    if ($pid > 0) {
+                        foreach (Database::fetchAll("SELECT insumo_id, cantidad FROM recetas WHERE product_id=?", [$pid]) as $r) {
+                            $out[(int)$r['insumo_id']] = ($out[(int)$r['insumo_id']] ?? 0) + (float)$r['cantidad'] * $qty;
+                        }
+                    }
+                    foreach (($it['modificadores'] ?? []) as $m) {
+                        $mid = (int)($m['id'] ?? 0);
+                        if ($mid <= 0) continue;
+                        foreach (Database::fetchAll("SELECT insumo_id, cantidad FROM receta_modificadores WHERE modificador_id=?", [$mid]) as $r) {
+                            $out[(int)$r['insumo_id']] = ($out[(int)$r['insumo_id']] ?? 0) + (float)$r['cantidad'] * $qty;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) { /* tablas no migradas */ }
+        return $out;
+    }
+}
