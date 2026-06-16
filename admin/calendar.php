@@ -40,7 +40,12 @@ foreach ($calQuotes as &$q) {
 unset($q);
 
 // Agenda (eventos sin venta — solo disponibilidad). Tolerante si falta la migración.
-try { $agenda = Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC"); }
+$agendaColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='atendido'");
+try {
+    $agenda = $agendaColsOk
+        ? Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, COALESCE(atendido,0) atendido, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC")
+        : Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC");
+}
 catch (Exception $e) { $agenda = array(); }
 
 // Token del feed ICS (suscripción desde el celular). Se genera una sola vez.
@@ -215,7 +220,7 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSync
   <div id="ttProds" style="font-size:11px;color:var(--text-muted);padding:6px 14px;border-top:1px solid var(--border);background:var(--bg-input)"></div>
   <div id="ttEdit" style="display:none;padding:10px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
     <input type="text" id="ttEvNombre" placeholder="Nombre del evento (para la salida a evento)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;box-sizing:border-box">
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer">
+    <label id="ttEvAtLabel" style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer">
       <input type="checkbox" id="ttEvAtendido" style="width:16px;height:16px;accent-color:var(--brand)"> Atendida (la oculta del selector de salida a evento)
     </label>
     <button type="button" id="ttEvSave" style="align-self:flex-start;font-size:12px;font-weight:700;background:var(--brand,#FFDF00);color:#1e1e1e;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">Guardar</button>
@@ -259,8 +264,9 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSync
 var QUOTES = <?php echo json_encode($calQuotes); ?>;
 var AGENDA = <?php echo json_encode($agenda); ?>;
 var APP    = '<?php echo APP_URL; ?>';
-var CSRF        = '<?php echo csrfToken(); ?>';
-var EV_COLS_OK  = <?php echo json_encode($eventoColsOk); ?>;
+var CSRF           = '<?php echo csrfToken(); ?>';
+var EV_COLS_OK     = <?php echo json_encode($eventoColsOk); ?>;
+var AGENDA_COLS_OK = <?php echo json_encode($agendaColsOk); ?>;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 // Un evento de agenda aparece en cada día de su rango [fecha, fecha_fin||fecha]
@@ -403,7 +409,9 @@ function showTooltip(e, qid) {
   var edit = document.getElementById('ttEdit');
   if (EV_COLS_OK && (q.status==='aceptada' || q.origin==='event')) {
     document.getElementById('ttEvNombre').value = q.evento_nombre || '';
+    document.getElementById('ttEvNombre').placeholder = 'Nombre del evento (para la salida a evento)';
     document.getElementById('ttEvAtendido').checked = Number(q.evento_atendido)===1;
+    document.getElementById('ttEvAtLabel').style.display = 'flex';
     var btn = document.getElementById('ttEvSave');
     btn.textContent = 'Guardar';
     btn.onclick = function(){ guardarEvento(q.id); };
@@ -442,6 +450,24 @@ function guardarEvento(qid) {
     .catch(function(){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error de red'); });
 }
 
+function guardarAgenda(aid) {
+  var a = AGENDA.find(function(x){ return x.id===aid; });
+  if (!a) return;
+  var nombre = document.getElementById('ttEvNombre').value.trim();
+  var atendido = (AGENDA_COLS_OK && document.getElementById('ttEvAtendido').checked) ? 1 : 0;
+  var btn = document.getElementById('ttEvSave');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  var body = new URLSearchParams({ action:'set_agenda', id:aid, titulo:nombre, atendido:atendido });
+  fetch(APP+'/api/quotes.php', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token':CSRF }, body:body })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      btn.disabled = false; btn.textContent = 'Guardar';
+      if (d && d.ok) { if (nombre) a.titulo = nombre; a.atendido = atendido; closeTooltip(); setView(view); }
+      else { alert((d && d.error) || 'No se pudo guardar'); }
+    })
+    .catch(function(){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error de red'); });
+}
+
 function showAgendaTooltip(e, aid) {
   e.stopPropagation();
   var a = AGENDA.find(function(x){ return x.id===aid; });
@@ -468,7 +494,20 @@ function showAgendaTooltip(e, aid) {
   if (a.lugar) body += '<div class="tt-info-row">'+icoPin+'<span>'+esc(a.lugar)+'</span></div>';
   if (a.notas) body += '<div class="tt-info-row"><span>'+esc(a.notas)+'</span></div>';
   document.getElementById('ttBody').innerHTML = body;
-  document.getElementById('ttEdit').style.display = 'none';
+  // Editor inline del evento libre (renombrar + atendida)
+  document.getElementById('ttEvNombre').value = a.titulo || '';
+  document.getElementById('ttEvNombre').placeholder = 'Nombre del evento libre';
+  if (AGENDA_COLS_OK) {
+    document.getElementById('ttEvAtendido').checked = Number(a.atendido)===1;
+    document.getElementById('ttEvAtLabel').style.display = 'flex';
+  } else {
+    document.getElementById('ttEvAtendido').checked = false;
+    document.getElementById('ttEvAtLabel').style.display = 'none';
+  }
+  var aBtn = document.getElementById('ttEvSave');
+  aBtn.textContent = 'Guardar';
+  aBtn.onclick = function(){ guardarAgenda(a.id); };
+  document.getElementById('ttEdit').style.display = 'flex';
   document.getElementById('ttProds').textContent = 'Sin venta · solo disponibilidad';
   document.getElementById('ttTotal').textContent = '';
   document.getElementById('ttLink').href = APP+'/admin/events/create?agenda='+a.id;

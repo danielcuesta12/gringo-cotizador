@@ -8,20 +8,25 @@ requirePermission('inv_evento');
 if (!inventarioListo()) { flashMessage('error', 'Aplica install/inventario.sql primero.'); redirect('/admin/inventory/stock.php'); }
 
 $ubicaciones = ubicacionesConInventario();
-// Cotizaciones de evento. Tolerante: si falta la migración 50, cae a la consulta simple.
+// Cotizaciones de evento (solo NO atendidas). Tolerante: si falta la migración 50, cae a la consulta simple.
 try {
     $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date, evento_nombre FROM quotes WHERE (origin='event' OR status='aceptada') AND COALESCE(evento_atendido,0)=0 ORDER BY id DESC LIMIT 100");
-    $gestionables = Database::fetchAll("SELECT id, quote_number, event_date, evento_nombre, COALESCE(evento_atendido,0) evento_atendido FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY COALESCE(evento_atendido,0) ASC, id DESC LIMIT 200");
+    $gestionables = Database::fetchAll("SELECT id, quote_number, event_date, evento_nombre FROM quotes WHERE (origin='event' OR status='aceptada') AND COALESCE(evento_atendido,0)=0 ORDER BY id DESC LIMIT 200");
 } catch (\Throwable $e) {
     $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
     $gestionables = [];
 }
-$eventoColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
+$eventoColsOk  = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
+$agendaColsOk  = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='atendido'");
 $eventosAbiertos = [];
 try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}
-// Eventos libres (agenda): seleccionables y renombrables en la salida a evento.
+// Eventos libres (agenda): seleccionables y renombrables; solo los NO atendidos.
 $agendaEventos = [];
-try { $agendaEventos = Database::fetchAll("SELECT id, titulo, fecha FROM agenda ORDER BY fecha DESC LIMIT 100"); } catch (\Throwable $e) {}
+try {
+    $agendaEventos = $agendaColsOk
+        ? Database::fetchAll("SELECT id, titulo, fecha FROM agenda WHERE COALESCE(atendido,0)=0 ORDER BY fecha DESC LIMIT 100")
+        : Database::fetchAll("SELECT id, titulo, fecha FROM agenda ORDER BY fecha DESC LIMIT 100");
+} catch (\Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -41,12 +46,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (\Throwable $e) {
             flashMessage('error', 'Para nombrar cotizaciones falta aplicar install/50_quotes_evento.sql.');
         }
-        // Renombrar eventos libres (agenda)
-        $agNombres = is_array($_POST['agenda_nombre'] ?? null) ? $_POST['agenda_nombre'] : [];
+        // Renombrar / marcar atendidos los eventos libres (agenda)
+        $agNombres = is_array($_POST['agenda_nombre'] ?? null)   ? $_POST['agenda_nombre']   : [];
+        $agAtend   = is_array($_POST['agenda_atendido'] ?? null) ? $_POST['agenda_atendido'] : [];
         try {
             foreach ($agNombres as $aid => $nom) {
-                $aid = (int)$aid; $nom = clean($nom);
-                if ($aid > 0 && $nom !== '') Database::execute("UPDATE agenda SET titulo=? WHERE id=?", [$nom, $aid]);
+                $aid = (int)$aid; if ($aid <= 0) continue;
+                $nom = clean($nom);
+                $at  = isset($agAtend[$aid]) ? 1 : 0;
+                if ($agendaColsOk) {
+                    if ($nom !== '') Database::execute("UPDATE agenda SET titulo=?, atendido=? WHERE id=?", [$nom, $at, $aid]);
+                    else             Database::execute("UPDATE agenda SET atendido=? WHERE id=?", [$at, $aid]);
+                } elseif ($nom !== '') {
+                    Database::execute("UPDATE agenda SET titulo=? WHERE id=?", [$nom, $aid]);
+                }
             }
         } catch (\Throwable $e) { /* tabla agenda no migrada */ }
         flashMessage('success', 'Cambios guardados.');
@@ -169,12 +182,13 @@ include __DIR__ . '/../layout-top.php';
         <h4 style="margin:16px 0 8px;font-size:13px;font-weight:800">Eventos libres (agenda)</h4>
         <div class="table-wrap" style="border:none">
           <table class="data-table">
-            <thead><tr><th style="width:120px">Fecha</th><th>Nombre del evento</th></tr></thead>
+            <thead><tr><th style="width:120px">Fecha</th><th>Nombre del evento</th><?php if ($agendaColsOk): ?><th style="width:100px;text-align:center">Atendida</th><?php endif; ?></tr></thead>
             <tbody>
               <?php foreach ($agendaEventos as $a): ?>
               <tr>
                 <td><small style="color:var(--text-muted)"><?= clean($a['fecha']) ?></small></td>
                 <td><input type="text" name="agenda_nombre[<?= (int)$a['id'] ?>]" value="<?= clean($a['titulo']) ?>" style="width:100%"></td>
+                <?php if ($agendaColsOk): ?><td style="text-align:center"><input type="checkbox" name="agenda_atendido[<?= (int)$a['id'] ?>]" value="1" style="width:18px;height:18px;accent-color:var(--brand)"></td><?php endif; ?>
               </tr>
               <?php endforeach; ?>
             </tbody>

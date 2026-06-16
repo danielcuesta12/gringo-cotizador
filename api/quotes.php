@@ -28,6 +28,26 @@ switch ($action) {
         }
         break;
 
+    // Renombrar / marcar atendido un evento libre (agenda) — desde el calendario
+    case 'set_agenda':
+        verifyCsrf();
+        if (!can('calendar') && !can('events') && !can('quotes') && !can('inv_evento')) {
+            echo json_encode(['ok' => false, 'error' => 'Sin permisos']); break;
+        }
+        $id       = cleanInt($_POST['id'] ?? 0);
+        $titulo   = clean($_POST['titulo'] ?? '');
+        $atendido = !empty($_POST['atendido']) ? 1 : 0;
+        if ($id <= 0 || $titulo === '') { echo json_encode(['ok' => false, 'error' => 'Falta el nombre']); break; }
+        $agOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='atendido'");
+        try {
+            if ($agOk) Database::execute("UPDATE agenda SET titulo=?, atendido=? WHERE id=?", [$titulo, $atendido, $id]);
+            else       Database::execute("UPDATE agenda SET titulo=? WHERE id=?", [$titulo, $id]);
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok' => false, 'error' => 'No se pudo guardar']);
+        }
+        break;
+
     // Buscar productos activos
     case 'search_products':
         $q    = clean($_GET['q'] ?? '');
