@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'hora_apertura'   => max(0, min(24, cleanInt($_POST['hora_apertura'] ?? 18))),
         'hora_cierre'     => max(0, min(24, cleanInt($_POST['hora_cierre'] ?? 24))),
         'instagram'       => ltrim(clean($_POST['instagram'] ?? ''), '@'),
-        'activa'          => isset($_POST['activa']) ? 1 : 0,
+        'activa'          => (isset($_POST['activa']) && !isset($_POST['es_almacen'])) ? 1 : 0, // un almacén central nunca vende → activa=0
         'cerrado_manual'  => isset($_POST['cerrado_manual']) ? 1 : 0,
         'es_principal'    => isset($_POST['es_principal']) ? 1 : 0,
         'es_almacen'      => isset($_POST['es_almacen']) ? 1 : 0,

@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready && $ubiF) {
 
 // Datos para render
 $insumos = ($ready && $ubiF) ? Database::fetchAll(
-    "SELECT i.id, i.nombre, i.unidad, i.tipo, COALESCE(s.stock,0) stock
+    "SELECT i.id, i.nombre, i.unidad, COALESCE(i.tipo,'ingrediente') tipo, COALESCE(s.stock,0) stock
      FROM insumos i
      LEFT JOIN insumo_stock s ON s.insumo_id = i.id AND s.ubicacion_id = ?
      WHERE i.activo = 1 ORDER BY i.nombre",
