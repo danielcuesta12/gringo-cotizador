@@ -125,11 +125,23 @@ function recBuscar(q){
   if(!q){ drop.style.display='none'; return; }
   fetch(INS_API + '?action=buscar&q=' + encodeURIComponent(q))
     .then(r=>r.json()).then(d=>{
-      let html = (d.items||[]).map(i =>
-        `<div class="rec-opt" onclick="recAgregar(${i.id},'${i.nombre.replace(/'/g,"\\'")}','${i.unidad}',${parseFloat(i.costo_unitario)||0})"><span>${i.nombre}</span><span class="rec-u">${i.unidad}</span></div>`).join('');
+      drop.innerHTML = '';
+      (d.items||[]).forEach(i => {
+        const o = document.createElement('div'); o.className = 'rec-opt';
+        const n = document.createElement('span'); n.textContent = i.nombre;
+        const u = document.createElement('span'); u.className = 'rec-u'; u.textContent = i.unidad;
+        o.appendChild(n); o.appendChild(u);
+        o.addEventListener('click', () => recAgregar(i.id, i.nombre, i.unidad, parseFloat(i.costo_unitario)||0));
+        drop.appendChild(o);
+      });
       const exacto = (d.items||[]).some(i => i.nombre.toLowerCase() === q.toLowerCase());
-      if(!exacto){ html += `<div class="rec-opt rec-create" onclick="insAbrir('${q.replace(/'/g,"\\'")}')">+ Crear «${q}»</div>`; }
-      drop.innerHTML = html; drop.style.display = 'block';
+      if(!exacto){
+        const c = document.createElement('div'); c.className = 'rec-opt rec-create';
+        c.textContent = '+ Crear «' + q + '»';
+        c.addEventListener('click', () => insAbrir(q));
+        drop.appendChild(c);
+      }
+      drop.style.display = 'block';
     });
 }
 

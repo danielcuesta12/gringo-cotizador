@@ -49,7 +49,9 @@ if ($action === 'receta_mod_get') {
 if ($action === 'receta_mod_save') {
     verifyCsrf();
     $mid = cleanInt($_POST['modificador_id'] ?? 0);
-    if ($mid <= 0) { echo json_encode(['ok'=>false,'error'=>'Modificador inválido']); exit; }
+    if ($mid <= 0 || !Database::fetch("SELECT id FROM modificadores WHERE id = ?", [$mid])) {
+        echo json_encode(['ok'=>false,'error'=>'Modificador inválido']); exit;
+    }
     $ins  = $_POST['insumo_id'] ?? [];
     $cant = $_POST['cantidad'] ?? [];
     Database::execute("DELETE FROM receta_modificadores WHERE modificador_id = ?", [$mid]);

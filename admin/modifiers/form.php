@@ -27,13 +27,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     $optNombres = $_POST['opt_nombre'] ?? [];
     $optPrecios = $_POST['opt_precio'] ?? [];
+    $optIdsPost = $_POST['opt_id'] ?? [];
     if (!$data['nombre']) $errors[] = 'El nombre del grupo es obligatorio.';
 
-    // reconstruir opciones para re-render si hay error
+    // reconstruir opciones para re-render si hay error (conservando el id → no se
+    // pierde la estabilidad de IDs ni las recetas de modificador al corregir el error)
     $opciones = [];
     foreach ($optNombres as $i => $n) {
         if (trim($n) === '') continue;
-        $opciones[] = ['nombre' => clean($n), 'precio_adicional' => max(0, cleanFloat($optPrecios[$i] ?? 0))];
+        $opciones[] = ['id' => (int)($optIdsPost[$i] ?? 0), 'nombre' => clean($n), 'precio_adicional' => max(0, cleanFloat($optPrecios[$i] ?? 0))];
     }
     if (empty($opciones)) $errors[] = 'Agrega al menos una opción al grupo.';
 
@@ -241,10 +243,18 @@ function miBuscar(q){
   q=(q||'').trim(); const drop=document.getElementById('mi-drop');
   if(!q){ drop.style.display='none'; return; }
   fetch(INS_API+'?action=buscar&q='+encodeURIComponent(q)).then(r=>r.json()).then(d=>{
-    let html=(d.items||[]).map(i=>`<div class="rec-opt" onclick="miAgregar(${i.id},'${i.nombre.replace(/'/g,"\\'")}','${i.unidad}',1)"><span>${i.nombre}</span><span class="rec-u">${i.unidad}</span></div>`).join('');
+    drop.innerHTML='';
+    (d.items||[]).forEach(i=>{
+      const o=document.createElement('div'); o.className='rec-opt';
+      const n=document.createElement('span'); n.textContent=i.nombre;
+      const u=document.createElement('span'); u.className='rec-u'; u.textContent=i.unidad;
+      o.appendChild(n); o.appendChild(u);
+      o.addEventListener('click', ()=>miAgregar(i.id, i.nombre, i.unidad, 1));
+      drop.appendChild(o);
+    });
     const exacto=(d.items||[]).some(i=>i.nombre.toLowerCase()===q.toLowerCase());
-    if(!exacto) html+=`<div class="rec-opt rec-create" onclick="insAbrir('${q.replace(/'/g,"\\'")}')">+ Crear «${q}»</div>`;
-    drop.innerHTML=html; drop.style.display='block';
+    if(!exacto){ const c=document.createElement('div'); c.className='rec-opt rec-create'; c.textContent='+ Crear «'+q+'»'; c.addEventListener('click', ()=>insAbrir(q)); drop.appendChild(c); }
+    drop.style.display='block';
   });
 }
 function miAgregar(id,nombre,unidad,cant){
