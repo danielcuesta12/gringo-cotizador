@@ -16,6 +16,7 @@ try {
     $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
     $gestionables = [];
 }
+$eventoColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
 $eventosAbiertos = [];
 try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}
 
@@ -126,10 +127,14 @@ include __DIR__ . '/../layout-top.php';
   <p>Arma el evento por productos, explota a ingredientes y ajusta (ej. quita el tocino) antes de descontar del stock</p>
 </div></div>
 
-<?php if (!empty($gestionables)): ?>
-<details class="card" style="margin-bottom:18px">
+<details class="card" style="margin-bottom:18px" open>
   <summary style="cursor:pointer;padding:14px 18px;font-weight:700">⚙️ Gestionar cotizaciones de evento <small style="font-weight:400;color:var(--text-muted)">— ponles nombre y marca las atendidas para limpiar el selector</small></summary>
   <div class="card-body" style="border-top:1px solid var(--border)">
+    <?php if (!$eventoColsOk): ?>
+      <div class="alert alert-error" style="margin:0">Falta aplicar <code>install/50_quotes_evento.sql</code> en phpMyAdmin para usar esta sección.</div>
+    <?php elseif (empty($gestionables)): ?>
+      <p style="margin:0;color:var(--text-muted);font-size:14px">No hay cotizaciones aceptadas ni eventos todavía. Cuando aceptes una cotización o crees un evento, aparecerá aquí para nombrarla.</p>
+    <?php else: ?>
     <form method="post">
       <?= csrfField() ?>
       <input type="hidden" name="accion" value="gestionar_eventos">
@@ -149,9 +154,9 @@ include __DIR__ . '/../layout-top.php';
       </div>
       <button type="submit" class="btn btn-primary" style="margin-top:12px">Guardar cambios</button>
     </form>
+    <?php endif; ?>
   </div>
 </details>
-<?php endif; ?>
 
 <?php if (empty($products) || empty($insumos)): ?>
   <div class="card"><div class="empty-state"><h3>Faltan datos</h3><p>Necesitas productos con receta e insumos cargados.</p></div></div>
