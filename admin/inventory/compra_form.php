@@ -8,7 +8,7 @@ requirePermission('inv_compras');
 if (!comprasListo()) { flashMessage('error', 'Aplica install/inventario_c.sql primero.'); redirect('/admin/inventory/compras.php'); }
 
 $proveedores = Database::fetchAll("SELECT id,nombre FROM proveedores WHERE activo=1 ORDER BY nombre");
-$ubicaciones = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre");
+$ubicaciones = ubicacionesConInventario();
 $insumos     = Database::fetchAll("SELECT id,nombre,unidad,costo_unitario FROM insumos WHERE activo=1 ORDER BY nombre");
 $errors = [];
 

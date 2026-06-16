@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../includes/inventario.php';
 requirePermission('inv_stock');
 
 $ready = inventarioListo();
-$ubicaciones = $ready ? Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre") : [];
+$ubicaciones = $ready ? ubicacionesConInventario() : [];
 $ubiF = cleanInt($_GET['ubi'] ?? 0) ?: ($ubicaciones[0]['id'] ?? 0);
 
 $rows = []; $valorTotal = 0; $nAlertas = 0;

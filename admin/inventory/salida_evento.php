@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../includes/inventario.php';
 requirePermission('inv_evento');
 if (!inventarioListo()) { flashMessage('error', 'Aplica install/inventario.sql primero.'); redirect('/admin/inventory/stock.php'); }
 
-$ubicaciones = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre");
+$ubicaciones = ubicacionesConInventario();
 $cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
 $eventosAbiertos = [];
 try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}

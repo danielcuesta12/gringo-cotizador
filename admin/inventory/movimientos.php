@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../includes/inventario.php';
 requirePermission('inv_movimientos');
 
 $ready = inventarioListo();
-$ubicaciones = $ready ? Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre") : [];
+$ubicaciones = $ready ? ubicacionesConInventario() : [];
 
 $TIPOS = ['ingreso'=>'Ingreso','ajuste'=>'Ajuste','merma'=>'Merma','venta'=>'Venta','evento'=>'Evento','compra'=>'Compra','transferencia'=>'Transferencia'];
 
