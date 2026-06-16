@@ -284,6 +284,13 @@ try {
         </a>
         <?php endif; ?>
 
+        <?php if (can('inv_evento')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/eventos.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-eventos'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span> Eventos
+        </a>
+        <?php endif; ?>
+
       </div>
     </div>
     <?php endif; ?>

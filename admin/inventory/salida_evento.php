@@ -8,6 +8,9 @@ requirePermission('inv_evento');
 if (!inventarioListo()) { flashMessage('error', 'Aplica install/inventario.sql primero.'); redirect('/admin/inventory/stock.php'); }
 
 $ubicaciones = Database::fetchAll("SELECT id,nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, nombre");
+$cotizaciones = Database::fetchAll("SELECT id, quote_number, event_date FROM quotes WHERE origin='event' OR status='aceptada' ORDER BY id DESC LIMIT 100");
+$eventosAbiertos = [];
+try { $eventosAbiertos = Database::fetchAll("SELECT id, nombre, fecha_inicio FROM eventos WHERE estado='abierto' ORDER BY fecha_inicio DESC"); } catch (\Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -28,7 +31,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         invMovimiento($ubiId, $iid, 'evento', -$c, ['ref' => $ref ?: null, 'motivo' => 'Salida evento' . ($ref ? ': ' . $ref : '')]);
         $n++;
     }
-    flashMessage('success', "Salida de evento registrada: $n insumo(s) descontados del stock.");
+    // Asignar a evento (opcional): el requerimiento = inventario inicial del evento.
+    $evModo = $_POST['evento_modo'] ?? 'no';
+    $eventoId = 0;
+    try {
+        if ($evModo === 'nuevo') {
+            $evNombre = clean($_POST['evento_nombre'] ?? '');
+            $fIni = clean($_POST['evento_fecha_inicio'] ?? '') ?: date('Y-m-d');
+            $fFin = clean($_POST['evento_fecha_fin'] ?? '');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fFin) || $fFin < $fIni) $fFin = null;
+            $qid  = cleanInt($_POST['evento_quote_id'] ?? 0) ?: null;
+            if ($evNombre === '') $evNombre = 'Evento ' . $fIni;
+            $eventoId = Database::insert(
+                "INSERT INTO eventos (nombre,quote_id,ubicacion_id,fecha_inicio,fecha_fin,estado) VALUES (?,?,?,?,?, 'abierto')",
+                [$evNombre, $qid, $ubiId, $fIni, $fFin]
+            );
+        } elseif ($evModo === 'existente') {
+            $eventoId = cleanInt($_POST['evento_id'] ?? 0);
+            $ok = $eventoId ? Database::fetch("SELECT id FROM eventos WHERE id=? AND estado='abierto'", [$eventoId]) : null;
+            if (!$ok) $eventoId = 0;
+        }
+        if ($eventoId > 0) {
+            $costos = [];
+            foreach (Database::fetchAll("SELECT id, costo_unitario FROM insumos") as $ix) { $costos[(int)$ix['id']] = (float)$ix['costo_unitario']; }
+            foreach ($agg as $iid => $c) {
+                Database::execute(
+                    "INSERT INTO evento_insumos (evento_id,insumo_id,cantidad_inicial,costo_unitario) VALUES (?,?,?,?)
+                     ON DUPLICATE KEY UPDATE cantidad_inicial = cantidad_inicial + VALUES(cantidad_inicial)",
+                    [$eventoId, (int)$iid, $c, $costos[(int)$iid] ?? 0]
+                );
+            }
+        }
+    } catch (\Throwable $e) { /* tablas de evento aún no migradas → la salida igual descontó */ }
+
+    $msgEv = $eventoId > 0 ? ' Inventario inicial guardado en el evento.' : '';
+    flashMessage('success', "Salida de evento registrada: $n insumo(s) descontados del stock.$msgEv");
+    if ($eventoId > 0) { redirect('/admin/inventory/evento_detalle.php?id=' . $eventoId); }
     redirect('/admin/inventory/movimientos.php?tipo=evento');
 }
 
@@ -128,6 +166,32 @@ include __DIR__ . '/../layout-top.php';
               <button type="button" class="btn btn-primary" onclick="insCrear()">Crear y agregar</button>
             </div>
           </div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">Asignar a evento <small style="font-weight:400;color:var(--text-muted)">(opcional — para liquidar después)</small></label>
+          <select name="evento_modo" id="evModo" onchange="evModoChange()" style="margin-bottom:8px">
+            <option value="no">No registrar como evento</option>
+            <option value="nuevo">Crear un evento nuevo</option>
+            <?php if (!empty($eventosAbiertos)): ?><option value="existente">Agregar a un evento abierto</option><?php endif; ?>
+          </select>
+          <div id="evNuevo" style="display:none">
+            <input type="text" name="evento_nombre" placeholder="Nombre del evento (ej. Feria de Barranco)" style="margin-bottom:6px">
+            <div class="form-row form-row-2" style="margin-bottom:6px">
+              <input type="date" name="evento_fecha_inicio" value="<?= date('Y-m-d') ?>">
+              <input type="date" name="evento_fecha_fin">
+            </div>
+            <select name="evento_quote_id">
+              <option value="">— Sin vincular a cotización —</option>
+              <?php foreach ($cotizaciones as $c): ?><option value="<?= (int)$c['id'] ?>"><?= clean($c['quote_number']) ?><?= $c['event_date'] ? ' · ' . clean($c['event_date']) : '' ?></option><?php endforeach; ?>
+            </select>
+          </div>
+          <?php if (!empty($eventosAbiertos)): ?>
+          <div id="evExist" style="display:none">
+            <select name="evento_id">
+              <?php foreach ($eventosAbiertos as $e): ?><option value="<?= (int)$e['id'] ?>"><?= clean($e['nombre']) ?> · <?= clean($e['fecha_inicio']) ?></option><?php endforeach; ?>
+            </select>
+          </div>
+          <?php endif; ?>
         </div>
         <div id="ingFoot" style="display:none;margin-top:14px;padding-top:12px;border-top:2px solid var(--border)">
           <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:12px">
@@ -344,6 +408,12 @@ include __DIR__ . '/../layout-top.php';
       }
     })
     .catch(function(){ alert('Error de red al crear insumo'); });
+  }
+
+  function evModoChange(){
+    var m = document.getElementById('evModo').value;
+    document.getElementById('evNuevo').style.display = m==='nuevo' ? 'block' : 'none';
+    var ex = document.getElementById('evExist'); if (ex) ex.style.display = m==='existente' ? 'block' : 'none';
   }
 
   // Sincronizar ubicación y referencia al enviar (fuente autoritativa, por si el usuario cambió después de calcular)
