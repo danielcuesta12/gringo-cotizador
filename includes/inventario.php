@@ -171,3 +171,32 @@ if (!function_exists('eventoConsumoTeorico')) {
         return $out;
     }
 }
+
+if (!function_exists('eventoSaldoFinal')) {
+    /** Saldo final por insumo de un evento (inicial − consumo acumulado por día). @return array insumo_id=>saldo */
+    function eventoSaldoFinal(int $eventoId): array
+    {
+        $saldo = [];
+        try {
+            $insAll = Database::fetchAll("SELECT insumo_id, cantidad_inicial FROM evento_insumos WHERE evento_id=?", [$eventoId]);
+            foreach ($insAll as $r) { $saldo[(int)$r['insumo_id']] = (float)$r['cantidad_inicial']; }
+            $dias = Database::fetchAll("SELECT * FROM evento_dias WHERE evento_id=? ORDER BY dia_num", [$eventoId]);
+            $cont = [];
+            foreach (Database::fetchAll("SELECT dc.* FROM evento_dia_conteo dc JOIN evento_dias d ON d.id=dc.dia_id WHERE d.evento_id=?", [$eventoId]) as $c) {
+                $cont[(int)$c['dia_id']][(int)$c['insumo_id']] = $c;
+            }
+            foreach ($dias as $d) {
+                $teo = eventoConsumoTeorico($eventoId, $d['fecha']);
+                foreach ($insAll as $r) {
+                    $iid = (int)$r['insumo_id']; $cfg = $cont[(int)$d['id']][$iid] ?? null;
+                    $corr = ($cfg && $cfg['corregido'] !== null) ? (float)$cfg['corregido'] : null;
+                    $cnt  = ($cfg && $cfg['conteo']    !== null) ? (float)$cfg['conteo']    : null;
+                    $consumo  = $corr !== null ? $corr : round($teo[$iid] ?? 0, 3);
+                    $saldoEsp = round(($saldo[$iid] ?? 0) - $consumo, 3);
+                    $saldo[$iid] = $cnt !== null ? $cnt : $saldoEsp;
+                }
+            }
+        } catch (\Throwable $e) {}
+        return $saldo;
+    }
+}
