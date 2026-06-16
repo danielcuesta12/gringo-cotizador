@@ -82,8 +82,18 @@ $csrf    = csrfToken();
 @media(min-width:769px){body.hist-open #kg{margin-right:320px}}
 @media(max-width:768px){#hist-panel{top:auto;bottom:0;left:0;right:0;width:100%;height:70vh;border-left:none;border-top:1px solid #2a2a2a;border-radius:16px 16px 0 0;transform:translateY(100%)}#hist-panel.open{transform:translateY(0)}.hist-handle{display:block;width:40px;height:4px;border-radius:2px;background:#444;margin:8px auto 0}}
 @media(prefers-reduced-motion:reduce){#hist-panel,#hist-overlay,#kg{transition:none}}
+/* Alerta de pedido nuevo: flash verde + cartel a pantalla completa */
+#kflash{position:fixed;inset:0;z-index:9990;background:#22c55e;opacity:0;pointer-events:none}
+#kflash.on{animation:kflash .9s ease-out}
+@keyframes kflash{0%{opacity:0}14%{opacity:.55}38%{opacity:0}54%{opacity:.42}100%{opacity:0}}
+#kflash-lbl{position:fixed;inset:0;z-index:9991;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0}
+#kflash-lbl.on{animation:klbl .9s ease-out}
+#kflash-lbl span{background:rgba(6,37,15,.92);color:#fff;font-size:30px;font-weight:900;padding:18px 34px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+@keyframes klbl{0%{opacity:0;transform:scale(.8)}20%{opacity:1;transform:scale(1.04)}70%{opacity:1;transform:scale(1)}100%{opacity:0}}
 </style><?= brandHead() ?>
 </head><body>
+<div id="kflash"></div>
+<div id="kflash-lbl"><span>🔔 ¡Nuevo pedido!</span></div>
 <div id="ks">
   <div class="kt">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -128,7 +138,9 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 // ── AUDIO (WebAudio, sin assets) ──
 function iA(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}}
 function uA(){iA();if(actx&&actx.state==="suspended")actx.resume();beep();var b=document.getElementById("ba");b.innerHTML="&#128266; Audio";b.style.color="#4ade80";b.style.borderColor="#4ade80";b.onclick=null;}
-function beep(){if(!actx)return;try{const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);o.type="sine";o.frequency.value=880;g.gain.setValueAtTime(0.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.5,actx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.4);o.start();o.stop(actx.currentTime+0.42);}catch(e){}}
+function beep(){if(!actx)return;try{const t=actx.currentTime;[{f:880,at:0},{f:1318.5,at:0.15}].forEach(function(n){[{m:1,type:"triangle",peak:0.6},{m:2,type:"sine",peak:0.22}].forEach(function(p){const o=actx.createOscillator(),g=actx.createGain();o.type=p.type;o.frequency.value=n.f*p.m;o.connect(g);g.connect(actx.destination);const s=t+n.at;g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(p.peak,s+0.012);g.gain.exponentialRampToValueAtTime(0.0001,s+0.5);o.start(s);o.stop(s+0.55);});});}catch(e){}}
+function flashKDS(){var f=document.getElementById("kflash"),l=document.getElementById("kflash-lbl");if(!f)return;f.classList.remove("on");l.classList.remove("on");void f.offsetWidth;void l.offsetWidth;f.classList.add("on");l.classList.add("on");}
+function alerta(){beep();flashKDS();}
 
 function gc(m){if(m>=D.cfg.tr)return"red";if(m>=D.cfg.tn)return"orange";return"green";}
 function ft(m){const mm2=Math.floor(m),ss=Math.floor((m%1)*60);return mm2.toString().padStart(2,"0")+":"+ss.toString().padStart(2,"0");}
@@ -137,7 +149,7 @@ function changeUbi(v){UBI=parseInt(v)||0;loadOrder();D.ids=new Set();D.pedidos=[
 
 async function init(){loadOrder();await fKDS();if(tmr)clearInterval(tmr);tmr=setInterval(fKDS,(D.cfg.rs||15)*1000);setInterval(tick,1000);}
 
-async function fKDS(){try{const r=await fetch(API+"/kds_pedidos.php?estados=pendiente,en_preparacion&ubicacion_id="+UBI+"&limite=50");const d=await r.json();if(!d.ok)return;const ps=(d.pedidos||[]).filter(p=>["pendiente","en_preparacion"].includes(p.estado));const ni=ps.map(p=>p.id.toString());const hn=ni.some(id=>!D.ids.has(id));if(hn&&D.ids.size>0)beep();else if(D.ids.size===0&&ps.some(p=>p.estado==="pendiente"))beep();D.ids=new Set(ni);const rc=Date.now();ps.forEach(p=>{p._base=p.elapsed_seconds?parseFloat(p.elapsed_seconds):0;p._recv=rc;});D.pedidos=ps;rKDS();}catch(e){}}
+async function fKDS(){try{const r=await fetch(API+"/kds_pedidos.php?estados=pendiente,en_preparacion&ubicacion_id="+UBI+"&limite=50");const d=await r.json();if(!d.ok)return;const ps=(d.pedidos||[]).filter(p=>["pendiente","en_preparacion"].includes(p.estado));const ni=ps.map(p=>p.id.toString());const hn=ni.some(id=>!D.ids.has(id));if(hn&&D.ids.size>0)alerta();else if(D.ids.size===0&&ps.some(p=>p.estado==="pendiente"))alerta();D.ids=new Set(ni);const rc=Date.now();ps.forEach(p=>{p._base=p.elapsed_seconds?parseFloat(p.elapsed_seconds):0;p._recv=rc;});D.pedidos=ps;rKDS();}catch(e){}}
 
 function srt(ps){const now=Date.now();const pn=ps.filter(p=>p.estado==="pendiente");const ep=ps.filter(p=>p.estado==="en_preparacion");ep.sort((a,b)=>{const ma=a._recv!==undefined?(a._base+(now-a._recv)/1000):0;const mb=b._recv!==undefined?(b._base+(now-b._recv)/1000):0;return mb-ma;});const ai=ep.filter(p=>!mm.has(p.id.toString())).map(p=>p.id.toString());const mi=mo.filter(id=>ps.find(p=>p.id.toString()===id&&mm.has(id)));const mp={};ps.forEach(p=>mp[p.id.toString()]=p);return[...ai,...mi,...pn.map(p=>p.id.toString())].map(id=>mp[id]).filter(Boolean);}
 
