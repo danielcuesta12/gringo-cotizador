@@ -30,13 +30,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Datos para el explosionado en el navegador
 $products = Database::fetchAll("SELECT id,name FROM products WHERE active=1 ORDER BY name");
-$insumos  = Database::fetchAll("SELECT id,nombre,unidad,costo_unitario FROM insumos WHERE activo=1 ORDER BY nombre");
+$insumos  = Database::fetchAll("SELECT id,nombre,unidad,costo_unitario,tipo FROM insumos WHERE activo=1 ORDER BY nombre");
 $recetas  = Database::fetchAll("SELECT product_id,insumo_id,cantidad FROM recetas");
 
 $recByProd = [];
 foreach ($recetas as $r) { $recByProd[(int)$r['product_id']][] = ['insumo_id'=>(int)$r['insumo_id'],'cantidad'=>(float)$r['cantidad']]; }
 $insMap = [];
-foreach ($insumos as $i) { $insMap[(int)$i['id']] = ['nombre'=>$i['nombre'],'unidad'=>$i['unidad'],'costo'=>(float)$i['costo_unitario']]; }
+foreach ($insumos as $i) { $insMap[(int)$i['id']] = ['nombre'=>$i['nombre'],'unidad'=>$i['unidad'],'costo'=>(float)$i['costo_unitario'],'tipo'=>$i['tipo']]; }
+
+$recMod = [];
+try { foreach (Database::fetchAll("SELECT modificador_id,insumo_id,cantidad FROM receta_modificadores") as $r) { $recMod[(int)$r['modificador_id']][] = ['insumo_id'=>(int)$r['insumo_id'],'cantidad'=>(float)$r['cantidad']]; } } catch (\Throwable $e) { $recMod = []; }
+$modsByProd = [];
+try {
+    $rows = Database::fetchAll("SELECT pmg.product_id, m.id, m.nombre FROM product_modifier_groups pmg JOIN modificadores m ON m.grupo_id = pmg.grupo_id WHERE EXISTS (SELECT 1 FROM receta_modificadores rm WHERE rm.modificador_id = m.id) ORDER BY m.nombre");
+    foreach ($rows as $r) { $modsByProd[(int)$r['product_id']][] = ['id'=>(int)$r['id'],'nombre'=>$r['nombre']]; }
+} catch (\Throwable $e) { $modsByProd = []; }
 
 $pageTitle  = 'Salida a evento';
 $activePage = 'inv-evento';
@@ -109,6 +117,8 @@ include __DIR__ . '/../layout-top.php';
 
 <script>
   var RECETAS = <?= json_encode($recByProd) ?>;
+  var RECETAS_MOD = <?= json_encode($recMod) ?>;
+  var MODS_BY_PROD = <?= json_encode($modsByProd) ?>;
   var INSUMOS = <?= json_encode($insMap) ?>;
   var PRODNAMES = {}; <?php foreach ($products as $p): ?>PRODNAMES[<?= (int)$p['id'] ?>] = <?= json_encode($p['name']) ?>;<?php endforeach; ?>
   var evProds = [];   // [{pid, qty}]
