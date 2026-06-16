@@ -606,7 +606,7 @@ if ($showCard) {
 
     /* ── Wizard de checkout ── */
     .wz-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
-    .wz-card{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+    .wz-card{background:#fff;width:100%;max-width:480px;max-height:88vh;max-height:88dvh;overflow-y:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
     .wz-top{background:#1B1F4B;color:#fff;padding:14px 18px}
     .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
     .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer}
@@ -618,11 +618,11 @@ if ($showCard) {
     .wz-bar i{display:block;height:100%;width:0;background:#F5C200;transition:width .3s}
     .wz-bar.done i,.wz-bar.cur i{width:100%}
     .wz-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
-    .wz-body{padding:18px;flex:1}
+    .wz-body{padding:18px}
     .wz-panel{display:none}
     .wz-panel.wz-on{display:block;animation:wzSlide .25s ease}
     @keyframes wzSlide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
-    .wz-foot{padding:0 18px 20px}
+    .wz-foot{padding:0 18px;padding-bottom:max(20px, env(safe-area-inset-bottom))}
     .wz-cta{width:100%;padding:15px;border:none;border-radius:12px;background:#F5C200;color:#1B1F4B;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
     .wz-skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12.5px;font-weight:700;margin-top:11px;cursor:pointer}
     .wz-cancel{display:block;width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;color:#888;font-size:13px;margin-top:8px;cursor:pointer}
