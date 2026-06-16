@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · KDS — separar por categoría (foodtruck)</title>
+<style>
+  :root{--bg:#0f1115;--panel:#181b21;--line:#2a2e36;--text:#e8e8ea;--mut:#9aa0aa;--yellow:#F5C200;
+        --green:#1f9d55;--orange:#d9920a;--red:#d64545;--gray:#6b7280;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:18px 14px 70px}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:19px;font-weight:900;margin-bottom:3px}
+  .sub{font-size:13px;color:var(--mut);margin-bottom:16px;line-height:1.55}
+
+  .topbar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap}
+  .t-title{font-weight:900;font-size:15px;margin-right:auto}
+  .seg{display:flex;background:#11141a;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{background:none;border:none;color:var(--mut);font-weight:800;font-size:12.5px;padding:8px 12px;cursor:pointer}
+  .seg button.on{background:var(--yellow);color:#1a1a1a}
+  .admin-tag{font-size:10px;font-weight:900;color:#1a1a1a;background:var(--yellow);border-radius:20px;padding:3px 9px}
+
+  /* Barra de filtro de categorías (solo en vista categoría) */
+  .catbar{display:none;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+  .catbar.on{display:flex}
+  .catbar .lbl{font-size:11px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+  .chip{font-size:12.5px;font-weight:800;padding:7px 13px;border-radius:20px;border:1.5px solid var(--line);background:#11141a;color:var(--mut);cursor:pointer;user-select:none}
+  .chip.on{background:var(--yellow);color:#1a1a1a;border-color:var(--yellow)}
+  .catbar .adm{margin-left:auto;font-size:11px;color:var(--mut)}
+
+  .lane{margin-bottom:14px;border-left:3px solid var(--accent,#666);padding-left:11px}
+  .lane-h{display:flex;align-items:center;gap:9px;font-weight:900;font-size:14px;margin-bottom:9px}
+  .lane-h .ic{font-size:18px}
+  .lane-h .n{color:var(--mut);font-weight:700;font-size:12px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap}
+
+  .kc{width:158px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--gray);border-radius:11px;overflow:hidden;position:relative}
+  .kc.green{border-top-color:var(--green)}.kc.orange{border-top-color:var(--orange)}.kc.red{border-top-color:var(--red)}
+  .kc .h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px}
+  .kc .id{font-weight:900}
+  .kc .tm{font-weight:900;font-variant-numeric:tabular-nums}
+  .kc.green .tm{color:#5fd08a}.kc.orange .tm{color:#f0b44a}.kc.red .tm{color:#f08a8a}
+  .kc .b{padding:0 10px 10px;font-size:12.5px}
+  .kc .cl{color:var(--text);font-weight:700;margin-bottom:4px;font-size:12px}
+  .kc .ki{color:var(--text);margin-bottom:2px}.kc .ki .q{color:var(--yellow);font-weight:800;margin-right:4px}
+  .split-flag{display:inline-block;font-size:9.5px;font-weight:900;background:#3a2d12;color:var(--yellow);border:1px solid #5a4a1e;border-radius:6px;padding:2px 6px;margin-top:6px}
+  .kc .foot{padding:8px 10px;border-top:1px solid var(--line);display:flex;gap:6px}
+  .kc .foot button{flex:1;font-size:11px;font-weight:800;border:none;border-radius:7px;padding:6px;cursor:pointer;background:#11141a;color:var(--text)}
+  .kc .foot .ok{background:var(--green);color:#06250f}
+
+  .legend{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;line-height:1.65;margin-top:8px}
+  .legend b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍳 KDS — separar por categoría (foodtruck)</h1>
+  <div class="sub">Probar: cambia a <b>“Separar por categoría”</b>. Los pedidos con varias categorías se <b>parten</b> en una tarjeta por categoría (mismo #/nombre). Usa los <b>chips</b> para ocultar las categorías que no te tocan. <i>Solo disponible en vista por categoría y con permiso de administrador.</i></div>
+
+  <div class="topbar">
+    <span class="t-title">Food truck · Feria de Barranco</span>
+    <div class="seg">
+      <button id="v-all" class="on" onclick="setView('all')">Todo junto</button>
+      <button id="v-tipo" onclick="setView('tipo')">Por tipo</button>
+      <button id="v-cat" onclick="setView('cat')">Por categoría</button>
+    </div>
+    <span class="admin-tag">🔒 Admin</span>
+  </div>
+
+  <div class="catbar" id="catbar">
+    <span class="lbl">Mostrar:</span>
+    <span class="chip on" data-cat="burger" onclick="toggleCat('burger')">🍔 Burgers</span>
+    <span class="chip on" data-cat="pollo" onclick="toggleCat('pollo')">🍗 Pollos</span>
+    <span class="chip on" data-cat="papas" onclick="toggleCat('papas')">🍟 Salchipapas</span>
+    <span class="chip on" data-cat="bebida" onclick="toggleCat('bebida')">🥤 Bebidas</span>
+    <span class="adm">Apaga una categoría para ocultar sus pedidos · (solo admin)</span>
+  </div>
+
+  <div id="board"></div>
+
+  <div class="legend">
+    <b>Cómo funciona:</b> en <b>“Por categoría”</b>, cada categoría es una fila (con su estación). Un pedido con 🍔+🍗 aparece como <b>2 tarjetas con el mismo #</b>, cada una con solo sus ítems y la marca <b>“parte de #045”</b>. Marcas <b>Listo</b> en cada estación por separado; el pedido sale completo cuando todas sus partes están listas. Los <b>chips</b> ocultan categorías para que cada cocinero vea solo lo suyo. Todo esto se activa solo en esta vista y para usuarios admin.
+  </div>
+</div>
+
+<script>
+  var CATS = {
+    burger: {ic:'🍔', lbl:'Burgers',      color:'#f59e0b'},
+    pollo:  {ic:'🍗', lbl:'Pollos crispy', color:'#fb7185'},
+    papas:  {ic:'🍟', lbl:'Salchipapas',  color:'#fbbf24'},
+    bebida: {ic:'🥤', lbl:'Bebidas',      color:'#38bdf8'}
+  };
+  // Pedidos con items que tienen categoría
+  var PEDIDOS = [
+    {id:45, cl:'orange', t:'12:30', cliente:'Mesa 3', items:[
+      {cat:'burger', q:2, n:'Gringo'}, {cat:'pollo', q:1, n:'Crispy 1/4'}, {cat:'bebida', q:2, n:'Limonada'}]},
+    {id:46, cl:'green', t:'03:10', cliente:'Recojo · Ana', items:[
+      {cat:'papas', q:1, n:'Salchipapa XL'}, {cat:'bebida', q:1, n:'Gaseosa'}]},
+    {id:47, cl:'red', t:'21:45', cliente:'Mesa 1', items:[
+      {cat:'burger', q:3, n:'Gringo Doble'}]},
+    {id:48, cl:'green', t:'01:20', cliente:'Marco', items:[
+      {cat:'pollo', q:1, n:'Crispy entero'}, {cat:'papas', q:1, n:'Salchipapa'}]},
+  ];
+  var view='all', hidden={};
+
+  function itemsHTML(items){ return items.map(function(i){ return '<div class="ki"><span class="q">'+i.q+'x</span>'+i.n+'</div>'; }).join(''); }
+
+  function card(p, items, splitInfo){
+    return '<div class="kc '+p.cl+'">'+
+      '<div class="h"><span class="id">#'+String(p.id).padStart(3,'0')+'</span><span class="tm">'+p.t+'</span></div>'+
+      '<div class="b"><div class="cl">'+p.cliente+'</div>'+itemsHTML(items)+
+      (splitInfo?'<span class="split-flag">✂️ '+splitInfo+'</span>':'')+'</div>'+
+      '<div class="foot"><button class="ok">Listo</button><button>✕</button></div></div>';
+  }
+
+  function render(){
+    var b=document.getElementById('board');
+    document.getElementById('catbar').classList.toggle('on', view==='cat');
+
+    if(view==='all' || view==='tipo'){
+      // (en este mockup, "Todo junto" y "Por tipo" muestran las tarjetas completas)
+      var inner = PEDIDOS.map(function(p){ return card(p, p.items, null); }).join('');
+      b.innerHTML='<div class="lane" style="--accent:#444"><div class="cards">'+inner+'</div></div>';
+      return;
+    }
+
+    // Vista por categoría: una fila por categoría, tarjetas partidas
+    b.innerHTML = Object.keys(CATS).filter(function(c){ return !hidden[c]; }).map(function(c){
+      var rows = PEDIDOS.map(function(p){
+        var its = p.items.filter(function(i){ return i.cat===c; });
+        if(!its.length) return '';
+        var nCats = new Set(p.items.map(function(i){return i.cat;})).size;
+        var split = nCats>1 ? ('parte de #'+String(p.id).padStart(3,'0')+' · '+nCats+' estaciones') : null;
+        return card(p, its, split);
+      }).join('');
+      if(!rows) return '';
+      var meta=CATS[c];
+      var nP = PEDIDOS.filter(function(p){return p.items.some(function(i){return i.cat===c;});}).length;
+      return '<div class="lane" style="--accent:'+meta.color+'"><div class="lane-h"><span class="ic">'+meta.ic+'</span>'+meta.lbl+' <span class="n">· '+nP+' pedido(s)</span></div><div class="cards">'+rows+'</div></div>';
+    }).join('') || '<div class="legend">Todas las categorías ocultas. Enciende alguna arriba.</div>';
+  }
+
+  function setView(v){view=v;['all','tipo','cat'].forEach(function(x){document.getElementById('v-'+x).classList.toggle('on',x===v);});render();}
+  function toggleCat(c){hidden[c]=!hidden[c];document.querySelector('[data-cat="'+c+'"]').classList.toggle('on',!hidden[c]);render();}
+  render();
+</script>
+</body>
+</html>
