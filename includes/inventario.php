@@ -139,9 +139,10 @@ if (!function_exists('eventoConsumoTeorico')) {
     {
         $out = [];
         try {
-            $ev = Database::fetch("SELECT ubicacion_id FROM eventos WHERE id=?", [$eventoId]);
-            if (!$ev || empty($ev['ubicacion_id'])) return $out;
-            $ubi = (int)$ev['ubicacion_id'];
+            $ev = Database::fetch("SELECT ubicacion_id, truck_ubicacion_id FROM eventos WHERE id=?", [$eventoId]);
+            if (!$ev) return $out;
+            $ubi = (int)($ev['truck_ubicacion_id'] ?: $ev['ubicacion_id']);   // ventas del truck; fallback al almacén
+            if ($ubi <= 0) return $out;
             $pedidos = Database::fetchAll(
                 "SELECT items_json FROM pedidos WHERE ubicacion_id=? AND DATE(created_at)=? AND estado<>'cancelado'",
                 [$ubi, $fecha]
