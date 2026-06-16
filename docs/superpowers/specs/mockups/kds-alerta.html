@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Alerta KDS (ding + flash verde)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f1115;color:#e8e8ea;min-height:100vh;padding:40px 16px}
+  .wrap{max-width:560px;margin:0 auto;text-align:center}
+  h1{font-size:20px;font-weight:900;margin-bottom:6px}
+  .sub{font-size:13.5px;color:#9aa0aa;line-height:1.55;margin-bottom:26px}
+  .panel{background:#181b21;border:1px solid #2a2e36;border-radius:16px;padding:22px;margin-bottom:18px}
+  .panel h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#facc15;margin-bottom:6px}
+  .panel p{font-size:13px;color:#9aa0aa;margin-bottom:14px;line-height:1.5}
+  button{border:none;border-radius:11px;padding:13px 20px;font-size:15px;font-weight:800;cursor:pointer}
+  .big{background:#22c55e;color:#06250f;width:100%}
+  .alt{background:#2a2e36;color:#e8e8ea}
+  .row{display:flex;gap:10px;margin-top:10px}
+  .row button{flex:1}
+  .note{font-size:12px;color:#6b7280;margin-top:18px;line-height:1.5}
+
+  /* Flash verde a pantalla completa */
+  #flash{position:fixed;inset:0;z-index:9990;background:#22c55e;opacity:0;pointer-events:none}
+  #flash.on{animation:kflash .9s ease-out}
+  @keyframes kflash{0%{opacity:0}14%{opacity:.55}38%{opacity:0}54%{opacity:.42}100%{opacity:0}}
+  #flashlbl{position:fixed;inset:0;z-index:9991;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0}
+  #flashlbl.on{animation:klbl .9s ease-out}
+  #flashlbl span{background:rgba(6,37,15,.92);color:#fff;font-size:30px;font-weight:900;padding:18px 34px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  @keyframes klbl{0%{opacity:0;transform:scale(.8)}20%{opacity:1;transform:scale(1.04)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<div id="flashlbl"><span>🔔 ¡Nuevo pedido!</span></div>
+
+<div class="wrap">
+  <h1>🔔 Alerta de pedido nuevo · KDS</h1>
+  <div class="sub">Así avisaría la cocina cuando entra un pedido: un <b>ding más fuerte</b> (sintetizado, sin archivos) + un <b>flash verde a pantalla completa</b>. Pulsa para probar. <b>El primer toque activa el audio</b> (regla de los navegadores).</div>
+
+  <div class="panel">
+    <h3>Vista completa (ding + flash + cartel)</h3>
+    <p>Lo que verá y oirá la cocina al entrar un pedido.</p>
+    <button class="big" onclick="full()">▶ Simular pedido nuevo</button>
+  </div>
+
+  <div class="panel">
+    <h3>Solo el sonido — elige cuál te gusta</h3>
+    <p>Ambos son sintetizados y “fuertes pero no chillones”.</p>
+    <div class="row">
+      <button class="alt" onclick="dingA()">A · Campanazo doble</button>
+      <button class="alt" onclick="dingB()">B · Triple ding</button>
+    </div>
+  </div>
+
+  <div class="note">Recomiendo <b>A (campanazo doble)</b> + el flash verde. Dime cuál eliges y lo aplico al KDS.<br>(El volumen final también depende del volumen del equipo de la cocina.)</div>
+</div>
+
+<script>
+  var actx = null;
+  function AC(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx && actx.state==='suspended') actx.resume(); return actx; }
+
+  // A — campanazo de dos notas ascendentes, cada nota con fundamental + armónico (más cuerpo, se percibe más fuerte)
+  function dingA(){
+    var ac = AC(); if(!ac) return;
+    var t = ac.currentTime;
+    [{f:880,at:0},{f:1318.5,at:0.15}].forEach(function(n){
+      [{m:1,type:'triangle',peak:0.6},{m:2,type:'sine',peak:0.22}].forEach(function(p){
+        var o=ac.createOscillator(), g=ac.createGain();
+        o.type=p.type; o.frequency.value=n.f*p.m; o.connect(g); g.connect(ac.destination);
+        var s=t+n.at;
+        g.gain.setValueAtTime(0.0001,s);
+        g.gain.exponentialRampToValueAtTime(p.peak,s+0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001,s+0.5);
+        o.start(s); o.stop(s+0.55);
+      });
+    });
+  }
+  // B — tres "dings" cortos y brillantes (estilo timbre de mostrador)
+  function dingB(){
+    var ac = AC(); if(!ac) return;
+    var t = ac.currentTime;
+    [0,0.14,0.28].forEach(function(at){
+      var o=ac.createOscillator(), g=ac.createGain();
+      o.type='sine'; o.frequency.value=1175; o.connect(g); g.connect(ac.destination);
+      var s=t+at;
+      g.gain.setValueAtTime(0.0001,s);
+      g.gain.exponentialRampToValueAtTime(0.55,s+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+0.18);
+      o.start(s); o.stop(s+0.2);
+    });
+  }
+
+  function flash(){
+    var f=document.getElementById('flash'), l=document.getElementById('flashlbl');
+    f.classList.remove('on'); l.classList.remove('on'); void f.offsetWidth; void l.offsetWidth;
+    f.classList.add('on'); l.classList.add('on');
+  }
+  function full(){ dingA(); flash(); }
+</script>
+</body>
+</html>
