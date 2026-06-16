@@ -121,25 +121,30 @@ include __DIR__ . '/../layout-top.php';
   var MODS_BY_PROD = <?= json_encode($modsByProd) ?>;
   var INSUMOS = <?= json_encode($insMap) ?>;
   var PRODNAMES = {}; <?php foreach ($products as $p): ?>PRODNAMES[<?= (int)$p['id'] ?>] = <?= json_encode($p['name']) ?>;<?php endforeach; ?>
-  var evProds = [];   // [{pid, qty}]
+  var evProds = [];   // [{pid, qty, mods:[], excl:[]}]
 
   function addProd(){
     var pid = parseInt(document.getElementById('prodSel').value);
     var qty = parseFloat(document.getElementById('prodQty').value) || 0;
     if (!pid || qty <= 0) return;
-    var ex = evProds.find(function(x){ return x.pid === pid; });
-    if (ex) ex.qty += qty; else evProds.push({ pid: pid, qty: qty });
+    evProds.push({ pid: pid, qty: qty, mods: [], excl: [] });
     renderProds();
   }
-  function rmProd(pid){ evProds = evProds.filter(function(x){ return x.pid !== pid; }); renderProds(); }
+  function rmProd(idx){ evProds.splice(idx,1); renderProds(); }
+  function toggleMod(idx, mid, on){ var a=evProds[idx].mods; if(on){ if(a.indexOf(mid)<0)a.push(mid);} else { evProds[idx].mods=a.filter(function(m){return m!==mid;}); } }
+  function toggleExcl(idx, iid, on){ var a=evProds[idx].excl; if(on){ if(a.indexOf(iid)<0)a.push(iid);} else { evProds[idx].excl=a.filter(function(x){return x!==iid;}); } }
   function renderProds(){
     var el = document.getElementById('prodList');
     if (!evProds.length){ el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;margin:0">Sin productos aún.</p>'; return; }
-    el.innerHTML = evProds.map(function(x){
+    el.innerHTML = evProds.map(function(x, idx){
       var sinReceta = !RECETAS[x.pid] ? ' <span style="color:#dc2626;font-size:11px">(sin receta)</span>' : '';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px">'
-        + '<span><strong>'+x.qty+'×</strong> '+(PRODNAMES[x.pid]||('#'+x.pid))+sinReceta+'</span>'
-        + '<button type="button" onclick="rmProd('+x.pid+')" style="background:none;border:none;color:#dc2626;cursor:pointer">✕</button></div>';
+      var html = '<div style="padding:8px 0;border-bottom:1px solid var(--border)">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px"><span><strong>'+x.qty+'×</strong> '+(PRODNAMES[x.pid]||('#'+x.pid))+sinReceta+'</span><button type="button" onclick="rmProd('+idx+')" style="background:none;border:none;color:#dc2626;cursor:pointer">✕</button></div>';
+      var mods = MODS_BY_PROD[x.pid] || [];
+      if (mods.length){ html += '<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:10px">' + mods.map(function(m){ var chk = x.mods.indexOf(m.id)>=0?'checked':''; return '<label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" '+chk+' onchange="toggleMod('+idx+','+m.id+',this.checked)"> +'+m.nombre+'</label>'; }).join('') + '</div>'; }
+      var rec = RECETAS[x.pid] || [];
+      if (rec.length){ html += '<details style="margin-top:5px"><summary style="font-size:12px;color:var(--text-muted);cursor:pointer">Quitar ingredientes</summary><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:5px">' + rec.map(function(r){ var info=INSUMOS[r.insumo_id]||{nombre:'#'+r.insumo_id}; var chk=x.excl.indexOf(r.insumo_id)>=0?'checked':''; return '<label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" '+chk+' onchange="toggleExcl('+idx+','+r.insumo_id+',this.checked)"> sin '+info.nombre+'</label>'; }).join('') + '</div></details>'; }
+      html += '</div>'; return html;
     }).join('');
   }
 
