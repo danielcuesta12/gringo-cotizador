@@ -41,10 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fFin = clean($_POST['evento_fecha_fin'] ?? '');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fFin) || $fFin < $fIni) $fFin = null;
             $qid  = cleanInt($_POST['evento_quote_id'] ?? 0) ?: null;
+            $truckId = cleanInt($_POST['evento_truck_id'] ?? 0) ?: null;
             if ($evNombre === '') $evNombre = 'Evento ' . $fIni;
             $eventoId = Database::insert(
-                "INSERT INTO eventos (nombre,quote_id,ubicacion_id,fecha_inicio,fecha_fin,estado) VALUES (?,?,?,?,?, 'abierto')",
-                [$evNombre, $qid, $ubiId, $fIni, $fFin]
+                "INSERT INTO eventos (nombre,quote_id,ubicacion_id,truck_ubicacion_id,fecha_inicio,fecha_fin,estado) VALUES (?,?,?,?,?,?, 'abierto')",
+                [$evNombre, $qid, $ubiId, $truckId, $fIni, $fFin]
             );
         } elseif ($evModo === 'existente') {
             $eventoId = cleanInt($_POST['evento_id'] ?? 0);
@@ -183,6 +184,10 @@ include __DIR__ . '/../layout-top.php';
             <select name="evento_quote_id">
               <option value="">— Sin vincular a cotización —</option>
               <?php foreach ($cotizaciones as $c): ?><option value="<?= (int)$c['id'] ?>"><?= clean($c['quote_number']) ?><?= $c['event_date'] ? ' · ' . clean($c['event_date']) : '' ?></option><?php endforeach; ?>
+            </select>
+            <select name="evento_truck_id" style="margin-top:6px">
+              <option value="">— Truck / ubicación donde vende (opcional) —</option>
+              <?php foreach ($ubicaciones as $u): ?><option value="<?= (int)$u['id'] ?>"><?= clean($u['nombre']) ?></option><?php endforeach; ?>
             </select>
           </div>
           <?php if (!empty($eventosAbiertos)): ?>
