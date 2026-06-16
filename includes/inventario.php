@@ -214,3 +214,66 @@ if (!function_exists('eventoEliminar')) {
         } catch (\Throwable $e) { /* tablas faltantes: ignorar */ }
     }
 }
+
+if (!function_exists('ubicacionesConInventario')) {
+    /**
+     * Ubicaciones que manejan stock: locales activos (venta) + almacenes (no venden).
+     * Devuelve filas con id, nombre, es_almacen. Tolerante: si la columna es_almacen
+     * aún no existe (migración 49 sin aplicar), cae a activa=1 y marca es_almacen=0.
+     */
+    function ubicacionesConInventario(): array
+    {
+        try {
+            $hasCol = Database::fetch(
+                "SELECT 1 FROM information_schema.columns
+                 WHERE table_schema=DATABASE() AND table_name='ubicaciones' AND column_name='es_almacen'"
+            );
+            if ($hasCol) {
+                return Database::fetchAll(
+                    "SELECT id, nombre, es_almacen FROM ubicaciones
+                     WHERE activa=1 OR es_almacen=1
+                     ORDER BY es_almacen DESC, es_principal DESC, sort_order, nombre"
+                );
+            }
+        } catch (\Throwable $e) { /* sin information_schema: cae al fallback */ }
+        $rows = Database::fetchAll(
+            "SELECT id, nombre FROM ubicaciones WHERE activa=1 ORDER BY es_principal DESC, sort_order, nombre"
+        );
+        foreach ($rows as &$r) { $r['es_almacen'] = 0; }
+        return $rows;
+    }
+}
+
+if (!function_exists('invTransferir')) {
+    /**
+     * Transferencia de insumos entre ubicaciones: baja en origen y sube en destino,
+     * en una transacción, con una referencia común que enlaza ambas patas.
+     * $items = [insumo_id => cantidad(positiva)]. Devuelve la ref usada (o '' si nada/falló).
+     * NO valida stock (el llamador valida antes); NO revierte ventas históricas.
+     */
+    function invTransferir(int $origen, int $destino, array $items, string $motivo = 'Despacho'): string
+    {
+        if ($origen <= 0 || $destino <= 0 || $origen === $destino) return '';
+        $ref = 'TRF-' . date('YmdHis') . '-' . $origen . '-' . $destino;
+        $pdo = Database::getInstance();
+        try {
+            $pdo->beginTransaction();
+            $hubo = false;
+            foreach ($items as $insumoId => $cant) {
+                $insumoId = (int)$insumoId; $cant = (float)$cant;
+                if ($insumoId <= 0 || $cant <= 0) continue;
+                $idOut = invMovimiento($origen,  $insumoId, 'transferencia', -$cant, ['motivo'=>$motivo,                 'ref'=>$ref]);
+                $idIn  = invMovimiento($destino, $insumoId, 'transferencia',  $cant, ['motivo'=>$motivo . ' (recibido)', 'ref'=>$ref]);
+                // invMovimiento traga sus excepciones y devuelve 0: forzamos rollback si falló una pata
+                if (!$idOut || !$idIn) throw new \RuntimeException('Falló una pata de la transferencia');
+                $hubo = true;
+            }
+            if (!$hubo) { $pdo->rollBack(); return ''; }
+            $pdo->commit();
+            return $ref;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            return '';
+        }
+    }
+}
