@@ -102,6 +102,29 @@ include __DIR__ . '/../layout-top.php';
         <input type="hidden" name="ubicacion_id" id="fUbi">
         <input type="hidden" name="ref" id="fRef">
         <div id="ingList"><p style="color:var(--text-muted);font-size:14px;margin:0">Agrega productos y pulsa «Calcular ingredientes».</p></div>
+        <!-- Buscador de insumos sueltos -->
+        <div id="se-add" style="position:relative;margin-top:10px">
+          <input type="text" id="se-q" placeholder="+ Agregar insumo suelto…" autocomplete="off" style="width:100%;box-sizing:border-box" oninput="seBuscar(this.value)">
+          <div id="se-drop" style="display:none;position:absolute;z-index:200;left:0;right:0;background:var(--card-bg,#fff);border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;max-height:220px;overflow-y:auto"></div>
+        </div>
+        <!-- Mini-modal crear insumo -->
+        <div id="ins-ov" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+          <div style="background:var(--card-bg,#fff);border-radius:10px;padding:20px;width:min(340px,94vw);box-shadow:0 8px 32px rgba(0,0,0,.2)">
+            <p style="margin:0 0 14px;font-weight:700;font-size:15px">Nuevo insumo</p>
+            <div class="form-group"><label>Nombre</label><input type="text" id="ins-name"></div>
+            <div class="form-row form-row-2" style="gap:10px">
+              <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" id="ins-unidad" placeholder="kg, un, l…"></div>
+              <div class="form-group" style="margin:0"><label>Tipo</label>
+                <select id="ins-tipo"><option value="descartable">Descartable</option><option value="insumo">Insumo</option><option value="ingrediente">Ingrediente</option></select>
+              </div>
+            </div>
+            <div class="form-group"><label>Costo unitario (S/)</label><input type="text" inputmode="decimal" id="ins-costo" value="0"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+              <button type="button" class="btn btn-ghost" onclick="document.getElementById('ins-ov').style.display='none'">Cancelar</button>
+              <button type="button" class="btn btn-primary" onclick="insCrear()">Crear y agregar</button>
+            </div>
+          </div>
+        </div>
         <div id="ingFoot" style="display:none;margin-top:14px;padding-top:12px;border-top:2px solid var(--border)">
           <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:12px">
             <span>Costo total del evento</span><span id="costoTotal">S/ 0.00</span>
@@ -186,6 +209,144 @@ include __DIR__ . '/../layout-top.php';
     });
     document.getElementById('costoTotal').textContent = 'S/ ' + total.toFixed(2);
   }
+
+  // ── Buscador de insumos sueltos ──────────────────────────────────────────
+  var INS_API  = '<?= APP_URL ?>/api/insumos.php';
+  var CSRF_TOK = '<?= csrfToken() ?>';
+  var _seTimer = null;
+
+  function seBuscar(q){
+    clearTimeout(_seTimer);
+    var drop = document.getElementById('se-drop');
+    if (!q || q.trim().length < 2){ drop.style.display = 'none'; drop.innerHTML = ''; return; }
+    _seTimer = setTimeout(function(){
+      fetch(INS_API + '?action=buscar&q=' + encodeURIComponent(q.trim()))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          drop.innerHTML = '';
+          var items = Array.isArray(data) ? data : (data.insumos || []);
+          var qLower = q.trim().toLowerCase();
+          var exactMatch = items.some(function(i){ return i.nombre.toLowerCase() === qLower; });
+          items.forEach(function(i){
+            var el = document.createElement('div');
+            el.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border)';
+            el.textContent = i.nombre + (i.unidad ? ' (' + i.unidad + ')' : '');
+            el.addEventListener('mouseover', function(){ el.style.background='var(--hover-bg,#f5f5f5)'; });
+            el.addEventListener('mouseout',  function(){ el.style.background=''; });
+            el.addEventListener('click', function(){
+              seAgregar(parseInt(i.id), i.nombre, i.unidad || '', parseFloat(i.costo_unitario) || 0);
+              document.getElementById('se-q').value = '';
+              drop.style.display = 'none';
+            });
+            drop.appendChild(el);
+          });
+          if (!exactMatch){
+            var crEl = document.createElement('div');
+            crEl.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:14px;color:var(--primary,#007bff)';
+            crEl.textContent = '+ Crear «' + q.trim() + '»';
+            crEl.addEventListener('mouseover', function(){ crEl.style.background='var(--hover-bg,#f5f5f5)'; });
+            crEl.addEventListener('mouseout',  function(){ crEl.style.background=''; });
+            crEl.addEventListener('click', function(){
+              insAbrir(q.trim());
+              drop.style.display = 'none';
+            });
+            drop.appendChild(crEl);
+          }
+          drop.style.display = drop.childNodes.length ? 'block' : 'none';
+        })
+        .catch(function(){ drop.style.display = 'none'; });
+    }, 280);
+  }
+
+  function seAgregar(iid, nombre, unidad, costo){
+    // No duplicar
+    var exist = document.querySelector('#ingList .ev-row[data-iid="'+iid+'"]');
+    if (exist){ exist.querySelector('.ev-q').focus(); return; }
+    // Crear fila con mismo formato que calcular()
+    var row = document.createElement('div');
+    row.className = 'ev-row';
+    row.dataset.iid   = iid;
+    row.dataset.costo = costo;
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)';
+    var nameSpan = document.createElement('span');
+    nameSpan.style.cssText = 'flex:1;font-size:14px';
+    nameSpan.textContent = nombre;
+    var hidIid = document.createElement('input');
+    hidIid.type = 'hidden'; hidIid.name = 'insumo_id[]'; hidIid.value = iid;
+    var qInput = document.createElement('input');
+    qInput.type = 'text'; qInput.inputMode = 'decimal';
+    qInput.name = 'cantidad[]'; qInput.value = '1'; qInput.className = 'ev-q';
+    qInput.style.cssText = 'width:90px;text-align:right';
+    qInput.addEventListener('input', sumCost);
+    var uSpan = document.createElement('span');
+    uSpan.style.cssText = 'width:36px;font-size:12px;color:var(--text-muted)';
+    uSpan.textContent = unidad;
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.style.cssText = 'background:none;border:none;color:#dc2626;cursor:pointer';
+    rmBtn.textContent = '✕';
+    rmBtn.addEventListener('click', function(){ row.remove(); sumCost(); });
+    row.appendChild(nameSpan);
+    row.appendChild(hidIid);
+    row.appendChild(qInput);
+    row.appendChild(uSpan);
+    row.appendChild(rmBtn);
+    // Quitar el placeholder si aún existe
+    var placeholder = document.querySelector('#ingList > p');
+    if (placeholder) placeholder.remove();
+    document.getElementById('ingList').appendChild(row);
+    document.getElementById('ingFoot').style.display = 'block';
+    document.getElementById('fUbi').value = document.getElementById('ubiSel').value;
+    document.getElementById('fRef').value = document.getElementById('refInput').value;
+    sumCost();
+  }
+
+  function insAbrir(nombre){
+    document.getElementById('ins-name').value = nombre || '';
+    document.getElementById('ins-unidad').value = '';
+    document.getElementById('ins-tipo').value = 'descartable';
+    document.getElementById('ins-costo').value = '0';
+    document.getElementById('ins-ov').style.display = 'flex';
+    document.getElementById('ins-name').focus();
+  }
+
+  function insCrear(){
+    var nombre = document.getElementById('ins-name').value.trim();
+    if (!nombre){ document.getElementById('ins-name').focus(); return; }
+    var body = new URLSearchParams({
+      action:        'crear',
+      nombre:        nombre,
+      unidad:        document.getElementById('ins-unidad').value.trim(),
+      tipo:          document.getElementById('ins-tipo').value,
+      costo_unitario: document.getElementById('ins-costo').value || '0'
+    });
+    fetch(INS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': CSRF_TOK },
+      body: body.toString()
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.insumo && d.insumo.id){
+        seAgregar(parseInt(d.insumo.id), d.insumo.nombre, d.insumo.unidad || '', 0);
+        document.getElementById('ins-ov').style.display = 'none';
+        document.getElementById('se-q').value = '';
+      } else {
+        alert(d.error || 'Error al crear insumo');
+      }
+    })
+    .catch(function(){ alert('Error de red al crear insumo'); });
+  }
+
+  // Cerrar dropdown al hacer click fuera
+  document.addEventListener('click', function(e){
+    var add = document.getElementById('se-add');
+    if (add && !add.contains(e.target)){
+      var drop = document.getElementById('se-drop');
+      if (drop) drop.style.display = 'none';
+    }
+  });
+
   renderProds();
 </script>
 <?php endif; ?>
