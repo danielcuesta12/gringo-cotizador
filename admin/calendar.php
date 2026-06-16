@@ -5,18 +5,19 @@ require_once __DIR__ . '/../includes/helpers.php';
 
 requirePermission('calendar');
 
-// Cotizaciones y eventos para el calendario
-$calQuotes = Database::fetchAll(
-    "SELECT q.id, q.quote_number, q.status, q.origin,
+// Cotizaciones y eventos para el calendario. Tolerante: si falta la migración 50, cae sin esas columnas.
+$eventoColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
+$calSelect = "SELECT q.id, q.quote_number, q.status, q.origin,
             q.event_date, q.event_type,
             q.event_time, q.event_duration, q.event_location,
-            q.num_people, q.total, q.price_per_person,
-            c.name as client_name
+            q.num_people, q.total, q.price_per_person,"
+    . ($eventoColsOk ? " q.evento_nombre, COALESCE(q.evento_atendido,0) evento_atendido," : "")
+    . " c.name as client_name
      FROM quotes q JOIN clients c ON c.id=q.client_id
      WHERE q.status IN ('enviada','aceptada')
        AND q.event_date IS NOT NULL AND q.event_date != ''
-     ORDER BY q.event_date ASC"
-);
+     ORDER BY q.event_date ASC";
+$calQuotes = Database::fetchAll($calSelect);
 
 // Ítems por cotización para el tooltip
 $quoteIds = array_column($calQuotes, 'id');
@@ -212,6 +213,13 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSync
   </div>
   <div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px" id="ttBody"></div>
   <div id="ttProds" style="font-size:11px;color:var(--text-muted);padding:6px 14px;border-top:1px solid var(--border);background:var(--bg-input)"></div>
+  <div id="ttEdit" style="display:none;padding:10px 14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
+    <input type="text" id="ttEvNombre" placeholder="Nombre del evento (para la salida a evento)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;box-sizing:border-box">
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer">
+      <input type="checkbox" id="ttEvAtendido" style="width:16px;height:16px;accent-color:var(--brand)"> Atendida (la oculta del selector de salida a evento)
+    </label>
+    <button type="button" id="ttEvSave" style="align-self:flex-start;font-size:12px;font-weight:700;background:var(--brand,#FFDF00);color:#1e1e1e;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">Guardar</button>
+  </div>
   <div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
     <span id="ttTotal" style="font-size:13px;font-weight:700;color:var(--text-primary)"></span>
     <a id="ttLink" href="#" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none">
@@ -251,6 +259,8 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSync
 var QUOTES = <?php echo json_encode($calQuotes); ?>;
 var AGENDA = <?php echo json_encode($agenda); ?>;
 var APP    = '<?php echo APP_URL; ?>';
+var CSRF        = '<?php echo csrfToken(); ?>';
+var EV_COLS_OK  = <?php echo json_encode($eventoColsOk); ?>;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 // Un evento de agenda aparece en cada día de su rango [fecha, fecha_fin||fecha]
@@ -389,6 +399,19 @@ function showTooltip(e, qid) {
   document.getElementById('ttLink').href = APP+'/quotes/edit.php?id='+q.id;
   document.getElementById('ttLink').textContent = (q.origin==='event'?'Ver evento':'Ver cotización')+' →';
 
+  // Editor de nombre/atendida — solo para aceptadas y eventos (las que entran a la salida a evento)
+  var edit = document.getElementById('ttEdit');
+  if (EV_COLS_OK && (q.status==='aceptada' || q.origin==='event')) {
+    document.getElementById('ttEvNombre').value = q.evento_nombre || '';
+    document.getElementById('ttEvAtendido').checked = Number(q.evento_atendido)===1;
+    var btn = document.getElementById('ttEvSave');
+    btn.textContent = 'Guardar';
+    btn.onclick = function(){ guardarEvento(q.id); };
+    edit.style.display = 'flex';
+  } else {
+    edit.style.display = 'none';
+  }
+
   var tip = document.getElementById('globalTooltip');
   var rect = e.target.getBoundingClientRect();
   var top  = rect.bottom+window.scrollY+6;
@@ -399,6 +422,24 @@ function showTooltip(e, qid) {
   tip.style.left    = Math.max(8,left)+'px';
   tip.style.position = 'absolute';
   document.getElementById('tooltipOverlay').style.display = 'block';
+}
+
+function guardarEvento(qid) {
+  var q = QUOTES.find(function(x){ return x.id===qid; });
+  if (!q) return;
+  var nombre = document.getElementById('ttEvNombre').value.trim();
+  var atendido = document.getElementById('ttEvAtendido').checked ? 1 : 0;
+  var btn = document.getElementById('ttEvSave');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  var body = new URLSearchParams({ action:'set_evento', id:qid, evento_nombre:nombre, evento_atendido:atendido });
+  fetch(APP+'/api/quotes.php', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token':CSRF }, body:body })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      btn.disabled = false; btn.textContent = 'Guardar';
+      if (d && d.ok) { q.evento_nombre = nombre; q.evento_atendido = atendido; closeTooltip(); }
+      else { alert((d && d.error) || 'No se pudo guardar'); }
+    })
+    .catch(function(){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error de red'); });
 }
 
 function showAgendaTooltip(e, aid) {
@@ -427,6 +468,7 @@ function showAgendaTooltip(e, aid) {
   if (a.lugar) body += '<div class="tt-info-row">'+icoPin+'<span>'+esc(a.lugar)+'</span></div>';
   if (a.notas) body += '<div class="tt-info-row"><span>'+esc(a.notas)+'</span></div>';
   document.getElementById('ttBody').innerHTML = body;
+  document.getElementById('ttEdit').style.display = 'none';
   document.getElementById('ttProds').textContent = 'Sin venta · solo disponibilidad';
   document.getElementById('ttTotal').textContent = '';
   document.getElementById('ttLink').href = APP+'/admin/events/create?agenda='+a.id;

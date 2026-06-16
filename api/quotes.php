@@ -6,9 +6,27 @@ require_once __DIR__ . '/../includes/helpers.php';
 requireLogin();
 header('Content-Type: application/json; charset=utf-8');
 
-$action = clean($_GET['action'] ?? '');
+$action = clean($_GET['action'] ?? $_POST['action'] ?? '');
 
 switch ($action) {
+
+    // Nombrar / marcar atendida una cotización de evento (desde el calendario o salida a evento)
+    case 'set_evento':
+        verifyCsrf();
+        if (!can('calendar') && !can('events') && !can('quotes') && !can('inv_evento')) {
+            echo json_encode(['ok' => false, 'error' => 'Sin permisos']); break;
+        }
+        $id       = cleanInt($_POST['id'] ?? 0);
+        $nombre   = clean($_POST['evento_nombre'] ?? '');
+        $atendido = !empty($_POST['evento_atendido']) ? 1 : 0;
+        if ($id <= 0) { echo json_encode(['ok' => false, 'error' => 'ID inválido']); break; }
+        try {
+            Database::execute("UPDATE quotes SET evento_nombre=?, evento_atendido=? WHERE id=?", [$nombre ?: null, $atendido, $id]);
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok' => false, 'error' => 'Falta aplicar install/50_quotes_evento.sql']);
+        }
+        break;
 
     // Buscar productos activos
     case 'search_products':
