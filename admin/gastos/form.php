@@ -131,6 +131,9 @@ $extraHead  = '<style>
 .tag-sug .sug{background:var(--bg-page,#f1f1f4);border-radius:6px;padding:3px 9px;cursor:pointer;font-weight:700}
 .foto-drop{border:1.5px dashed var(--border,#ddd);border-radius:12px;padding:20px;text-align:center;color:var(--text-muted,#888);background:var(--bg-page,#fafafa);cursor:pointer}
 .foto-drop svg{width:28px;height:28px;display:block;margin:0 auto 8px}
+.foto-btn{flex:1;min-width:130px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1.5px dashed var(--border,#ddd);border-radius:12px;padding:16px 12px;background:var(--bg-page,#fafafa);color:var(--text-muted,#666);font-size:13px;font-weight:600;cursor:pointer}
+.foto-btn svg{width:26px;height:26px}
+.foto-btn:active{transform:scale(.98)}
 .foto-prev{margin-top:10px;display:none}
 .foto-prev img{max-width:100%;border-radius:10px}
 </style>';
@@ -218,12 +221,18 @@ include __DIR__ . '/../layout-top.php';
 
       <div class="form-group">
         <label>Comprobante (foto)</label>
-        <div class="foto-drop" onclick="document.getElementById('foto-input').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.66-.9l.82-1.2A2 2 0 0110.07 4h3.86a2 2 0 011.66.9l.82 1.2a2 2 0 001.66.9H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
-          Tomar foto o subir
-          <div style="font-size:11px;margin-top:3px;opacity:.8">Se elimina automáticamente a los 2 meses</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="foto-btn" onclick="fotoPick(true)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.66-.9l.82-1.2A2 2 0 0110.07 4h3.86a2 2 0 011.66.9l.82 1.2a2 2 0 001.66.9H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+            Tomar foto
+          </button>
+          <button type="button" class="foto-btn" onclick="fotoPick(false)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.5-4.5a2 2 0 012.83 0L16 16m-2-2l1.5-1.5a2 2 0 012.83 0L21 16M3 6a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></svg>
+            Subir de galería
+          </button>
         </div>
-        <input type="file" id="foto-input" name="foto" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+        <div style="font-size:11px;margin-top:6px;color:var(--text-muted,#888)">Se elimina automáticamente a los 2 meses</div>
+        <input type="file" id="foto-input" name="foto" accept="image/*" style="display:none" onchange="previewFoto(this)">
         <div class="foto-prev" id="foto-prev">
           <?php if (!empty($data['foto'])): ?><img src="<?= UPLOAD_URL . clean($data['foto']) ?>" alt="comprobante"><?php endif; ?>
         </div>
@@ -248,6 +257,11 @@ function toggleCatNew() {
   n.classList.toggle('on');
   if (n.classList.contains('on')) { document.getElementById('cat-select').value=''; document.getElementById('nueva-cat').focus(); }
   else { document.getElementById('nueva-cat').value=''; }
+}
+function fotoPick(cam) {
+  var inp = document.getElementById('foto-input');
+  if (cam) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
+  inp.click();
 }
 function previewFoto(inp) {
   if (!inp.files || !inp.files[0]) return;
