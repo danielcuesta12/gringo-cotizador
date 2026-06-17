@@ -113,7 +113,7 @@ $logoFile = $logoRel ? UPLOAD_PATH . $logoRel : '';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
-<title>Ingresar — El Gringo Cotizador</title>
+<title>Ingresar — El Gringo OPS PRO</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -270,7 +270,7 @@ input::placeholder { color: #333; }
     </form>
   </div>
 
-  <div class="footer">El Gringo Cotizador v1.0 &middot; Lima, Peru</div>
+  <div class="footer">El Gringo OPS PRO v2.0 &middot; Lima, Perú</div>
 </div>
 
 <script>
