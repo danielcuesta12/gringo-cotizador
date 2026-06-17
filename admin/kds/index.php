@@ -106,8 +106,8 @@ $esAdmin = isAdmin();
 .kpop .fld .dot{width:11px;height:11px;border-radius:50%}
 .kpop input{width:60px;background:#11141a;border:1px solid #2a2e36;border-radius:7px;color:#e8e8ea;padding:6px;text-align:center;font-size:14px;font-weight:800}
 .kpop .hint{font-size:11px;color:#6b7280;line-height:1.45}
-.kchips{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 20px;border-bottom:1px solid #2a2e36;background:#13161b}
-.kchips .lbl{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
+.kchips{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:15px 20px;border-bottom:1px solid #2a2e36;background:#13161b}
+.kchips .lbl{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
 .kchip{font-size:12.5px;font-weight:800;padding:8px 15px;border-radius:18px;border:1.5px solid #2a2e36;background:#11141a;color:#9aa0aa;cursor:pointer;user-select:none}
 .kchip.on{background:var(--c-brand,#FCDA13);color:#1a1a1a;border-color:var(--c-brand,#FCDA13)}
 /* Carriles (vistas por tipo / categoría) */
