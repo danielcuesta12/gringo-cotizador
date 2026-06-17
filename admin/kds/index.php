@@ -36,7 +36,16 @@ $esAdmin = isAdmin();
 .kti{color:#F5E6D0;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
 .km{display:flex;gap:12px;align-items:center;font-size:11px;flex-wrap:wrap}
 .kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:14px}
-.kc{border-radius:8px;overflow:hidden;cursor:grab;position:relative;touch-action:pan-y}
+.kc{border-radius:8px;overflow:hidden;cursor:grab;position:relative;touch-action:pan-y;display:flex;flex-direction:column}
+/* Fila 1: tiempo grande + cohete */
+.kctop{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.kctop.red{background:rgba(248,113,113,.14)} .kctop.orange{background:rgba(251,146,60,.13)} .kctop.green{background:rgba(74,222,128,.12)} .kctop.gray{background:rgba(255,255,255,.05)}
+.kctop .kti2{font-size:30px;font-weight:800;line-height:1}
+.kctop .ksalir-btn{margin-left:auto}
+/* Fila 2: número + nombre + tag */
+.kcid{display:flex;align-items:center;gap:9px;padding:7px 14px 11px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.kname{font-size:15px;font-weight:700;color:#F5E6D0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kcom{font-size:12px;color:#888;margin-top:6px}
 .kc.porsalir{box-shadow:0 0 0 2px #3b82f6, 0 6px 22px rgba(59,130,246,.4)}
 .kc-act{position:absolute;inset:0;display:flex;align-items:center;padding:0 22px;font-weight:900;font-size:17px;color:#fff;opacity:0;pointer-events:none;z-index:6;transition:opacity .05s}
 .kc-act.ok{background:rgba(31,157,85,.95);justify-content:flex-start}
@@ -53,13 +62,13 @@ $esAdmin = isAdmin();
 .kch-l .ktp{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kch>.kti2,.kch>.kpay,.kch>.ksalir-btn{flex-shrink:0}
 .kch.gray{background:rgba(255,255,255,0.03)}.kch.green{background:rgba(74,222,128,0.08)}.kch.orange{background:rgba(251,146,60,0.08)}.kch.red{background:rgba(248,113,113,0.1)}
-.kon{font-size:26px;font-weight:700;color:#F5E6D0}
+.kon{font-size:19px;font-weight:900;color:#F5E6D0;flex-shrink:0}
 .kti2{font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}.kti2.green{color:#4ade80}.kti2.orange{color:#fb923c}.kti2.red{color:#f87171}
 .ktp{font-size:14px;padding:1px 7px;border-radius:8px;font-weight:500}
 .ktp.delivery{background:rgba(74,222,128,0.15);color:#4ade80}.ktp.recojo{background:rgba(96,165,250,0.15);color:#60a5fa}.ktp.salon{background:rgba(252,218,19,0.18);color:var(--c-brand,#FCDA13);font-weight:700;letter-spacing:.5px}
 .kpay{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;background:rgba(252,218,19,0.18);color:var(--c-brand,#FCDA13);padding:3px 9px;border-radius:8px;white-space:nowrap}.kpay svg{width:13px;height:13px}
 .kc.pay{border-color:#a88300;animation:kpay 1.6s ease-in-out infinite}.kch.pay{background:rgba(252,218,19,0.08)}@keyframes kpay{0%,100%{border-color:#7a6000}50%{border-color:var(--c-brand,#FCDA13)}}
-.kcb{padding:14px}.kcl{font-size:18px;font-weight:700;color:#F5E6D0;margin-bottom:2px}.khr{font-size:14px;color:#888;margin-bottom:5px}
+.kcb{padding:14px;flex:1}.kcl{font-size:18px;font-weight:700;color:#F5E6D0;margin-bottom:2px}.khr{font-size:14px;color:#888;margin-bottom:5px}
 .kit{display:flex;flex-direction:column;gap:6px}.ki{font-size:18px;color:#ccc;display:flex;gap:5px}.kiq{color:#F5C200;font-weight:500}
 .kim{font-size:12px;color:#777;font-style:italic;padding-left:22px}
 .kcf{padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:6px}
@@ -187,7 +196,7 @@ let UBI=<?= (int)$defaultUbi ?>;
 const IS_ADMIN=<?= $esAdmin ? 'true' : 'false' ?>;
 let D={pedidos:[],cfg:{tn:10,tr:20,rs:3},ids:new Set()},tmr=null,actx=null;
 let mo=[], mm=new Set();
-let vista="all", catOcultas=new Set(), partesListas=new Set(), porSalir=new Set(), _laneSig="";
+let vista="all", catOcultas=new Set(), partesListas=new Set(), porSalir=new Set(), _laneSig="", _allSig="";
 function lsKey(k){return k+"_"+UBI;}
 function slugCat(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"sin";}
 function loadOrder(){
@@ -270,24 +279,32 @@ function renderChips(){
   box.innerHTML=order.map(function(sl){return '<span class="kchip '+(catOcultas.has(sl)?"":"on")+'" onclick="toggleCat(\''+sl+'\')">'+esc(seen[sl])+'</span>';}).join("")||'<span style="color:#6b7280;font-size:12px">Sin categorías aún</span>';
 }
 
-function cardLane(p,items,opts){
+function cardHTML(p,opts){
   opts=opts||{};
+  var withId=!!opts.withId;
+  var items=opts.items||p.items||[];
   var ip=p.estado==="pendiente";
   var ms=ip?0:Math.max(0,(p._base+(Date.now()-p._recv)/1000)/60);
   var cl=ip?"gray":gc(ms);
   var done=opts.parteCat&&partesListas.has(p.id+":"+opts.parteCat);
-  var it=(items||[]).map(function(i){var mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(function(m){return m.nombre;}).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");
+  var num=String(p.id).padStart(3,"0");
+  var it=items.map(function(i){var mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(function(m){return m.nombre;}).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");
   var tag='<span class="ktp '+(p.origen==="pos"?"salon":esc(p.tipo_entrega))+'">'+(p.origen==="pos"?"SALÓN":p.tipo_entrega==="delivery"?"Delivery":"Recojo")+'</span>';
   var sb='<button class="ksalir-btn'+(porSalir.has(String(p.id))?' on':'')+'" data-salir="'+p.id+'" title="Por salir">🚀</button>';
-  var head='<div class="kch '+cl+(ip?" pay":"")+'"><div class="kch-l"><span class="kon">#'+String(p.id).padStart(3,"0")+'</span>'+tag+'</div>'+(ip?'<span class="kpay">Esperando pago</span>':'<span class="kti2 '+cl+'">'+ft(ms)+'</span>')+(ip?'':sb)+'</div>';
-  var split=opts.nCats>1?'<span class="ksplit">✂️ parte de #'+String(p.id).padStart(3,"0")+'</span>':'';
+  var pin=(withId&&mm.has(String(p.id)))?'<span class="kpin" onclick="soltar('+p.id+')" title="Soltar">📌</span>':'';
+  var nm=esc(p.nombre)||('#'+num);
+  // Fila 1: tiempo grande + cohete
+  var top='<div class="kctop '+cl+'">'+(ip?'<span class="kpay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Esperando pago</span>':'<span class="kti2 '+cl+'"'+(withId?' id="kt-'+p.id+'"':'')+'>'+ft(ms)+'</span>')+(ip?'':sb)+'</div>';
+  // Fila 2: número + nombre + tag (+ pin en vista Todo)
+  var idrow='<div class="kcid"><span class="kon">#'+num+'</span><span class="kname">'+nm+'</span>'+tag+pin+'</div>';
+  var split=opts.nCats>1?'<span class="ksplit">✂️ parte de #'+num+'</span>':'';
   var foot;
   if(ip){foot='<button class="bac" onclick="ac('+p.id+')">Aceptar</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
   else if(opts.parteCat){foot='<button class="bls '+cl+'" onclick="lsParte('+p.id+",'"+opts.parteCat+"')\">"+(done?"↩ Deshacer":"Listo")+'</button>';}
   else{foot='<button class="bls '+cl+'" onclick="ls('+p.id+')">Listo</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
   var ps=porSalir.has(String(p.id))?" porsalir":"";
   var dParte=opts.parteCat?(' data-parte="'+opts.parteCat+'"'):'';
-  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'" data-id="'+p.id+'" data-pid="'+p.id+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+head+'<div class="kcb"><div class="kcl">'+(esc(p.nombre)||('#'+String(p.id).padStart(3,"0")))+'</div>'+(p.horario?'<div class="khr">'+esc(p.horario)+'</div>':'')+'<div class="kit">'+it+'</div>'+split+(p.comentarios?'<div style="font-size:11px;color:#777;margin-top:6px">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
+  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'"'+(withId?' id="kc-'+p.id+'"':'')+' data-id="'+p.id+'" data-pid="'+p.id+'" data-estado="'+p.estado+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+top+idrow+'<div class="kcb"><div class="kit">'+it+'</div>'+split+(p.comentarios?'<div class="kcom">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
 }
 
 function lsParte(id,sl){
@@ -307,11 +324,11 @@ function renderLanes(){
   var sig=vista+"|"+[...catOcultas].join(",")+"|"+D.cfg.tn+"-"+D.cfg.tr+"|"+groups.map(function(gr){return gr.key+":"+gr.rows.map(function(r){var ip=r.p.estado==="pendiente";var ms=ip?0:Math.max(0,(r.p._base+(Date.now()-r.p._recv)/1000)/60);return r.p.id+(r.parteCat?("-"+r.parteCat):"")+":"+r.p.estado+":"+(ip?"g":gc(ms))+":"+(r.parteCat&&partesListas.has(r.p.id+":"+r.parteCat)?"d":"");}).join("/");}).join("|");
   if(sig===_laneSig)return;_laneSig=sig;
   if(!groups.length){g.innerHTML='<div class="ke">'+(vista==="cat"&&[...catOcultas].length?"Categorías ocultas — enciéndelas arriba":"Sin pedidos pendientes")+'</div>';return;}
-  g.innerHTML=groups.map(function(gr){return '<div class="klane"><div class="klane-h" style="--acc:'+gr.color+'">'+esc(gr.label)+' <span class="n">· '+gr.rows.length+'</span></div><div class="kg">'+gr.rows.map(function(r){return cardLane(r.p,r.items,{parteCat:r.parteCat,nCats:r.nCats});}).join("")+'</div></div>';}).join("");
+  g.innerHTML=groups.map(function(gr){return '<div class="klane"><div class="klane-h" style="--acc:'+gr.color+'">'+esc(gr.label)+' <span class="n">· '+gr.rows.length+'</span></div><div class="kg">'+gr.rows.map(function(r){return cardHTML(r.p,{items:r.items,parteCat:r.parteCat,nCats:r.nCats,withId:false});}).join("")+'</div></div>';}).join("");
   setTimeout(bindGestos, 50);
 }
 
-function renderAll(){const g=document.getElementById("kg");const now=Date.now();let ct={gray:0,green:0,orange:0,red:0};if(!D.pedidos.length){g.innerHTML='<div class="ke">Sin pedidos pendientes</div>';["cg","cgr","cor","crd"].forEach(id=>document.getElementById(id).textContent=0);return;}const sr=srt(D.pedidos);const nids=new Set(sr.map(p=>p.id.toString()));g.querySelectorAll(".ke").forEach(e=>e.remove());[...g.querySelectorAll(".kc")].forEach(c=>{if(!nids.has(c.dataset.id))c.remove();});sr.forEach((p,i)=>{const ip=p.estado==="pendiente";let ms=0;if(!ip&&p._recv!==undefined)ms=Math.max(0,(p._base+(now-p._recv)/1000)/60);const cl=ip?"gray":gc(ms);ct[cl]++;const cardExtra=ip?" pay":"";const ex=document.getElementById("kc-"+p.id);if(ex&&ex.dataset.estado===p.estado){if(!ex.className.includes(cl)){ex.className="kc "+cl+(porSalir.has(String(p.id))?" porsalir":"");const h=ex.querySelector(".kch");if(h)h.className="kch "+cl;const btn=ex.querySelector(".bls");if(btn)btn.className="bls "+cl;const ti=ex.querySelector(".kti2");if(ti)ti.className="kti2 "+cl;}const te=document.getElementById("kt-"+p.id);if(te)te.textContent=ft(ms);return;}const it=(p.items||[]).map(i=>{const mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(m=>m.nombre).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");const html='<div class="kc '+cl+cardExtra+(porSalir.has(String(p.id))?" porsalir":"")+'" id="kc-'+p.id+'" data-id="'+p.id+'" data-ip="'+(ip?1:0)+'" data-estado="'+p.estado+'">'+'<div class="kc-act ok"></div><div class="kc-act cancel"></div>'+'<div class="kch '+cl+cardExtra+'">'+'<div class="kch-l"><span class="kon">#'+String(p.id).padStart(3,"0")+'</span>'+'<span class="ktp '+(p.origen==="pos"?"salon":esc(p.tipo_entrega))+'">'+(p.origen==="pos"?"SALÓN":p.tipo_entrega==="delivery"?"Delivery":"Recojo")+'</span>'+(mm.has(String(p.id))?'<span class="kpin" onclick="soltar('+p.id+')" title="Soltar">📌</span>':'')+'</div>'+(ip?'<span class="kpay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Esperando pago</span>':'<span class="kti2 '+cl+'" id="kt-'+p.id+'">'+ft(ms)+'</span>')+(ip?'':'<button class="ksalir-btn'+(porSalir.has(String(p.id))?' on':'')+'" data-salir="'+p.id+'" title="Por salir">🚀</button>')+'</div>'+'<div class="kcb"><div class="kcl">'+(esc(p.nombre)||('#'+String(p.id).padStart(3,"0")))+'</div><div class="khr">'+esc(p.horario||"")+'</div>'+'<div class="kit">'+it+'</div>'+(p.comentarios?'<div style="font-size:11px;color:#777;margin-top:6px">'+esc(p.comentarios)+'</div>':'')+'</div>'+'<div class="kcf">'+(ip?'<button class="bac" onclick="ac('+p.id+')">Aceptar</button><button class="bcl" onclick="cn('+p.id+')">✕</button>':'<button class="bls '+cl+'" onclick="ls('+p.id+')">Listo</button><button class="bcl" onclick="cn('+p.id+')">✕</button>')+'</div></div>';const tmp=document.createElement("div");tmp.innerHTML=html;const nc=tmp.firstChild;if(ex)ex.remove();const cs=[...g.querySelectorAll(".kc")];if(i<cs.length)g.insertBefore(nc,cs[i]);else g.appendChild(nc);});const cm={"gray":"cg","green":"cgr","orange":"cor","red":"crd"};Object.entries(cm).forEach(([k,v])=>document.getElementById(v).textContent=ct[k]||0);setTimeout(function(){iDrag();bindGestos();},50);}
+function renderAll(){const g=document.getElementById("kg");const now=Date.now();let ct={gray:0,green:0,orange:0,red:0};if(!D.pedidos.length){g.innerHTML='<div class="ke">Sin pedidos pendientes</div>';["cg","cgr","cor","crd"].forEach(id=>document.getElementById(id).textContent=0);return;}const sr=srt(D.pedidos);const nids=new Set(sr.map(p=>p.id.toString()));g.querySelectorAll(".ke").forEach(e=>e.remove());[...g.querySelectorAll(".kc")].forEach(c=>{if(!nids.has(c.dataset.id))c.remove();});sr.forEach((p,i)=>{const ip=p.estado==="pendiente";let ms=0;if(!ip&&p._recv!==undefined)ms=Math.max(0,(p._base+(now-p._recv)/1000)/60);const cl=ip?"gray":gc(ms);ct[cl]++;const cardExtra=ip?" pay":"";const ex=document.getElementById("kc-"+p.id);if(ex&&ex.dataset.estado===p.estado){if(!ex.className.includes(cl)){ex.className="kc "+cl+(ip?" pay":"")+(porSalir.has(String(p.id))?" porsalir":"");const h=ex.querySelector(".kctop");if(h)h.className="kctop "+cl;const btn=ex.querySelector(".bls");if(btn)btn.className="bls "+cl;const ti=ex.querySelector(".kti2");if(ti)ti.className="kti2 "+cl;}const te=document.getElementById("kt-"+p.id);if(te)te.textContent=ft(ms);return;}const it=(p.items||[]).map(i=>{const mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(m=>m.nombre).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");const html=cardHTML(p,{withId:true});const tmp=document.createElement("div");tmp.innerHTML=html;const nc=tmp.firstChild;if(ex)ex.remove();const cs=[...g.querySelectorAll(".kc")];if(i<cs.length)g.insertBefore(nc,cs[i]);else g.appendChild(nc);});const cm={"gray":"cg","green":"cgr","orange":"cor","red":"crd"};Object.entries(cm).forEach(([k,v])=>document.getElementById(v).textContent=ct[k]||0);setTimeout(function(){iDrag();bindGestos();},50);}
 
 function tick(){const now=Date.now();const cl=document.getElementById("clk");if(cl)cl.textContent=new Date().toLocaleTimeString("es-PE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});let re=false;
   if(vista==="all"){
