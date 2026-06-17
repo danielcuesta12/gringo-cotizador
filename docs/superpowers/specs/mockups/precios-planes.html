@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planes · OPS PRO</title>
+<style>
+  :root{
+    --brand:#FFDF00; --pink:#FFBBC8; --ink:#1E1E1E; --cream:#FFEFBC;
+    --bg:#141210; --card:#1c1916; --line:#2e2a25; --text:#F6EFE0; --mut:#a39c8e;
+    --ok:#7bdca0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:
+    radial-gradient(1100px 520px at 50% -120px,rgba(255,223,0,.10),transparent 70%),
+    var(--bg);color:var(--text);padding:40px 18px 70px;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  .head{text-align:center;margin-bottom:30px}
+  .kick{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink);background:var(--brand);padding:5px 12px;border-radius:999px;margin-bottom:16px}
+  h1{font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+  h1 .y{color:var(--brand)}
+  .sub{color:var(--mut);font-size:15px;margin-top:10px;max-width:560px;margin-left:auto;margin-right:auto}
+
+  .toggle{display:inline-flex;align-items:center;gap:0;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:4px;margin-top:22px}
+  .toggle button{border:none;background:none;color:var(--mut);font-weight:800;font-size:13px;
+    padding:8px 16px;border-radius:999px;cursor:pointer;font-family:inherit;transition:.15s}
+  .toggle button.on{background:var(--brand);color:var(--ink)}
+  .toggle .save{font-size:11px;color:var(--ok);font-weight:800;margin-left:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px;align-items:stretch}
+  @media(max-width:880px){.grid{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto}}
+
+  .plan{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px 22px;display:flex;flex-direction:column}
+  .plan.feat{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand),0 18px 50px rgba(255,223,0,.12);
+    background:linear-gradient(180deg,rgba(255,223,0,.06),var(--card) 120px)}
+  .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--brand);color:var(--ink);
+    font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:999px;white-space:nowrap}
+  .pname{font-size:13px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--pink)}
+  .plan.feat .pname{color:var(--brand)}
+  .ptag{color:var(--mut);font-size:13px;margin-top:6px;min-height:38px}
+  .price{display:flex;align-items:baseline;gap:6px;margin:18px 0 4px}
+  .price .cur{font-size:18px;font-weight:800;color:var(--mut)}
+  .price .num{font-size:42px;font-weight:900;letter-spacing:-.03em}
+  .price .per{font-size:13px;color:var(--mut);font-weight:600}
+  .annot{font-size:12px;color:var(--mut);min-height:18px}
+
+  .cta{margin:20px 0 18px;display:block;text-align:center;text-decoration:none;font-weight:900;font-size:15px;
+    padding:13px;border-radius:12px;border:1px solid var(--line);color:var(--text);background:transparent;transition:.15s}
+  .cta:hover{border-color:var(--pink);color:var(--pink)}
+  .plan.feat .cta{background:var(--brand);color:var(--ink);border-color:var(--brand)}
+  .plan.feat .cta:hover{filter:brightness(1.05);color:var(--ink)}
+
+  .inc{font-size:12px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  li{font-size:14px;display:flex;gap:9px;align-items:flex-start}
+  li .ck{color:var(--ok);flex-shrink:0;font-weight:900;margin-top:1px}
+  li b{font-weight:800}
+
+  /* tabla comparativa */
+  .cmp{margin-top:56px;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .cmp h2{font-size:18px;font-weight:900;padding:18px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--line)}
+  thead th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);background:rgba(255,255,255,.02)}
+  thead th:not(:first-child),tbody td:not(:first-child){text-align:center;width:130px}
+  thead th.f{color:var(--brand)}
+  tbody tr:last-child td{border-bottom:none}
+  .grp td{font-weight:900;color:var(--pink);background:rgba(255,187,200,.06);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  .yes{color:var(--ok);font-weight:900}
+  .no{color:#5c554a}
+  td.feat-col{background:rgba(255,223,0,.05)}
+
+  .foot{text-align:center;color:var(--mut);font-size:12px;margin-top:30px;line-height:1.7}
+  .foot code{background:var(--card);padding:2px 6px;border-radius:6px;color:var(--cream)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <span class="kick">🍔 OPS PRO · El sistema de tu restaurante</span>
+    <h1>Un plan para cada <span class="y">cocina</span>.</h1>
+    <p class="sub">Desde un local que solo quiere cobrar y facturar, hasta una marca con varios locales, catering y food trucks. Crece cuando crezcas.</p>
+    <div class="toggle">
+      <button class="on" id="t-mes" onclick="setCiclo('mes')">Mensual</button>
+      <button id="t-anu" onclick="setCiclo('anu')">Anual <span class="save">−2 meses</span></button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- BÁSICO -->
+    <div class="plan">
+      <div class="pname">Básico</div>
+      <div class="ptag">Abre y vende hoy. Cobra y emite comprobantes SUNAT sin complicarte.</div>
+      <div class="price"><span class="cur">S/</span><span class="num" data-mes="79" data-anu="65">79</span><span class="per">/mes</span></div>
+      <div class="annot" data-mes="1 tienda · sin permanencia" data-anu="Facturado anual · ahorra S/ 168">1 tienda · sin permanencia</div>
+      <a class="cta" href="#">Empezar</a>
+      <div class="inc">Incluye</div>
+      <ul>
+        <li><span class="ck">✓</span><span><b>Carta online</b> (1 tienda) → pedidos a WhatsApp</span></li>
+        <li><span class="ck">✓</span><span><b>POS</b> + caja con arqueo por turnos</span></li>
+        <li><span class="ck">✓</span><span><b>Facturación SUNAT</b> (boleta/factura) + consulta DNI/RUC</span></li>
+        <li><span class="ck">✓</span><span>Impresión térmica / ticket 58mm</span></li>
+        <li><span class="ck">✓</span><span>Catálogo de productos y modificadores</span></li>
+        <li><span class="ck">✓</span><span>Dashboard básico · 2 usuarios</span></li>
+      </ul>
+    </div>
+
+    <!-- PRO -->
+    <div class="plan feat">
+      <span class="badge">★ Más popular</span>
+      <div class="pname">Pro</div>
+      <div class="ptag">Restaurante completo: varios locales, cocina y stock bajo control.</div>
+      <div class="price"><span class="cur">S/</span><span class="num" data-mes="159" data-anu="133">159</span><span class="per">/mes</span></div>
+      <div class="annot" data-mes="Multi-local · cancela cuando quieras" data-anu="Facturado anual · ahorra S/ 318">Multi-local · cancela cuando quieras</div>
+      <a class="cta" href="#">Probar Pro</a>
+      <div class="inc">Todo lo de Básico, más</div>
+      <ul>
+        <li><span class="ck">✓</span><span><b>Multi-local</b> + serie SUNAT por local</span></li>
+        <li><span class="ck">✓</span><span><b>KDS</b> de cocina táctil + bandeja de pedidos</span></li>
+        <li><span class="ck">✓</span><span><b>Inventario</b>: recetas, costeo, compras, almacén central</span></li>
+        <li><span class="ck">✓</span><span><b>Pagos online</b> (Izipay) en la carta</span></li>
+        <li><span class="ck">✓</span><span>Reservas de mesa · registro de gastos</span></li>
+        <li><span class="ck">✓</span><span>Analítica + landing link-in-bio</span></li>
+        <li><span class="ck">✓</span><span>Permisos por usuario · export Excel</span></li>
+      </ul>
+    </div>
+
+    <!-- CATERING & FOODTRUCKS -->
+    <div class="plan">
+      <div class="pname">Catering & Foodtrucks</div>
+      <div class="ptag">Negocio sobre ruedas y eventos: cotiza, ejecuta y liquida.</div>
+      <div class="price"><span class="cur">S/</span><span class="num" data-mes="269" data-anu="224">269</span><span class="per">/mes</span></div>
+      <div class="annot" data-mes="Eventos B2B + trucks · ilimitado" data-anu="Facturado anual · ahorra S/ 538">Eventos B2B + trucks · ilimitado</div>
+      <a class="cta" href="#">Hablar con ventas</a>
+      <div class="inc">Todo lo de Pro, más</div>
+      <ul>
+        <li><span class="ck">✓</span><span><b>Cotizaciones / eventos B2B</b> con PDF e IGV</span></li>
+        <li><span class="ck">✓</span><span><b>Calendario + agenda</b> con venta por evento</span></li>
+        <li><span class="ck">✓</span><span><b>Salida a eventos</b> + conteo de stock del foodtruck</span></li>
+        <li><span class="ck">✓</span><span>Dashboard de 3 mundos (cotiz · eventos · POS)</span></li>
+        <li><span class="ck">✓</span><span>Generador de cartas PDF a medida</span></li>
+        <li><span class="ck">✓</span><span>Usuarios y tiendas ilimitados</span></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- COMPARATIVA -->
+  <div class="cmp">
+    <h2>Compara los planes</h2>
+    <table>
+      <thead>
+        <tr><th>Función</th><th>Básico</th><th class="f">Pro</th><th>Catering & FT</th></tr>
+      </thead>
+      <tbody>
+        <tr class="grp"><td colspan="4">Vender y facturar</td></tr>
+        <tr><td>Carta online + POS + caja</td><td class="yes">✓</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Facturación SUNAT + DNI/RUC</td><td class="yes">✓</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Pagos online (Izipay)</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+
+        <tr class="grp"><td colspan="4">Operación</td></tr>
+        <tr><td>Multi-local + serie por local</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>KDS de cocina + bandeja</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Inventario / recetas / compras / almacén</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Reservas · gastos · analítica · landing</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Permisos por usuario</td><td class="no">—</td><td class="feat-col yes">✓</td><td class="yes">✓</td></tr>
+
+        <tr class="grp"><td colspan="4">Catering & food trucks</td></tr>
+        <tr><td>Cotizaciones / eventos B2B</td><td class="no">—</td><td class="feat-col no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Calendario/agenda + salida a eventos</td><td class="no">—</td><td class="feat-col no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Generador de cartas PDF</td><td class="no">—</td><td class="feat-col no">—</td><td class="yes">✓</td></tr>
+
+        <tr class="grp"><td colspan="4">Cupos</td></tr>
+        <tr><td>Tiendas</td><td>1</td><td class="feat-col">Varias</td><td>Ilimitadas</td></tr>
+        <tr><td>Usuarios</td><td>2</td><td class="feat-col">8</td><td>Ilimitados</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="foot">
+    Precios de ejemplo (en soles, IGV incluido) — ajústalos a tu mercado.<br>
+    Técnicamente cada plan se controla con un flag <code>plan</code> en <code>company_settings</code> · add-ons: facturación suelta, usuarios extra.
+  </p>
+
+</div>
+
+<script>
+  function setCiclo(c){
+    document.getElementById('t-mes').classList.toggle('on', c==='mes');
+    document.getElementById('t-anu').classList.toggle('on', c==='anu');
+    document.querySelectorAll('.num').forEach(function(n){ n.textContent = n.getAttribute('data-'+c); });
+    document.querySelectorAll('.per').forEach(function(p){ p.textContent = c==='mes' ? '/mes' : '/mes'; });
+    document.querySelectorAll('.annot').forEach(function(a){ a.textContent = a.getAttribute('data-'+c); });
+  }
+</script>
+</body>
+</html>
