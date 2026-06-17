@@ -373,7 +373,7 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
 </div>
 <?php endif; // otros gastos $insumos ?>
 
-<?php if ($insumos): ?>
+<?php /* Liquidación: siempre disponible (incluso sin inventario inicial o evento cerrado) para poder registrar/corregir la venta */ ?>
 <div class="card" style="border-top:3px solid var(--yellow,#FFDF00)">
   <div class="card-header"><span class="card-title">Liquidación</span></div>
   <div class="card-body">
@@ -434,7 +434,7 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
     </div>
   </div>
 </div>
-<?php endif; // liquidación $insumos ?>
+<?php /* fin Liquidación */ ?>
 
 <?php if ($ev['estado'] === 'abierto'): ?>
 <div class="card" style="border-top:3px solid var(--red,#c8102e)">
