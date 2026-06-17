@@ -51,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setSetting($k, $val);
     }
 
+    // POS: exigir nombre del pedido (checkbox)
+    setSetting('pos_nombre_obligatorio', isset($_POST['pos_nombre_obligatorio']) ? '1' : '0');
+
     // Logo activo (a o b)
     $activeLogoVal = in_array($_POST['active_logo'] ?? 'a', ['a','b']) ? $_POST['active_logo'] : 'a';
     setSetting('active_logo', $activeLogoVal);
@@ -483,6 +486,20 @@ include __DIR__ . '/../layout-top.php';
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Punto de venta (POS) -->
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>Punto de venta (POS)</span></div>
+      <div class="card-body">
+        <label class="toggle-wrap" style="cursor:pointer;display:flex;align-items:center;gap:10px">
+          <input type="checkbox" name="pos_nombre_obligatorio" value="1" <?= ($cfg['pos_nombre_obligatorio'] ?? '0')==='1' ? 'checked' : '' ?> style="width:18px;height:18px;accent-color:var(--brand)">
+          <span>
+            <span class="toggle-label" style="font-weight:700">Exigir nombre del pedido al cobrar</span>
+            <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Si está activo, el cajero debe ponerle un nombre a cada pedido (o tener nombre/razón en boleta/factura). Sirve para cantar pedidos por nombre. Apágalo en horas pico si frena la caja.</span>
+          </span>
+        </label>
       </div>
     </div>
 

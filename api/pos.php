@@ -244,6 +244,7 @@ case 'registrar_venta':
     // Nombre que sale en el KDS: nombre del pedido (manda) → nombre/razón del documento → vacío (el KDS muestra el número).
     $nombrePedido = clean($_POST['nombre_pedido'] ?? '');
     $nombre = $nombrePedido ?: ($cNom ?: '');
+    if ($nombre === '' && getSetting('pos_nombre_obligatorio', '0') === '1') pout(['ok'=>false,'error'=>'Ponle un nombre al pedido.']);
     $tipoRow = Database::fetch("SELECT tipo FROM pos_metodos_pago WHERE nombre = ? LIMIT 1", [$metodo]);
     $tipo    = $tipoRow['tipo'] ?? 'otros';
     $bucket  = ['efectivo'=>'total_efectivo','tarjeta'=>'total_tarjeta','qr'=>'total_qr'][$tipo] ?? 'total_otros';

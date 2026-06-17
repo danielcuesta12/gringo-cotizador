@@ -976,6 +976,7 @@ var ESCPOS_BASE  = '<?= APP_URL ?>/pos/escpos.php';
 var UPLOAD_URL = <?= json_encode(UPLOAD_URL) ?>;
 var UBIS  = <?= json_encode($ubis) ?>;
 var CAJERO = <?= json_encode($cajero['name'] ?? 'Cajero') ?>;
+var POS_NOMBRE_OBLIGATORIO = <?= getSetting('pos_nombre_obligatorio','0')==='1' ? 'true' : 'false' ?>;
 
 // ── State ──────────────────────────────────────────────
 var state = {
@@ -2247,7 +2248,13 @@ function showModalCobro(metodo) {
   document.getElementById('modal-confirm').addEventListener('click', function() {
     var extraData = { comprobante_tipo: comprobanteTipo };
     var np = document.getElementById('cl-pedido-nombre');
-    if (np && np.value.trim()) extraData.nombre_pedido = np.value.trim();
+    var npVal = np ? np.value.trim() : '';
+    // ¿Exigir nombre? Satisfecho con nombre del pedido o nombre/razón del documento (boleta/factura).
+    if (POS_NOMBRE_OBLIGATORIO) {
+      var cnVal = (comprobanteTipo !== 'ticket' && document.getElementById('cl-nombre')) ? document.getElementById('cl-nombre').value.trim() : '';
+      if (!npVal && !cnVal) { toast('Ponle un nombre al pedido para cantarlo en cocina', 'err'); if (np) np.focus(); return; }
+    }
+    if (npVal) extraData.nombre_pedido = npVal;
     if (comprobanteTipo === 'boleta' || comprobanteTipo === 'factura') {
       extraData.cliente_tipo = document.getElementById('cl-tipo').value;
       extraData.cliente_documento = document.getElementById('cl-doc').value.trim();
@@ -2260,6 +2267,10 @@ function showModalCobro(metodo) {
     closeModal();
     confirmarVenta(metodo, extraData);
   });
+
+  // Autofocus en el nombre del pedido (gana al focus del monto, que es síncrono).
+  var _pn = document.getElementById('cl-pedido-nombre');
+  if (_pn) setTimeout(function(){ _pn.focus(); }, 30);
 }
 
 function closeModal() {
