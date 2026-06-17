@@ -398,12 +398,13 @@ a{color:inherit;text-decoration:none}
 .comp-tab.active{background:var(--yellow);color:#000}
 .cliente-fields{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .cliente-fields .cf-row{display:flex;gap:8px}
-.cliente-fields input,.cliente-fields select{
+.cliente-fields input,.cliente-fields select,#cl-pedido-nombre{
   width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--surface2);color:var(--text);font-size:14px;
   -webkit-appearance:none;appearance:none;
 }
-.cliente-fields input:focus,.cliente-fields select:focus{outline:none;border-color:var(--yellow)}
+.cliente-fields input:focus,.cliente-fields select:focus,#cl-pedido-nombre:focus{outline:none;border-color:var(--yellow)}
+#cl-pedido-nombre::placeholder{color:var(--text2)}
 .btn-buscar-cliente{
   padding:9px 12px;border-radius:var(--radius-sm);background:var(--surface2);
   border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;
