@@ -342,7 +342,7 @@ function bindGestos(){
     function end(){
       if(!active)return; active=false;
       if(horiz && Math.abs(dx)>=TH()){
-        if(dx>0){ if(ip){ reset(); ac(id); } else { card.style.transition="transform .2s,opacity .2s"; card.style.transform="translateX(110%)"; card.style.opacity="0"; setTimeout(function(){ if(parte)lsParte(id,parte); else ls(id); },180); } }
+        if(dx>0){ reset(); if(ip){ ac(id); } else if(parte){ lsParte(id,parte); } else { ls(id); } }
         else { reset(); cn(id); }
       } else { reset(); }
     }
