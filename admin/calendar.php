@@ -6,15 +6,14 @@ require_once __DIR__ . '/../includes/helpers.php';
 requirePermission('calendar');
 
 // Cotizaciones y eventos para el calendario. Tolerante: si falta la migración 50, cae sin esas columnas.
-$eventoColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
-$ventaColOk   = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='venta_real'");
-$esAdmin      = isAdmin();
+$eventoColsOk  = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'");
+$agendaVentaOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='venta_real'");
+$esAdmin       = isAdmin();
 $calSelect = "SELECT q.id, q.quote_number, q.status, q.origin,
             q.event_date, q.event_type,
             q.event_time, q.event_duration, q.event_location,
             q.num_people, q.total, q.price_per_person,"
     . ($eventoColsOk ? " q.evento_nombre, COALESCE(q.evento_atendido,0) evento_atendido," : "")
-    . ($ventaColOk ? " q.venta_real," : "")
     . " c.name as client_name
      FROM quotes q JOIN clients c ON c.id=q.client_id
      WHERE q.status IN ('enviada','aceptada')
@@ -44,10 +43,12 @@ unset($q);
 
 // Agenda (eventos sin venta — solo disponibilidad). Tolerante si falta la migración.
 $agendaColsOk = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='atendido'");
+$agSel = "SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea"
+    . ($agendaColsOk ? ", COALESCE(atendido,0) atendido" : "")
+    . ($agendaVentaOk ? ", venta_real" : "")
+    . " FROM agenda ORDER BY fecha ASC";
 try {
-    $agenda = $agendaColsOk
-        ? Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, COALESCE(atendido,0) atendido, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC")
-        : Database::fetchAll("SELECT id, fecha AS event_date, fecha_fin, titulo, hora, hora_fin, lugar, notas, bloquea FROM agenda ORDER BY fecha ASC");
+    $agenda = Database::fetchAll($agSel);
 }
 catch (Exception $e) { $agenda = array(); }
 
@@ -274,8 +275,8 @@ var APP    = '<?php echo APP_URL; ?>';
 var CSRF           = '<?php echo csrfToken(); ?>';
 var EV_COLS_OK     = <?php echo json_encode($eventoColsOk); ?>;
 var AGENDA_COLS_OK = <?php echo json_encode($agendaColsOk); ?>;
-var VENTA_COL_OK   = <?php echo json_encode($ventaColOk); ?>;
-var IS_ADMIN       = <?php echo json_encode($esAdmin); ?>;
+var AGENDA_VENTA_OK = <?php echo json_encode($agendaVentaOk); ?>;
+var IS_ADMIN        = <?php echo json_encode($esAdmin); ?>;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 // Un evento de agenda aparece en cada día de su rango [fecha, fecha_fin||fecha]
@@ -416,21 +417,15 @@ function showTooltip(e, qid) {
   document.getElementById('ttLink').href = APP+'/quotes/edit.php?id='+q.id;
   document.getElementById('ttLink').textContent = (q.origin==='event'?'Ver evento':'Ver cotización')+' →';
 
-  // Editor — para aceptadas y eventos. Nombre/atendida (si migración 50); venta real (solo admin, migración 52).
+  // Editor de cotización: nombre/atendida (la venta de cotización ya es el total). La venta solo aplica a eventos libres (agenda).
   var edit = document.getElementById('ttEdit');
-  var esEvento = (q.status==='aceptada' || q.origin==='event');
-  var puedeNombre = EV_COLS_OK && esEvento;
-  var puedeVenta  = IS_ADMIN && VENTA_COL_OK && esEvento;
-  if (puedeNombre || puedeVenta) {
-    document.getElementById('ttEvNombre').style.display = puedeNombre ? '' : 'none';
-    document.getElementById('ttEvAtLabel').style.display = puedeNombre ? 'flex' : 'none';
-    if (puedeNombre) {
-      document.getElementById('ttEvNombre').value = q.evento_nombre || '';
-      document.getElementById('ttEvNombre').placeholder = 'Nombre del evento (para la salida a evento)';
-      document.getElementById('ttEvAtendido').checked = Number(q.evento_atendido)===1;
-    }
-    document.getElementById('ttEvVentaWrap').style.display = puedeVenta ? 'block' : 'none';
-    if (puedeVenta) document.getElementById('ttEvVenta').value = (q.venta_real!=null && q.venta_real!=='') ? q.venta_real : '';
+  if (EV_COLS_OK && (q.status==='aceptada' || q.origin==='event')) {
+    document.getElementById('ttEvNombre').style.display = '';
+    document.getElementById('ttEvNombre').value = q.evento_nombre || '';
+    document.getElementById('ttEvNombre').placeholder = 'Nombre del evento (para la salida a evento)';
+    document.getElementById('ttEvAtendido').checked = Number(q.evento_atendido)===1;
+    document.getElementById('ttEvAtLabel').style.display = 'flex';
+    document.getElementById('ttEvVentaWrap').style.display = 'none';
     var btn = document.getElementById('ttEvSave');
     btn.textContent = 'Guardar';
     btn.onclick = function(){ guardarEvento(q.id); };
@@ -456,18 +451,14 @@ function guardarEvento(qid) {
   if (!q) return;
   var nombre = document.getElementById('ttEvNombre').value.trim();
   var atendido = document.getElementById('ttEvAtendido').checked ? 1 : 0;
-  var ventaVisible = document.getElementById('ttEvVentaWrap').style.display !== 'none';
-  var venta = ventaVisible ? (document.getElementById('ttEvVenta').value || '').replace(',', '.').trim() : null;
   var btn = document.getElementById('ttEvSave');
   btn.disabled = true; btn.textContent = 'Guardando…';
-  var params = { action:'set_evento', id:qid, evento_nombre:nombre, evento_atendido:atendido };
-  if (ventaVisible) params.venta_real = venta;
-  var body = new URLSearchParams(params);
+  var body = new URLSearchParams({ action:'set_evento', id:qid, evento_nombre:nombre, evento_atendido:atendido });
   fetch(APP+'/api/quotes.php', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token':CSRF }, body:body })
     .then(function(r){ return r.json(); })
     .then(function(d){
       btn.disabled = false; btn.textContent = 'Guardar';
-      if (d && d.ok) { q.evento_nombre = nombre; q.evento_atendido = atendido; if (ventaVisible) q.venta_real = venta; closeTooltip(); }
+      if (d && d.ok) { q.evento_nombre = nombre; q.evento_atendido = atendido; closeTooltip(); }
       else { alert((d && d.error) || 'No se pudo guardar'); }
     })
     .catch(function(){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error de red'); });
@@ -478,14 +469,18 @@ function guardarAgenda(aid) {
   if (!a) return;
   var nombre = document.getElementById('ttEvNombre').value.trim();
   var atendido = (AGENDA_COLS_OK && document.getElementById('ttEvAtendido').checked) ? 1 : 0;
+  var ventaVisible = document.getElementById('ttEvVentaWrap').style.display !== 'none';
+  var venta = ventaVisible ? (document.getElementById('ttEvVenta').value || '').replace(',', '.').trim() : null;
   var btn = document.getElementById('ttEvSave');
   btn.disabled = true; btn.textContent = 'Guardando…';
-  var body = new URLSearchParams({ action:'set_agenda', id:aid, titulo:nombre, atendido:atendido });
+  var params = { action:'set_agenda', id:aid, titulo:nombre, atendido:atendido };
+  if (ventaVisible) params.venta_real = venta;
+  var body = new URLSearchParams(params);
   fetch(APP+'/api/quotes.php', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-CSRF-Token':CSRF }, body:body })
     .then(function(r){ return r.json(); })
     .then(function(d){
       btn.disabled = false; btn.textContent = 'Guardar';
-      if (d && d.ok) { if (nombre) a.titulo = nombre; a.atendido = atendido; closeTooltip(); setView(view); }
+      if (d && d.ok) { if (nombre) a.titulo = nombre; a.atendido = atendido; if (ventaVisible) a.venta_real = venta; closeTooltip(); setView(view); }
       else { alert((d && d.error) || 'No se pudo guardar'); }
     })
     .catch(function(){ btn.disabled = false; btn.textContent = 'Guardar'; alert('Error de red'); });
@@ -517,11 +512,13 @@ function showAgendaTooltip(e, aid) {
   if (a.lugar) body += '<div class="tt-info-row">'+icoPin+'<span>'+esc(a.lugar)+'</span></div>';
   if (a.notas) body += '<div class="tt-info-row"><span>'+esc(a.notas)+'</span></div>';
   document.getElementById('ttBody').innerHTML = body;
-  // Editor inline del evento libre (renombrar + atendida) — sin venta (agenda no es cotización)
+  // Editor inline del evento libre (renombrar + atendida + venta real solo admin)
   document.getElementById('ttEvNombre').style.display = '';
-  document.getElementById('ttEvVentaWrap').style.display = 'none';
   document.getElementById('ttEvNombre').value = a.titulo || '';
   document.getElementById('ttEvNombre').placeholder = 'Nombre del evento libre';
+  var aPuedeVenta = IS_ADMIN && AGENDA_VENTA_OK;
+  document.getElementById('ttEvVentaWrap').style.display = aPuedeVenta ? 'block' : 'none';
+  if (aPuedeVenta) document.getElementById('ttEvVenta').value = (a.venta_real!=null && a.venta_real!=='') ? a.venta_real : '';
   if (AGENDA_COLS_OK) {
     document.getElementById('ttEvAtendido').checked = Number(a.atendido)===1;
     document.getElementById('ttEvAtLabel').style.display = 'flex';

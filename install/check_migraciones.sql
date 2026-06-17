@@ -31,4 +31,5 @@ SELECT m.migracion, IF(m.existe > 0, '✅ aplicada', '❌ FALTA') AS estado FROM
   UNION ALL SELECT '50 quotes_evento           (quotes.evento_atendido)', COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_atendido'
   UNION ALL SELECT '51 agenda_atendido         (agenda.atendido)',        COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='atendido'
   UNION ALL SELECT '52 quotes_venta            (quotes.venta_real)',      COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='venta_real'
+  UNION ALL SELECT '53 agenda_venta            (agenda.venta_real)',      COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='agenda' AND column_name='venta_real'
 ) m;

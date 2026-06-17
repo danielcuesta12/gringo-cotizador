@@ -22,11 +22,6 @@ switch ($action) {
         if ($id <= 0) { echo json_encode(['ok' => false, 'error' => 'ID inválido']); break; }
         try {
             Database::execute("UPDATE quotes SET evento_nombre=?, evento_atendido=? WHERE id=?", [$nombre ?: null, $atendido, $id]);
-            // Venta real del evento (solo admin) — para eventos pasados sin liquidación.
-            if (isAdmin() && array_key_exists('venta_real', $_POST)) {
-                $vr = $_POST['venta_real'] !== '' ? max(0, cleanFloat($_POST['venta_real'])) : null;
-                try { Database::execute("UPDATE quotes SET venta_real=? WHERE id=?", [$vr, $id]); } catch (\Throwable $e2) {}
-            }
             echo json_encode(['ok' => true]);
         } catch (\Throwable $e) {
             echo json_encode(['ok' => false, 'error' => 'Falta aplicar install/50_quotes_evento.sql']);
@@ -47,6 +42,11 @@ switch ($action) {
         try {
             if ($agOk) Database::execute("UPDATE agenda SET titulo=?, atendido=? WHERE id=?", [$titulo, $atendido, $id]);
             else       Database::execute("UPDATE agenda SET titulo=? WHERE id=?", [$titulo, $id]);
+            // Venta real del evento libre (solo admin) — para eventos pasados sin liquidación.
+            if (isAdmin() && array_key_exists('venta_real', $_POST)) {
+                $vr = $_POST['venta_real'] !== '' ? max(0, cleanFloat($_POST['venta_real'])) : null;
+                try { Database::execute("UPDATE agenda SET venta_real=? WHERE id=?", [$vr, $id]); } catch (\Throwable $e2) {}
+            }
             echo json_encode(['ok' => true]);
         } catch (\Throwable $e) {
             echo json_encode(['ok' => false, 'error' => 'No se pudo guardar']);
