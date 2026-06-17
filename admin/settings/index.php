@@ -12,6 +12,30 @@ $success = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
+    // ── Borrar datos de prueba (ventas) — destructivo, solo admin ──
+    if (($_POST['accion'] ?? '') === 'reset_ventas') {
+        if (($_POST['confirmacion'] ?? '') !== 'BORRAR VENTAS') {
+            flashMessage('error', 'Escribe exactamente «BORRAR VENTAS» para confirmar. No se borró nada.');
+            redirect('/admin/settings/index.php');
+        }
+        $pdo = Database::getInstance();
+        try {
+            $pdo->beginTransaction();
+            // Movimientos de inventario (ventas/compras/ajustes de prueba) + stock a 0 (conserva stock_min)
+            try { Database::execute("DELETE FROM inventario_movimientos"); } catch (\Throwable $e) {}
+            try { Database::execute("UPDATE insumo_stock SET stock = 0"); } catch (\Throwable $e) {}
+            // Pedidos (carta + POS, con sus comprobantes) + turnos de caja
+            try { Database::execute("DELETE FROM pedidos"); } catch (\Throwable $e) {}
+            try { Database::execute("DELETE FROM pos_turnos"); } catch (\Throwable $e) {}
+            $pdo->commit();
+            flashMessage('success', 'Datos de prueba borrados: pedidos, caja y movimientos de inventario. Stock en 0. Se conservaron insumos, recetas, productos, cotizaciones y configuración.');
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            flashMessage('error', 'No se pudo completar el borrado.');
+        }
+        redirect('/admin/settings/index.php');
+    }
+
     $fields = [
         'company_name','company_ruc','company_address',
         'company_phone','company_email','company_website',
@@ -581,6 +605,27 @@ include __DIR__ . '/../layout-top.php';
 
 </div>
 </form>
+
+<!-- Zona de peligro: borrar datos de prueba (ventas) -->
+<div class="card" style="max-width:760px;border:1px solid #f3b4b4;background:#fff7f7">
+  <div class="card-header"><span class="card-title" style="color:#c0392b"><span class="sec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>Zona de peligro</span></div>
+  <div class="card-body">
+    <p style="margin:0 0 6px;font-weight:700">Borrar datos de prueba (ventas)</p>
+    <p style="margin:0 0 14px;font-size:13px;color:var(--text-secondary);line-height:1.55">
+      Borra <strong>todos los pedidos</strong> (carta + POS, con sus comprobantes), los <strong>turnos/arqueos de caja</strong>, los <strong>movimientos de inventario</strong> y pone el <strong>stock en 0</strong>.
+      <br><strong>Se conservan:</strong> insumos, recetas, productos, categorías, ubicaciones, usuarios, cotizaciones/eventos/reservas, gastos y toda la configuración (Izipay, SUNAT/NubeFact, series). <strong>Es permanente.</strong>
+    </p>
+    <form method="post" onsubmit="return confirm('¿Borrar TODOS los pedidos, caja y movimientos de inventario? Se conserva todo lo demás. No se puede deshacer.');">
+      <?= csrfField() ?>
+      <input type="hidden" name="accion" value="reset_ventas">
+      <div class="form-group" style="max-width:320px">
+        <label>Para confirmar, escribe <code>BORRAR VENTAS</code></label>
+        <input type="text" name="confirmacion" placeholder="BORRAR VENTAS" autocomplete="off" oninput="document.getElementById('btn-reset').disabled = (this.value !== 'BORRAR VENTAS');">
+      </div>
+      <button type="submit" id="btn-reset" class="btn btn-danger" disabled style="background:#c0392b;border-color:#c0392b;color:#fff">Borrar datos de prueba</button>
+    </form>
+  </div>
+</div>
 
 <script>
 function syncText(id, val)      { var el=document.getElementById(id); if(el) el.value=val; }
