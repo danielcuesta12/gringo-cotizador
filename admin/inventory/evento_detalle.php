@@ -75,8 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accion === 'guardar_ingresos') {
-        $venta  = ($_POST['venta_manual'] ?? '') !== '' ? max(0, cleanFloat($_POST['venta_manual'])) : null;
         $usaPos = isset($_POST['usa_pos']) ? 1 : 0;
+        // Si usa POS, el ingreso sale del POS → no guardamos monto manual (evita que reaparezca si luego se desmarca).
+        $venta  = $usaPos ? null : (($_POST['venta_manual'] ?? '') !== '' ? max(0, cleanFloat($_POST['venta_manual'])) : null);
         Database::execute("UPDATE eventos SET venta_manual=? WHERE id=?", [$venta, $id]);
         try { Database::execute("UPDATE eventos SET usa_pos=? WHERE id=?", [$usaPos, $id]); } catch (\Throwable $e) { /* falta migración 54 */ }
         flashMessage('success', 'Ingresos del evento guardados.');
