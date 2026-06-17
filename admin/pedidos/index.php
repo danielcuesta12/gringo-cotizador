@@ -157,7 +157,7 @@ include __DIR__ . '/../layout-top.php';
             <span class="badge <?= $isPOS ? 'badge-info' : 'badge-secondary' ?>" style="font-size:10px;margin-left:4px"><?= $isPOS ? 'POS' : 'Carta' ?></span>
           </td>
           <td>
-            <a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="font-weight:600;color:var(--ink);text-decoration:none"><?= clean($p['nombre'] ?: 'Cliente') ?></a>
+            <a href="<?= APP_URL ?>/admin/pedidos/detail.php?id=<?= $p['id'] ?>" style="font-weight:600;color:var(--ink);text-decoration:none"><?= clean($p['nombre'] ?: ('#'.str_pad((string)$p['id'],3,'0',STR_PAD_LEFT))) ?></a>
             <div style="font-size:11px;color:var(--text-muted)"><?= $tipo ?><?= $p['telefono'] ? ' · '.clean($p['telefono']) : '' ?></div>
           </td>
           <td style="max-width:280px"><div style="font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= clean($resumen) ?></div></td>

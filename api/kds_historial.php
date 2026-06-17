@@ -32,7 +32,7 @@ try {
         $pedidos[] = [
             'id'           => (int)$r['id'],
             'estado'       => $r['estado'],
-            'cliente'      => $r['nombre'] ?: 'Cliente',
+            'cliente'      => $r['nombre'] ?: ('#' . str_pad((string)$r['id'], 3, '0', STR_PAD_LEFT)),
             'tipo_entrega' => $r['tipo_entrega'],
             'origen'       => $r['origen'] ?? 'carta',
             'resumen'      => $resumen,

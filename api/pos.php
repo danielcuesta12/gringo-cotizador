@@ -241,7 +241,9 @@ case 'registrar_venta':
     $compro = clean($_POST['comprobante_tipo'] ?? 'ticket');
     if (!in_array($compro, ['ticket','boleta','factura'], true)) $compro = 'ticket';
     $notas = clean($_POST['notas_pos'] ?? '');
-    $nombre = $cNom ?: 'Mostrador';
+    // Nombre que sale en el KDS: nombre del pedido (manda) → nombre/razón del documento → vacío (el KDS muestra el número).
+    $nombrePedido = clean($_POST['nombre_pedido'] ?? '');
+    $nombre = $nombrePedido ?: ($cNom ?: '');
     $tipoRow = Database::fetch("SELECT tipo FROM pos_metodos_pago WHERE nombre = ? LIMIT 1", [$metodo]);
     $tipo    = $tipoRow['tipo'] ?? 'otros';
     $bucket  = ['efectivo'=>'total_efectivo','tarjeta'=>'total_tarjeta','qr'=>'total_qr'][$tipo] ?? 'total_otros';

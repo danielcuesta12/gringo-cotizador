@@ -2132,6 +2132,9 @@ function showModalCobro(metodo) {
     + '<button class="comp-tab" data-tipo="factura">Factura</button>'
     + '</div>'
     + '</div>'
+    // Nombre del pedido (sale en cocina) — siempre visible
+    + '<div style="margin-top:12px"><label style="display:block;margin-bottom:6px">Nombre del pedido <span style="color:var(--text2);font-weight:400;font-size:12px">(opcional — sale en cocina)</span></label>'
+    + '<input type="text" id="cl-pedido-nombre" placeholder="Ej: Juan · Mesa 3 · Para llevar" maxlength="60"></div>'
     // Cliente (hidden for ticket)
     + '<div id="cobro-cliente" style="display:none">'
     + '<label style="display:block;margin-bottom:6px">Datos del cliente</label>'
@@ -2242,6 +2245,8 @@ function showModalCobro(metodo) {
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal-confirm').addEventListener('click', function() {
     var extraData = { comprobante_tipo: comprobanteTipo };
+    var np = document.getElementById('cl-pedido-nombre');
+    if (np && np.value.trim()) extraData.nombre_pedido = np.value.trim();
     if (comprobanteTipo === 'boleta' || comprobanteTipo === 'factura') {
       extraData.cliente_tipo = document.getElementById('cl-tipo').value;
       extraData.cliente_documento = document.getElementById('cl-doc').value.trim();
