@@ -615,15 +615,15 @@ if ($showCard) {
     /* ── Wizard de checkout ── */
     .wz-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
     .wz-card{background:#fff;width:100%;max-width:480px;max-height:88vh;max-height:88dvh;overflow-y:auto;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
-    .wz-top{background:#1B1F4B;color:#fff;padding:14px 18px}
+    .wz-top{background:#1E1E1E;color:#fff;padding:14px 18px}
     .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
     .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer}
     .wz-back[disabled]{opacity:.25;cursor:default}
-    .wz-title{font-size:14px;font-weight:800}
-    .wz-total{font-size:15px;font-weight:900;color:#F5C200}
+    .wz-title{font-family:'Kimmy',serif;font-size:19px;font-weight:400;letter-spacing:1px}
+    .wz-total{font-family:'Kimmy',serif;font-size:18px;font-weight:400;letter-spacing:.5px;color:#FFDF00}
     .wz-steps{display:flex;gap:6px}
     .wz-bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
-    .wz-bar i{display:block;height:100%;width:0;background:#F5C200;transition:width .3s}
+    .wz-bar i{display:block;height:100%;width:0;background:#FFDF00;transition:width .3s}
     .wz-bar.done i,.wz-bar.cur i{width:100%}
     .wz-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
     .wz-body{padding:18px}
@@ -631,26 +631,26 @@ if ($showCard) {
     .wz-panel.wz-on{display:block;animation:wzSlide .25s ease}
     @keyframes wzSlide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
     .wz-foot{padding:0 18px;padding-bottom:max(20px, env(safe-area-inset-bottom))}
-    .wz-cta{width:100%;padding:15px;border:none;border-radius:12px;background:#F5C200;color:#1B1F4B;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
+    .wz-cta{width:100%;padding:15px;border:none;border-radius:12px;background:#FFDF00;color:#1E1E1E;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
     .wz-skip{display:block;width:100%;text-align:center;background:none;border:none;color:#aaa;font-size:12.5px;font-weight:700;margin-top:11px;cursor:pointer}
     .wz-cancel{display:block;width:100%;padding:11px;background:none;border:1px solid #e0e0e0;border-radius:10px;color:#888;font-size:13px;margin-top:8px;cursor:pointer}
     .wz-it{display:flex;justify-content:space-between;font-size:14px;color:#333;padding:8px 0;border-bottom:1px solid #f3f3f3}
-    .wz-ittot{font-size:16px;font-weight:900;color:#1B1F4B;border-bottom:none;padding-top:11px}
+    .wz-ittot{font-size:16px;font-weight:900;color:#1E1E1E;border-bottom:none;padding-top:11px}
     .wz-pay{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:10px;margin-top:14px}
     .wz-pay-card{background:#1A1A1A;color:#fff}
     .wz-pay-wa{background:#25D366;color:#fff}
     .wz-pay svg{flex-shrink:0}
     .wz-seg{display:flex;gap:8px;margin-bottom:10px}
-    .wz-seg-opt{flex:1;border:1.5px solid #e0e0e0;border-radius:11px;padding:11px 6px;background:#fff;cursor:pointer;text-align:center;font-size:13px;font-weight:800;color:#1B1F4B;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;transition:all .12s}
+    .wz-seg-opt{flex:1;border:1.5px solid #e0e0e0;border-radius:11px;padding:11px 6px;background:#fff;cursor:pointer;text-align:center;font-size:13px;font-weight:800;color:#1E1E1E;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;transition:all .12s}
     .wz-seg-opt .wz-seg-ic{font-size:20px;line-height:1}
-    .wz-seg-opt.wz-seg-on{border-color:#F5C200;background:#fffbec}
+    .wz-seg-opt.wz-seg-on{border-color:#FFDF00;background:#fffbec}
     .wz-or{display:flex;align-items:center;gap:10px;color:#c4c4c4;font-size:11px;font-weight:800;margin:0 0 4px}
     .wz-or::before,.wz-or::after{content:"";height:1px;background:#eee;flex:1}
     @media(min-width:900px){
       .wz-modal{align-items:flex-start;justify-content:flex-end;background:rgba(0,0,0,.35);padding:20px 26px}
       .wz-card{max-width:380px;border-radius:16px}
     }
-    .conf-hero.ok{background:#F5C200}
+    .conf-hero.ok{background:#FFDF00}
     .conf-hero.wa{background:#25D366}
   </style>
 <?php if ($izEnabled): ?>
@@ -816,21 +816,21 @@ if ($showCard) {
   <div id="modal-codigo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center;padding:20px;">
     <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">🍔</div>
-      <div style="font-family:'Kimmy',serif;font-size:20px;text-transform:uppercase;letter-spacing:1px;color:#1B1F4B;margin-bottom:6px;">¡Pedido enviado!</div>
+      <div style="font-family:'Kimmy',serif;font-size:20px;text-transform:uppercase;letter-spacing:1px;color:#1E1E1E;margin-bottom:6px;">¡Pedido enviado!</div>
       <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#999;margin-bottom:20px;">Tu código de pedido es:</div>
-        <div id="codigo-msg-existente" style="display:none;background:#fffbec;border:1px solid #F5C200;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:'DINMed',sans-serif;font-size:13px;color:#5a4800;line-height:1.5;">
+        <div id="codigo-msg-existente" style="display:none;background:#fffbec;border:1px solid #FFDF00;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:'DINMed',sans-serif;font-size:13px;color:#5a4800;line-height:1.5;">
         🍔 ¡Este correo ya está asignado a una tarjeta existente!<br><strong>¡Pero no te preocupes!</strong> Aquí está tu código para sumar tu sello.
       </div>
       <div style="background:#111010;border-radius:12px;padding:18px;margin-bottom:16px;">
-        <div style="font-family:'Kimmy',serif;font-size:36px;letter-spacing:6px;color:#F5C200;text-transform:uppercase;" id="codigo-display">GR-XXXX</div>
+        <div style="font-family:'Kimmy',serif;font-size:36px;letter-spacing:6px;color:#FFDF00;text-transform:uppercase;" id="codigo-display">GR-XXXX</div>
       </div>
       <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#666;line-height:1.6;margin-bottom:24px;">
         Indícaselo a la persona que te atiende al confirmar tu pedido para sumar tu sello
       </div>
-      <button onclick="copiarCodigo()" id="btn-copiar" style="width:100%;padding:13px;background:#F5C200;color:#1B1F4B;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:15px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-bottom:10px;">
+      <button onclick="copiarCodigo()" id="btn-copiar" style="width:100%;padding:13px;background:#FFDF00;color:#1E1E1E;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:15px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-bottom:10px;">
         Copiar código
       </button>
-      <button onclick="cerrarModalCodigo()" style="width:100%;padding:13px;background:#1B1F4B;color:#F5E6D0;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:15px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">
+      <button onclick="cerrarModalCodigo()" style="width:100%;padding:13px;background:#1E1E1E;color:#F5E6D0;border:none;border-radius:10px;font-family:'Kimmy',serif;font-size:15px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">
         Entendido
       </button>
     </div>
@@ -859,14 +859,14 @@ if ($showCard) {
           <!-- Nombre -->
           <div style="margin-bottom:14px;">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Nombre <span style="color:#dc2626">*</span></label>
-            <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <input type="text" id="campo-nombre" placeholder="Ej: Juan Pérez" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'">
             <div id="err-nombre" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
 
           <!-- Teléfono -->
           <div style="margin-bottom:14px;">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Teléfono <span style="color:#dc2626">*</span></label>
-            <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <input type="tel" id="campo-telefono" placeholder="Ej: 987654321" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'">
             <div id="err-telefono" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
 
@@ -874,13 +874,13 @@ if ($showCard) {
           <div style="margin-bottom:14px;">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">¿Cómo recibes tu pedido? <span style="color:#dc2626">*</span></label>
             <div style="display:flex;gap:10px;">
-              <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #F5C200;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
-                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
+              <div id="opt-delivery" onclick="setTipoEntrega('delivery')" style="flex:1;border:1.5px solid #FFDF00;background:#fffbec;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #FFDF00;background:#FFDF00;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-delivery"><div style="width:8px;height:8px;border-radius:50%;background:#1E1E1E;"></div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1E1E1E;">🛵 Delivery</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Te lo llevamos</div></div>
               </div>
               <div id="opt-recojo" onclick="setTipoEntrega('recojo')" style="flex:1;border:1.5px solid #ddd;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;">
                 <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="radio-recojo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1B1F4B;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
+                <div><div style="font-family:'DINMed',sans-serif;font-size:13px;font-weight:700;color:#1E1E1E;">🏃 Recojo</div><div style="font-family:'DINMed',sans-serif;font-size:11px;color:#999;">Paso a recoger</div></div>
               </div>
             </div>
             <div id="err-entrega" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona una opción</div>
@@ -889,14 +889,14 @@ if ($showCard) {
           <!-- Dirección (solo delivery) -->
           <div style="margin-bottom:14px;" id="campo-dir-wrap">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Dirección <span style="color:#dc2626">*</span></label>
-            <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <input type="text" id="campo-direccion" placeholder="Ej: Av. Principal 123, distrito" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'">
             <div id="err-direccion" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Campo obligatorio</div>
           </div>
 
           <!-- Horario — DESACTIVADO: para activar, quitar display:none del div exterior -->
           <div style="display:none;margin-bottom:14px;" id="horario-wrap">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Horario <span style="color:#dc2626">*</span></label>
-            <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+            <select id="campo-horario" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'">
               <option value="asap">⚡ Lo antes posible</option>
             </select>
             <div id="err-horario" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Selecciona un horario</div>
@@ -905,7 +905,7 @@ if ($showCard) {
           <!-- Comentarios -->
           <div style="margin-bottom:20px;">
             <label style="display:block;font-family:'ArialNarrowBold','Arial Narrow',Arial,sans-serif;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Comentarios <span style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'"></textarea>
+            <textarea id="campo-comentarios" placeholder="Ej: Sin cebolla, sin lechuga, tocar el timbre..." rows="2" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;transition:border-color 0.2s;resize:none;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'"></textarea>
           </div>
 
           <!-- LEALTAD — oculta por ahora (no eliminar) -->
@@ -916,19 +916,19 @@ if ($showCard) {
             <div style="display:flex;flex-direction:column;gap:8px;">
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;transition:all 0.15s;" id="loyalty-opt-no" onclick="setLoyalty('no')">
                 <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-no"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">No me interesa por ahora</div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1E1E1E;">No me interesa por ahora</div>
               </label>
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #F5C200;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
-                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #F5C200;background:#F5C200;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1B1F4B;"></div></div>
-                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;font-weight:600;">Quiero crear mi tarjeta</div>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #FFDF00;background:#fffbec;" id="loyalty-opt-nueva" onclick="setLoyalty('nueva')">
+                <div style="width:18px;height:18px;border-radius:50%;border:2px solid #FFDF00;background:#FFDF00;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-nueva"><div style="width:8px;height:8px;border-radius:50%;background:#1E1E1E;"></div></div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1E1E1E;font-weight:600;">Quiero crear mi tarjeta</div>
               </label>
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd;background:#fff;" id="loyalty-opt-tengo" onclick="setLoyalty('tengo')">
                 <div style="width:18px;height:18px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="loyalty-radio-tengo"><div style="width:8px;height:8px;border-radius:50%;background:transparent;"></div></div>
-                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1B1F4B;">Ya tengo mi tarjeta</div>
+                <div style="font-family:'DINMed',sans-serif;font-size:13px;color:#1E1E1E;">Ya tengo mi tarjeta</div>
               </label>
             </div>
             <div id="loyalty-email-wrap" style="margin-top:10px;">
-              <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#F5C200'" onblur="this.style.borderColor='#ddd'">
+              <input type="email" id="campo-loyalty-email" placeholder="tu@correo.com" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;" onfocus="this.style.borderColor='#FFDF00'" onblur="this.style.borderColor='#ddd'">
               <div id="err-loyalty-email" style="font-size:11px;color:#dc2626;margin-top:3px;display:none;">Ingresa tu email para crear la tarjeta</div>
             </div>
           </div>
@@ -948,9 +948,9 @@ if ($showCard) {
             </div>
             <input type="hidden" id="campo-comprobante" value="">
             <div id="comp-fields" style="display:none;margin-top:10px;">
-              <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-              <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
-              <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1B1F4B;outline:none;font-family:'DINMed',sans-serif;">
+              <input type="text" id="campo-doc" inputmode="numeric" maxlength="8" placeholder="DNI (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="text" id="campo-razon" placeholder="Nombre (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;margin-bottom:8px;">
+              <input type="email" id="campo-email-comp" placeholder="Correo para recibirlo (opcional)" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;color:#1E1E1E;outline:none;font-family:'DINMed',sans-serif;">
               <div id="err-comp" style="font-size:11px;color:#dc2626;margin-top:4px;display:none;">Para factura ingresa RUC (11 dígitos) y razón social.</div>
             </div>
           </div>
@@ -1332,11 +1332,11 @@ function cambiar(id, nombre, precio, delta) {
       const btn   = document.getElementById('loyalty-opt-' + o);
       const radio = document.getElementById('loyalty-radio-' + o);
       const isActive = o === opcion;
-      btn.style.borderColor   = isActive ? '#F5C200' : '#ddd';
+      btn.style.borderColor   = isActive ? '#FFDF00' : '#ddd';
       btn.style.background    = isActive ? '#fffbec' : '#fff';
-      radio.style.borderColor = isActive ? '#F5C200' : '#ddd';
-      radio.style.background  = isActive ? '#F5C200' : '#fff';
-      radio.querySelector('div').style.background = isActive ? '#1B1F4B' : 'transparent';
+      radio.style.borderColor = isActive ? '#FFDF00' : '#ddd';
+      radio.style.background  = isActive ? '#FFDF00' : '#fff';
+      radio.querySelector('div').style.background = isActive ? '#1E1E1E' : 'transparent';
     });
     // Show email field for 'nueva' and 'tengo'
     document.getElementById('loyalty-email-wrap').style.display = opcion !== 'no' ? 'block' : 'none';
@@ -1361,8 +1361,8 @@ function cambiar(id, nombre, precio, delta) {
       btn.style.color = '#fff';
       setTimeout(() => {
         btn.textContent = 'Copiar código';
-        btn.style.background = '#F5C200';
-        btn.style.color = '#1B1F4B';
+        btn.style.background = '#FFDF00';
+        btn.style.color = '#1E1E1E';
       }, 2000);
     };
     if (navigator.clipboard) {
@@ -1473,16 +1473,16 @@ function cambiar(id, nombre, precio, delta) {
     const rBtn = document.getElementById('opt-recojo');
     const dRad = document.getElementById('radio-delivery');
     const rRad = document.getElementById('radio-recojo');
-    dBtn.style.borderColor = isD ? '#F5C200' : '#ddd';
+    dBtn.style.borderColor = isD ? '#FFDF00' : '#ddd';
     dBtn.style.background  = isD ? '#fffbec' : '#fff';
-    rBtn.style.borderColor = !isD ? '#F5C200' : '#ddd';
+    rBtn.style.borderColor = !isD ? '#FFDF00' : '#ddd';
     rBtn.style.background  = !isD ? '#fffbec' : '#fff';
-    dRad.style.borderColor = isD ? '#F5C200' : '#ddd';
-    dRad.style.background  = isD ? '#F5C200' : '#fff';
-    dRad.querySelector('div').style.background = isD ? '#1B1F4B' : 'transparent';
-    rRad.style.borderColor = !isD ? '#F5C200' : '#ddd';
-    rRad.style.background  = !isD ? '#F5C200' : '#fff';
-    rRad.querySelector('div').style.background = !isD ? '#1B1F4B' : 'transparent';
+    dRad.style.borderColor = isD ? '#FFDF00' : '#ddd';
+    dRad.style.background  = isD ? '#FFDF00' : '#fff';
+    dRad.querySelector('div').style.background = isD ? '#1E1E1E' : 'transparent';
+    rRad.style.borderColor = !isD ? '#FFDF00' : '#ddd';
+    rRad.style.background  = !isD ? '#FFDF00' : '#fff';
+    rRad.querySelector('div').style.background = !isD ? '#1E1E1E' : 'transparent';
     document.getElementById('campo-dir-wrap').style.display = isD ? 'block' : 'none';
   }
 
@@ -2191,14 +2191,14 @@ function cambiar(id, nombre, precio, delta) {
       <svg id="conf-icon" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" fill="#fff"/></svg>
     </div>
     <div id="conf-titulo" style="color:var(--text,#fff);font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">¡Pedido enviado!</div>
-    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(128,128,128,.12);border:1px dashed rgba(128,128,128,.3);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#F5C200;margin-bottom:22px;"></div>
+    <div id="conf-codigo" style="display:inline-flex;align-items:center;gap:8px;background:rgba(128,128,128,.12);border:1px dashed rgba(128,128,128,.3);padding:9px 16px;border-radius:30px;font-size:15px;font-weight:800;letter-spacing:2px;color:#FFDF00;margin-bottom:22px;"></div>
     <div style="width:100%;background:rgba(128,128,128,.08);border-radius:16px;padding:18px 16px;margin-bottom:14px;max-width:420px;">
       <div id="conf-msg" style="font-size:14.5px;color:var(--text-soft,#e7e7e7);line-height:1.55;margin-bottom:14px;"></div>
       <button id="conf-wa-btn" onclick="abrirWhatsApp()" style="width:100%;padding:15px;border:none;border-radius:13px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.7 1.7c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.6 1 1.9 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.2.5.3.1.2.1.7-.1 1.2Z"/></svg>
         Abrir WhatsApp
       </button>
-      <div id="conf-prep" style="display:none;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:#F5C200;">🍔 Estamos preparando tu pedido</div>
+      <div id="conf-prep" style="display:none;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;color:#FFDF00;">🍔 Estamos preparando tu pedido</div>
     </div>
     <div id="conf-resumen" style="max-width:420px;width:100%;"></div>
     <button onclick="vaciarYVolver()" style="width:100%;max-width:420px;background:none;border:1px solid rgba(128,128,128,.25);color:var(--text-soft,#cfcfcf);padding:13px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:14px;">Hacer otro pedido</button>
