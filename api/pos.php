@@ -224,7 +224,7 @@ case 'registrar_venta':
         if ($dt === 'porcentaje') $lineTot -= $lineTot * min(100, max(0, $dv)) / 100;
         elseif ($dt === 'monto')  $lineTot -= min($lineTot, max(0, $dv));
         $subtotal += $lineTot;
-        $clean[] = ['qty'=>$qty, 'nombre'=>clean($it['nombre'] ?? ''), 'precio'=>$base,
+        $clean[] = ['product_id'=>(int)($it['id'] ?? $it['product_id'] ?? 0), 'qty'=>$qty, 'nombre'=>clean($it['nombre'] ?? ''), 'precio'=>$base,
                     'modificadores'=>$mods, 'nota'=>$nota, 'desc_tipo'=>$dt, 'desc_valor'=>$dv];
     }
     $gdt = in_array($_POST['descuento_tipo'] ?? '', ['porcentaje','monto'], true) ? $_POST['descuento_tipo'] : null;
