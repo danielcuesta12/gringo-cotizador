@@ -43,8 +43,11 @@ $esAdmin = isAdmin();
 .kctop .kti2{font-size:30px;font-weight:800;line-height:1}
 .kctop .ksalir-btn{margin-left:auto}
 /* Fila 2: número + nombre + tag */
-.kcid{display:flex;align-items:center;gap:9px;padding:7px 14px 11px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.kcid{display:flex;align-items:center;gap:9px;padding:8px 14px 3px}
 .kname{font-size:15px;font-weight:700;color:#F5E6D0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kctags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 14px 9px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.kctags .ktp{font-size:11px;padding:2px 8px}
+.kctags .kpin{font-size:13px}
 .kcom{font-size:12px;color:#888;margin-top:6px}
 .kc.porsalir{box-shadow:0 0 0 2px #3b82f6, 0 6px 22px rgba(59,130,246,.4)}
 .kc-act{position:absolute;inset:0;display:flex;align-items:center;padding:0 22px;font-weight:900;font-size:17px;color:#fff;opacity:0;pointer-events:none;z-index:6;transition:opacity .05s}
@@ -295,8 +298,9 @@ function cardHTML(p,opts){
   var nm=esc(p.nombre)||('#'+num);
   // Fila 1: tiempo grande + cohete
   var top='<div class="kctop '+cl+'">'+(ip?'<span class="kpay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Esperando pago</span>':'<span class="kti2 '+cl+'"'+(withId?' id="kt-'+p.id+'"':'')+'>'+ft(ms)+'</span>')+(ip?'':sb)+'</div>';
-  // Fila 2: número + nombre + tag (+ pin en vista Todo)
-  var idrow='<div class="kcid"><span class="kon">#'+num+'</span><span class="kname">'+nm+'</span>'+tag+pin+'</div>';
+  // Fila 2: número + nombre  ·  Fila 3: etiquetas (más pequeñas)
+  var idrow='<div class="kcid"><span class="kon">#'+num+'</span><span class="kname">'+nm+'</span></div>';
+  var tagsrow='<div class="kctags">'+tag+pin+'</div>';
   var split=opts.nCats>1?'<span class="ksplit">✂️ parte de #'+num+'</span>':'';
   var foot;
   if(ip){foot='<button class="bac" onclick="ac('+p.id+')">Aceptar</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
@@ -304,7 +308,7 @@ function cardHTML(p,opts){
   else{foot='<button class="bls '+cl+'" onclick="ls('+p.id+')">Listo</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
   var ps=porSalir.has(String(p.id))?" porsalir":"";
   var dParte=opts.parteCat?(' data-parte="'+opts.parteCat+'"'):'';
-  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'"'+(withId?' id="kc-'+p.id+'"':'')+' data-id="'+p.id+'" data-pid="'+p.id+'" data-estado="'+p.estado+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+top+idrow+'<div class="kcb"><div class="kit">'+it+'</div>'+split+(p.comentarios?'<div class="kcom">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
+  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'"'+(withId?' id="kc-'+p.id+'"':'')+' data-id="'+p.id+'" data-pid="'+p.id+'" data-estado="'+p.estado+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+top+idrow+tagsrow+'<div class="kcb"><div class="kit">'+it+'</div>'+split+(p.comentarios?'<div class="kcom">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
 }
 
 function lsParte(id,sl){
