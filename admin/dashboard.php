@@ -142,8 +142,9 @@ try {
 // EVENTOS LIBRES / VENTA MANUAL (agenda + liquidación sin POS) — del mes, por fecha del evento. Tolerante.
 // ============================================================
 $ventaEventosLibres = 0.0;
-try { $ventaEventosLibres += (float)(Database::fetch("SELECT COALESCE(SUM(venta_real),0) s FROM agenda WHERE venta_real IS NOT NULL AND DATE_FORMAT(fecha,'%Y-%m')=?", [$mes])['s'] ?? 0); } catch (\Throwable $e) {}
-try { $ventaEventosLibres += (float)(Database::fetch("SELECT COALESCE(SUM(venta_manual),0) s FROM eventos WHERE COALESCE(usa_pos,1)=0 AND venta_manual IS NOT NULL AND (quote_id IS NULL OR quote_id NOT IN (SELECT id FROM quotes WHERE status='aceptada')) AND DATE_FORMAT(fecha_inicio,'%Y-%m')=?", [$mes])['s'] ?? 0); } catch (\Throwable $e) {}
+$eventosLibresList  = [];
+try { foreach (Database::fetchAll("SELECT titulo AS nombre, fecha, venta_real AS monto FROM agenda WHERE venta_real IS NOT NULL AND DATE_FORMAT(fecha,'%Y-%m')=? ORDER BY fecha", [$mes]) as $r) { $eventosLibresList[] = ['nombre'=>$r['nombre'], 'fecha'=>$r['fecha'], 'monto'=>(float)$r['monto'], 'tipo'=>'Evento libre']; $ventaEventosLibres += (float)$r['monto']; } } catch (\Throwable $e) {}
+try { foreach (Database::fetchAll("SELECT nombre, fecha_inicio AS fecha, venta_manual AS monto FROM eventos WHERE COALESCE(usa_pos,1)=0 AND venta_manual IS NOT NULL AND (quote_id IS NULL OR quote_id NOT IN (SELECT id FROM quotes WHERE status='aceptada')) AND DATE_FORMAT(fecha_inicio,'%Y-%m')=? ORDER BY fecha_inicio", [$mes]) as $r) { $eventosLibresList[] = ['nombre'=>$r['nombre'], 'fecha'=>$r['fecha'], 'monto'=>(float)$r['monto'], 'tipo'=>'Evento (sin POS)']; $ventaEventosLibres += (float)$r['monto']; } } catch (\Throwable $e) {}
 
 // POS del mes por tienda (para el filtro). Tolerante.
 $posPorTienda = [];
@@ -803,6 +804,55 @@ if (can('quotes') || can('events') || can('calendar') || can('requests')):
 
 <?php
 // ============================================================
+// SECCIÓN EVENTOS LIBRES (venta manual: agenda + eventos sin POS)
+// ============================================================
+if (isAdmin() || can('calendar') || can('inv_evento')):
+?>
+<div class="world-section">
+  <div class="world-header">
+    <span class="world-chip" style="background:rgba(139,92,246,.16);color:#7c3aed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </span>
+    <div class="world-titles">
+      <div class="world-title">Eventos libres</div>
+      <div class="world-sub"><?php echo $mesLabel; ?> &middot; Venta manual (agenda + eventos sin POS)</div>
+    </div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--border,#eee);border-top:none;border-radius:0 0 14px 14px;padding:16px">
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi-card">
+        <div class="kpi-label">Venta del mes</div>
+        <div class="kpi-val" style="color:#7c3aed"><?php echo formatMoney($ventaEventosLibres); ?></div>
+        <div class="kpi-sub"><?php echo count($eventosLibresList); ?> evento(s)</div>
+      </div>
+    </div>
+    <?php if (empty($eventosLibresList)): ?>
+      <p style="color:var(--text-muted);font-size:13px;margin:4px 2px">Sin eventos libres con venta registrada este mes.</p>
+    <?php else: ?>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+        <thead><tr style="text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px">
+          <th style="padding:8px 10px">Evento</th><th style="padding:8px 10px">Fecha</th><th style="padding:8px 10px">Tipo</th><th style="padding:8px 10px;text-align:right">Monto</th>
+        </tr></thead>
+        <tbody>
+          <?php foreach ($eventosLibresList as $el): ?>
+          <tr style="border-top:1px solid var(--border,#eee)">
+            <td style="padding:9px 10px;font-weight:600"><?php echo clean($el['nombre'] ?: '(sin nombre)'); ?></td>
+            <td style="padding:9px 10px;color:var(--text-secondary)"><?php echo formatDate($el['fecha']); ?></td>
+            <td style="padding:9px 10px"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.12);color:#7c3aed"><?php echo clean($el['tipo']); ?></span></td>
+            <td style="padding:9px 10px;text-align:right;font-weight:700"><?php echo formatMoney($el['monto']); ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php
+// ============================================================
 // SECCIÓN OPERACIÓN
 // ============================================================
 if (can('pedidos') || can('pos_terminal') || can('kds') || can('pos_monitor')):
@@ -967,13 +1017,20 @@ function exportConsolidado() {
       if (!d.ok) { alert('Error al obtener datos: ' + (d.error || 'desconocido')); return; }
       var wb  = XLSX.utils.book_new();
       var rows = [
-        ['Periodo',                        REP_MES],
-        ['Eventos (cotizaciones aceptadas)', d.eventos],
-        ['Operación (POS + Cartas)',          d.operacion],
+        ['Periodo',                          REP_MES],
+        ['Cotizaciones (aceptadas)',         d.eventos],
+        ['Eventos libres (venta manual)',    d.libres || 0],
+        ['Operación (POS + Cartas)',         d.operacion],
         ['TOTAL NEGOCIO',                    d.total]
       ];
-      var ws = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Resumen');
+
+      // Hoja "Eventos" — detalle (cotizaciones + eventos libres) con su nombre
+      var det = d.eventos_detalle || [];
+      var evRows = [['Nombre', 'Tipo', 'Fecha', 'Cliente', 'Monto']];
+      det.forEach(function(e){ evRows.push([e.nombre || '', e.tipo || '', e.fecha || '', e.cliente || '', Number(e.monto) || 0]); });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(evRows), 'Eventos');
+
       dlWb(wb, 'consolidado-' + REP_MES + '.xlsx');
     })
     .catch(function(e){ alert('Error de red: ' + e.message); });

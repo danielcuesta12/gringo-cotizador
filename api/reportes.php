@@ -231,7 +231,34 @@ if ($action === 'consolidado') {
             if ($hasta !== '')  { $wO .= " AND DATE(created_at) <= ?"; $pO[] = $hasta; }
             $op = (float)(Database::fetch("SELECT COALESCE(SUM(total),0) s FROM pedidos WHERE {$wO}", $pO)['s'] ?? 0);
         } catch (Exception $e2) { $op = 0.0; }
-        rout(['ok'=>true, 'eventos'=>$eventos, 'operacion'=>$op, 'total'=>$eventos+$op]);
+
+        // ── Detalle de eventos: cotizaciones aceptadas + eventos libres (con su nombre) ──
+        $detalle = []; $libres = 0.0;
+        $hasEvNombre = (bool) Database::fetch("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='quotes' AND column_name='evento_nombre'");
+        $selN = $hasEvNombre ? "q.evento_nombre" : "NULL";
+        foreach (Database::fetchAll("SELECT q.quote_number, {$selN} AS evnombre, COALESCE(c.name,'') cliente, q.event_date fecha, q.total monto FROM quotes q LEFT JOIN clients c ON c.id=q.client_id WHERE q.{$wE} ORDER BY q.event_date", $pE) as $r) {
+            $detalle[] = ['nombre'=>($r['evnombre'] ?: $r['quote_number']), 'tipo'=>'Cotización', 'fecha'=>$r['fecha'], 'cliente'=>$r['cliente'], 'monto'=>(float)$r['monto']];
+        }
+        try {
+            $wA = "venta_real IS NOT NULL"; $pA = [];
+            if ($desde !== '') { $wA .= " AND DATE(fecha) >= ?"; $pA[] = $desde; }
+            if ($hasta !== '')  { $wA .= " AND DATE(fecha) <= ?"; $pA[] = $hasta; }
+            foreach (Database::fetchAll("SELECT titulo, fecha, venta_real monto FROM agenda WHERE {$wA} ORDER BY fecha", $pA) as $r) {
+                $libres += (float)$r['monto'];
+                $detalle[] = ['nombre'=>$r['titulo'], 'tipo'=>'Evento libre', 'fecha'=>$r['fecha'], 'cliente'=>'', 'monto'=>(float)$r['monto']];
+            }
+        } catch (\Throwable $e3) {}
+        try {
+            $wL = "COALESCE(usa_pos,1)=0 AND venta_manual IS NOT NULL AND (quote_id IS NULL OR quote_id NOT IN (SELECT id FROM quotes WHERE status='aceptada'))"; $pL = [];
+            if ($desde !== '') { $wL .= " AND DATE(fecha_inicio) >= ?"; $pL[] = $desde; }
+            if ($hasta !== '')  { $wL .= " AND DATE(fecha_inicio) <= ?"; $pL[] = $hasta; }
+            foreach (Database::fetchAll("SELECT nombre, fecha_inicio fecha, venta_manual monto FROM eventos WHERE {$wL} ORDER BY fecha_inicio", $pL) as $r) {
+                $libres += (float)$r['monto'];
+                $detalle[] = ['nombre'=>$r['nombre'], 'tipo'=>'Evento libre', 'fecha'=>$r['fecha'], 'cliente'=>'', 'monto'=>(float)$r['monto']];
+            }
+        } catch (\Throwable $e4) {}
+
+        rout(['ok'=>true, 'eventos'=>$eventos, 'libres'=>$libres, 'operacion'=>$op, 'total'=>$eventos+$libres+$op, 'eventos_detalle'=>$detalle]);
     } catch (Exception $e) { rout(['ok'=>false,'error'=>$e->getMessage()]); }
 }
 
