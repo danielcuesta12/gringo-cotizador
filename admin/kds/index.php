@@ -41,8 +41,9 @@ $esAdmin = isAdmin();
 .kc-act{position:absolute;inset:0;display:flex;align-items:center;padding:0 22px;font-weight:900;font-size:17px;color:#fff;opacity:0;pointer-events:none;z-index:6;transition:opacity .05s}
 .kc-act.ok{background:rgba(31,157,85,.95);justify-content:flex-start}
 .kc-act.cancel{background:rgba(214,69,69,.95);justify-content:flex-end}
-.ksalir-btn{background:none;border:none;cursor:pointer;font-size:16px;line-height:1;opacity:.45;padding:0 2px}
-.ksalir-btn.on{opacity:1}
+.ksalir-btn{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;flex-shrink:0;border-radius:50%;background:rgba(59,130,246,.18);border:2px solid rgba(59,130,246,.55);color:#fff;cursor:pointer;font-size:20px;line-height:1;padding:0;-webkit-tap-highlight-color:transparent}
+.ksalir-btn:active{transform:scale(.92)}
+.ksalir-btn.on{background:#3b82f6;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.3)}
 .ksalir-badge{font-size:9px;font-weight:900;background:#3b82f6;color:#fff;padding:2px 7px;border-radius:10px}
 .kc.gray{background:#1a1a1a;border:1px solid #333}.kc.green{background:#0d2010;border:1px solid #166534}.kc.orange{background:#1c1000;border:1px solid #9a3412}.kc.red{background:#1c0000;border:1px solid #7f1d1d;animation:kp 1.5s ease-in-out infinite}
 @keyframes kp{0%,100%{border-color:#7f1d1d}50%{border-color:#ef4444}}
