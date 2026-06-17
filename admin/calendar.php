@@ -561,7 +561,7 @@ function renderList() {
   var filtered = QUOTES.filter(function(q){ return q.event_date>=startS && q.event_date<=endS; })
     .map(function(q){ return q; })
     .concat(AGENDA.filter(function(a){ return agendaEnd(a)>=startS && a.event_date<=endS; })
-      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, fecha_fin:a.fecha_fin, titulo:a.titulo, hora:a.hora, hora_fin:a.hora_fin, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea}; }));
+      .map(function(a){ return {__agenda:true, id:a.id, event_date:a.event_date, fecha_fin:a.fecha_fin, titulo:a.titulo, hora:a.hora, hora_fin:a.hora_fin, lugar:a.lugar, notas:a.notas, bloquea:a.bloquea, venta_real:a.venta_real}; }));
   filtered.sort(function(a,b){
     if (a.event_date !== b.event_date) return a.event_date<b.event_date?-1:1;
     var ka=timeKey(a.__agenda?a.hora:a.event_time), kb=timeKey(b.__agenda?b.hora:b.event_time);
@@ -605,7 +605,9 @@ function renderList() {
       html += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:'+(aBlk?'#dc2626':'#c2410c')+'">'+(aBlk?'Agenda · bloqueado':'Agenda')+(aMulti?' · '+esc(agendaRangeLabel(q)):'')+'</div><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(q.titulo)+'</div>';
       if (q.lugar||aTime) html += '<div style="font-size:11px;color:var(--text-muted)">'+esc(q.lugar||'')+(aTime?(q.lugar?' · ':'')+esc(aTime):'')+'</div>';
       html += '</div>';
+      var aTieneVenta = q.venta_real!=null && q.venta_real!=='' && parseFloat(q.venta_real)>0;
       if (aBlk) html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#fee2e2;color:#dc2626">No disponible</span></div>';
+      else if (aTieneVenta) html += '<div style="text-align:right;flex-shrink:0"><div><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#dcfce7;color:#166534">Venta</span></div><div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:3px">'+fmtMoney(q.venta_real)+'</div></div>';
       else html += '<div style="text-align:right;flex-shrink:0"><span style="font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;background:#ffedd5;color:#9a3412">Sin venta</span></div>';
       html += '<span style="font-size:16px;color:var(--text-muted);margin-left:8px;transition:transform .2s" id="ch_a'+q.id+'">&#8250;</span>';
       html += '</div>';
