@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mockup · KDS gestos táctiles</title>
+<style>
+  :root{--bg:#0f1115;--card:#1c1f26;--line:#2a2e36;--text:#e8e8ea;--mut:#9aa0aa;--yellow:#F5C200;
+        --green:#1f9d55;--red:#d64545;--orange:#d9920a;--salir:#3b82f6;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:16px 12px 60px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:18px;font-weight:900;margin-bottom:4px}
+  .hint{font-size:13px;color:var(--mut);line-height:1.55;margin-bottom:16px}
+  .hint b{color:var(--text)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+
+  .kc-wrap{position:relative;border-radius:12px;overflow:hidden;touch-action:pan-y}
+  .reveal{position:absolute;inset:0;display:flex;align-items:center;padding:0 22px;font-weight:900;font-size:16px;color:#fff}
+  .reveal.r-ok{background:var(--green);justify-content:flex-start}
+  .reveal.r-cancel{background:var(--red);justify-content:flex-end}
+  .kc{position:relative;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--orange);border-radius:12px;will-change:transform}
+  .kc.green{border-top-color:var(--green)}.kc.gray{border-top-color:#6b7280}
+  .kc.salir{box-shadow:0 0 0 2px var(--salir), 0 8px 24px rgba(59,130,246,.35)}
+  .kch{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .kon{font-weight:900;font-size:13px}
+  .ktp{font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;background:#a78bfa;color:#10131a}
+  .ktp.salon{background:#a78bfa}.ktp.deli{background:#38bdf8}
+  .ktm{margin-left:auto;font-weight:900;font-variant-numeric:tabular-nums;color:var(--mut)}
+  .salir-btn{margin-left:6px;font-size:17px;line-height:1;background:none;border:none;cursor:pointer;opacity:.45}
+  .salir-btn.on{opacity:1}
+  .salir-badge{display:none;font-size:9px;font-weight:900;background:var(--salir);color:#fff;padding:2px 7px;border-radius:10px;margin-left:6px}
+  .kc.salir .salir-badge{display:inline-block}
+  .kcb{padding:12px}
+  .kcl{font-size:16px;font-weight:800;margin-bottom:6px}
+  .ki{font-size:13px;color:var(--text);margin-bottom:2px}.ki .q{color:var(--yellow);font-weight:800;margin-right:4px}
+  .kcf{padding:8px 12px;border-top:1px solid var(--line);font-size:10px;color:var(--mut);text-align:center}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍳 KDS · gestos táctiles (prueba en la tablet)</h1>
+  <div class="hint">
+    <b>Desliza →</b> avanzar (Pendiente: Aceptar · En prep.: Listo) · <b>Desliza ←</b> cancelar (pide confirmar) ·
+    <b>Toca 🚀</b> (o doble-tap) marca <b>“Por salir”</b> (se resalta y sube al tope) · el scroll vertical sigue normal.
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  var PED = [
+    {id:12, tipo:'salon', tag:'SALÓN', estado:'prep',  t:'14:20', cl:'Mesa 4',  items:[['2','Gringo'],['1','Salchipapa']]},
+    {id:13, tipo:'deli',  tag:'DELIVERY', estado:'prep', t:'09:05', cl:'Lucía',  items:[['1','Crispy'],['1','Gaseosa']]},
+    {id:14, tipo:'salon', tag:'SALÓN', estado:'pend',  t:'',       cl:'Mesa 7',  items:[['3','Gringo']]},
+    {id:15, tipo:'deli',  tag:'DELIVERY', estado:'prep', t:'03:40', cl:'Marco',   items:[['2','Salchipapa XL']]},
+    {id:16, tipo:'salon', tag:'SALÓN', estado:'prep',  t:'01:10', cl:'Mesa 2',  items:[['1','Crispy'],['2','Limonada']]},
+  ];
+  var salir = {};                // id -> true
+  var grid = document.getElementById('grid');
+
+  function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},1400); }
+
+  function cardHTML(p){
+    var ip = p.estado==='pend';
+    var items = p.items.map(function(i){return '<div class="ki"><span class="q">'+i[0]+'x</span>'+i[1]+'</div>';}).join('');
+    var on = salir[p.id] ? ' on' : '';
+    return '<div class="kc-wrap" data-id="'+p.id+'">'+
+      '<div class="reveal r-ok">✓ '+(ip?'Aceptar':'Listo')+'</div>'+
+      '<div class="reveal r-cancel">Cancelar ✕</div>'+
+      '<div class="kc '+(ip?'gray':'green')+(salir[p.id]?' salir':'')+'">'+
+        '<div class="kch"><span class="kon">#'+('00'+p.id).slice(-3)+'</span>'+
+          '<span class="ktp '+p.tipo+'">'+p.tag+'</span>'+
+          '<span class="salir-badge">POR SALIR</span>'+
+          '<span class="ktm">'+(ip?'⏳ pago':p.t)+'</span>'+
+          '<button class="salir-btn'+on+'" data-salir="'+p.id+'" title="Por salir">🚀</button>'+
+        '</div>'+
+        '<div class="kcb"><div class="kcl">'+p.cl+'</div>'+items+'</div>'+
+        '<div class="kcf">desliza →  ·  ← cancelar  ·  🚀 por salir</div>'+
+      '</div></div>';
+  }
+
+  function render(){
+    var ordered = PED.slice().sort(function(a,b){ return (salir[b.id]?1:0)-(salir[a.id]?1:0); }); // por salir arriba
+    grid.innerHTML = ordered.map(cardHTML).join('');
+    grid.querySelectorAll('.kc-wrap').forEach(bindSwipe);
+    grid.querySelectorAll('.salir-btn').forEach(function(b){ b.addEventListener('click', function(e){ e.stopPropagation(); toggleSalir(+b.dataset.salir); }); });
+  }
+
+  function toggleSalir(id){ if(salir[id]) delete salir[id]; else salir[id]=true; render(); toast(salir[id]?'Marcado «por salir»':'Quitado de «por salir»'); }
+
+  function act(id, dir){
+    var w = grid.querySelector('.kc-wrap[data-id="'+id+'"]'); if(!w) return;
+    var p = PED.find(function(x){return x.id===id;});
+    if(dir==='left'){ if(!confirm('¿Cancelar el pedido #'+('00'+id).slice(-3)+'?')){ render(); return; } }
+    w.style.transition='transform .25s, opacity .25s'; w.querySelector('.kc').style.transform='translateX('+(dir==='right'?'120%':'-120%')+')'; w.style.opacity='0';
+    setTimeout(function(){ PED = PED.filter(function(x){return x.id!==id;}); delete salir[id]; render(); }, 240);
+    toast(dir==='right' ? (p.estado==='pend'?'Aceptado → cocina':'Listo ✓') : 'Cancelado');
+  }
+
+  function bindSwipe(w){
+    var card = w.querySelector('.kc');
+    var x0=0,y0=0,decided=false,horiz=false,dx=0,active=false;
+    var TH = Math.max(70, w.offsetWidth*0.4);
+    w.addEventListener('pointerdown', function(e){
+      if(e.target.closest('.salir-btn')) return;
+      active=true; decided=false; horiz=false; dx=0; x0=e.clientX; y0=e.clientY;
+      card.style.transition='none';
+    });
+    w.addEventListener('pointermove', function(e){
+      if(!active) return;
+      var mx=e.clientX-x0, my=e.clientY-y0;
+      if(!decided){ if(Math.abs(mx)>8||Math.abs(my)>8){ horiz=Math.abs(mx)>Math.abs(my); decided=true; if(horiz){ try{w.setPointerCapture(e.pointerId);}catch(_){} } } }
+      if(horiz){ e.preventDefault(); dx=mx; card.style.transform='translateX('+mx+'px)';
+        var ok=w.querySelector('.r-ok'), cc=w.querySelector('.r-cancel');
+        ok.style.opacity = mx>0 ? Math.min(1, mx/TH) : 0;
+        cc.style.opacity = mx<0 ? Math.min(1, -mx/TH) : 0;
+      }
+    });
+    function end(){ if(!active) return; active=false; if(horiz && Math.abs(dx)>=TH){ act(+w.dataset.id, dx>0?'right':'left'); } else { card.style.transition='transform .2s'; card.style.transform=''; } }
+    w.addEventListener('pointerup', end);
+    w.addEventListener('pointercancel', end);
+    // doble-tap = por salir
+    var lastTap=0;
+    w.addEventListener('pointerup', function(e){ if(e.target.closest('.salir-btn'))return; var now=Date.now(); if(now-lastTap<300 && !horiz){ toggleSalir(+w.dataset.id); } lastTap=now; });
+  }
+
+  render();
+</script>
+</body>
+</html>
