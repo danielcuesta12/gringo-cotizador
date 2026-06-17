@@ -30,7 +30,9 @@ $esAdmin = isAdmin();
 <style>
 *{box-sizing:border-box;margin:0;padding:0}body{background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
 #ks{display:flex;flex-direction:column;min-height:100vh}
-.kt{background:#1a1a1a;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a2a;flex-wrap:wrap;gap:8px}
+.kt{background:#1a1a1a;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a2a;flex-wrap:wrap;gap:14px}
+.kt>div:first-child{gap:14px !important}
+.kt-views{display:flex;align-items:center;gap:10px;margin-left:auto;padding-left:16px;border-left:1px solid #2f2f2f}
 .kti{color:#F5E6D0;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
 .km{display:flex;gap:12px;align-items:center;font-size:11px;flex-wrap:wrap}
 .kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:14px}
@@ -56,11 +58,11 @@ $esAdmin = isAdmin();
 .ke{text-align:center;padding:60px 20px;color:#333;font-size:13px;grid-column:1/-1}
 .fsmode{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f0f0f;z-index:9999;display:flex;flex-direction:column;overflow-y:auto}
 .bw{font-size:9px;background:rgba(255,255,255,0.15);color:#ccc;padding:1px 7px;border-radius:8px;font-weight:600}
-#ba,#bfs{background:rgba(255,255,255,0.1);border:1px solid #333;color:#888;padding:3px 10px;border-radius:12px;font-size:10px;cursor:pointer}
+#ba,#bfs{background:rgba(255,255,255,0.1);border:1px solid #333;color:#888;padding:6px 12px;border-radius:10px;font-size:11px;cursor:pointer}
 #bsal{background:none;border:1px solid #333;color:#888;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;text-decoration:none}
-.ubisel{background:#222;border:1px solid #333;color:#F5E6D0;padding:5px 10px;border-radius:8px;font-size:12px;outline:none}
+.ubisel{background:#222;border:1px solid #333;color:#F5E6D0;padding:7px 12px;border-radius:8px;font-size:12px;outline:none}
 .cnt{display:flex;align-items:center;gap:4px}
-#bhist{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.1);border:1px solid #333;color:#888;padding:3px 10px;border-radius:12px;font-size:10px;cursor:pointer}
+#bhist{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid #333;color:#888;padding:6px 12px;border-radius:10px;font-size:11px;cursor:pointer}
 #bhist svg{width:13px;height:13px}#bhist:active{transform:scale(0.96)}
 #hist-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:440;opacity:0;visibility:hidden;transition:opacity .35s ease}#hist-overlay.open{opacity:1;visibility:visible}
 #hist-panel{position:fixed;top:0;right:0;height:100vh;width:320px;background:#141414;border-left:1px solid #2a2a2a;z-index:450;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(0.32,0.72,0,1);will-change:transform}#hist-panel.open{transform:translateX(0)}
@@ -104,9 +106,9 @@ $esAdmin = isAdmin();
 .kpop .fld .dot{width:11px;height:11px;border-radius:50%}
 .kpop input{width:60px;background:#11141a;border:1px solid #2a2e36;border-radius:7px;color:#e8e8ea;padding:6px;text-align:center;font-size:14px;font-weight:800}
 .kpop .hint{font-size:11px;color:#6b7280;line-height:1.45}
-.kchips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid #2a2e36;background:#13161b}
+.kchips{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 20px;border-bottom:1px solid #2a2e36;background:#13161b}
 .kchips .lbl{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
-.kchip{font-size:12px;font-weight:800;padding:6px 12px;border-radius:18px;border:1.5px solid #2a2e36;background:#11141a;color:#9aa0aa;cursor:pointer;user-select:none}
+.kchip{font-size:12.5px;font-weight:800;padding:8px 15px;border-radius:18px;border:1.5px solid #2a2e36;background:#11141a;color:#9aa0aa;cursor:pointer;user-select:none}
 .kchip.on{background:var(--c-brand,#FCDA13);color:#1a1a1a;border-color:var(--c-brand,#FCDA13)}
 /* Carriles (vistas por tipo / categoría) */
 .klane{margin:0 0 14px}
@@ -136,6 +138,7 @@ $esAdmin = isAdmin();
       <button id="ba" onclick="uA()">&#128263; Audio</button>
       <button id="bfs" onclick="tFS()">[ ] Full</button>
       <button id="bhist" onclick="tHist()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span id="bhist-lbl">Historial</span></button>
+      <div class="kt-views">
       <div class="kseg" id="kseg">
         <button data-v="all" class="on" onclick="setVista('all')">Todo junto</button>
         <button data-v="tipo" onclick="setVista('tipo')">Por tipo</button>
@@ -149,6 +152,7 @@ $esAdmin = isAdmin();
           <div class="fld"><span class="dot" style="background:#f87171"></span><label>Rojo a los</label><input id="in-tr" type="number" min="2" oninput="guardarTiempos()"> min</div>
           <div class="hint">Se ajustan al ritmo del local y se guardan en esta pantalla.</div>
         </div>
+      </div>
       </div>
     </div>
     <div class="km">
