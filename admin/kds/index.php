@@ -304,7 +304,7 @@ function cardHTML(p,opts){
   else{foot='<button class="bls '+cl+'" onclick="ls('+p.id+')">Listo</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
   var ps=porSalir.has(String(p.id))?" porsalir":"";
   var dParte=opts.parteCat?(' data-parte="'+opts.parteCat+'"'):'';
-  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'"'+(withId?' id="kc-'+p.id+'"':'')+' data-id="'+p.id+'" data-pid="'+p.id+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+top+idrow+'<div class="kcb"><div class="kit">'+it+'</div>'+split+(p.comentarios?'<div class="kcom">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
+  return '<div class="kc '+cl+(ip?" pay":"")+(done?" parte-lista":"")+ps+'"'+(withId?' id="kc-'+p.id+'"':'')+' data-id="'+p.id+'" data-pid="'+p.id+'" data-estado="'+p.estado+'" data-ip="'+(ip?1:0)+'"'+dParte+'><div class="kc-act ok"></div><div class="kc-act cancel"></div>'+top+idrow+'<div class="kcb"><div class="kit">'+it+'</div>'+split+(p.comentarios?'<div class="kcom">'+esc(p.comentarios)+'</div>':'')+'</div><div class="kcf">'+foot+'</div></div>';
 }
 
 function lsParte(id,sl){
