@@ -75,8 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accion === 'guardar_ingresos') {
-        $venta = ($_POST['venta_manual'] ?? '') !== '' ? max(0, cleanFloat($_POST['venta_manual'])) : null;
+        $usaPos = isset($_POST['usa_pos']) ? 1 : 0;
+        // Si usa POS, el ingreso sale del POS → no guardamos monto manual (evita que reaparezca si luego se desmarca).
+        $venta  = $usaPos ? null : (($_POST['venta_manual'] ?? '') !== '' ? max(0, cleanFloat($_POST['venta_manual'])) : null);
         Database::execute("UPDATE eventos SET venta_manual=? WHERE id=?", [$venta, $id]);
+        try { Database::execute("UPDATE eventos SET usa_pos=? WHERE id=?", [$usaPos, $id]); } catch (\Throwable $e) { /* falta migración 54 */ }
         flashMessage('success', 'Ingresos del evento guardados.');
         redirect('/admin/inventory/evento_detalle.php?id=' . $id);
     }
@@ -167,8 +170,13 @@ if ($truckId > 0) {
 }
 $ventaCot = 0.0;
 if (!empty($ev['quote_id'])) { $ventaCot = (float)(Database::fetch("SELECT total FROM quotes WHERE id=?", [$ev['quote_id']])['total'] ?? 0); }
-$ingresoDefault = $ventaPOS > 0 ? $ventaPOS : $ventaCot;
-$ingresos = $ev['venta_manual'] !== null ? (float)$ev['venta_manual'] : $ingresoDefault;
+// ¿Usa POS? Con POS → el ingreso es la venta del POS; sin POS → prevalece el monto manual.
+$usaPos = array_key_exists('usa_pos', $ev) ? ((int)$ev['usa_pos'] === 1) : true;
+if ($usaPos) {
+    $ingresos = $ventaPOS;
+} else {
+    $ingresos = $ev['venta_manual'] !== null ? (float)$ev['venta_manual'] : 0.0;
+}
 $utilidad = $ingresos - $costoMercaderia - $costoPapeleria - $totalOtros;
 $rendimiento = $ingresos > 0 ? ($utilidad / $ingresos) * 100 : 0;
 
@@ -377,21 +385,32 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
 <div class="card" style="border-top:3px solid var(--yellow,#FFDF00)">
   <div class="card-header"><span class="card-title">Liquidación</span></div>
   <div class="card-body">
-    <form method="post" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:20px">
+    <form method="post" style="margin-bottom:20px">
       <?= csrfField() ?>
       <input type="hidden" name="accion" value="guardar_ingresos">
-      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">
-        <label style="font-size:12px;font-weight:600">Ingresos del evento (S/)</label>
-        <input type="text" inputmode="decimal" name="venta_manual"
-               value="<?= $ingresos ? number_format($ingresos, 2, '.', '') : '' ?>"
-               placeholder="0.00" style="max-width:200px">
-        <span style="font-size:12px;color:var(--text-muted)">
-          Ventas POS: <?= formatMoney($ventaPOS) ?>
-          <?php if ($ventaCot > 0): ?> · Cotización: <?= formatMoney($ventaCot) ?><?php endif; ?>
+      <label class="toggle-wrap" style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:12px">
+        <input type="checkbox" name="usa_pos" id="ev-usa-pos" value="1" <?= $usaPos ? 'checked' : '' ?> onchange="evTogglePos()" style="width:18px;height:18px;accent-color:var(--brand)">
+        <span>
+          <span style="font-weight:700">Este evento vende por POS</span>
+          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Si está marcado, el ingreso se toma de las ventas del POS. Si no, escribes el ingreso a mano.</span>
         </span>
+      </label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <div id="ev-ingreso-manual" style="display:<?= $usaPos ? 'none' : 'flex' ?>;flex-direction:column;gap:4px;flex:1;min-width:180px">
+          <label style="font-size:12px;font-weight:600">Ingreso manual del evento (S/)</label>
+          <input type="text" inputmode="decimal" name="venta_manual"
+                 value="<?= ($ev['venta_manual'] ?? null) !== null ? number_format((float)$ev['venta_manual'], 2, '.', '') : '' ?>"
+                 placeholder="0.00" style="max-width:200px">
+        </div>
+        <div id="ev-ingreso-pos" style="display:<?= $usaPos ? 'flex' : 'none' ?>;flex-direction:column;gap:4px;flex:1;min-width:180px">
+          <label style="font-size:12px;font-weight:600">Ingreso (del POS)</label>
+          <div style="font-size:20px;font-weight:800"><?= formatMoney($ventaPOS) ?></div>
+          <span style="font-size:12px;color:var(--text-muted)">Se toma automáticamente de las ventas del POS del local/truck<?php if ($ventaCot > 0): ?> · Cotización: <?= formatMoney($ventaCot) ?><?php endif; ?></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
       </div>
-      <button type="submit" class="btn btn-primary">Guardar ingresos</button>
     </form>
+    <script>function evTogglePos(){var on=document.getElementById('ev-usa-pos').checked;document.getElementById('ev-ingreso-pos').style.display=on?'flex':'none';document.getElementById('ev-ingreso-manual').style.display=on?'none':'flex';}</script>
 
     <table style="width:100%;border-collapse:collapse;font-size:14px;max-width:460px">
       <tbody>

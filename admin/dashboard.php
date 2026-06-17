@@ -139,11 +139,23 @@ try {
 }
 
 // ============================================================
-// CONSOLIDADO
+// EVENTOS LIBRES / VENTA MANUAL (agenda + liquidación sin POS) — del mes, por fecha del evento. Tolerante.
 // ============================================================
-$totalConsolidado = $facturadoMes + $ventasMes;
-$pctEventos       = $totalConsolidado > 0 ? round(($facturadoMes / $totalConsolidado) * 100, 1) : 0;
-$pctOperacion     = $totalConsolidado > 0 ? round(($ventasMes   / $totalConsolidado) * 100, 1) : 0;
+$ventaEventosLibres = 0.0;
+try { $ventaEventosLibres += (float)(Database::fetch("SELECT COALESCE(SUM(venta_real),0) s FROM agenda WHERE venta_real IS NOT NULL AND DATE_FORMAT(fecha,'%Y-%m')=?", [$mes])['s'] ?? 0); } catch (\Throwable $e) {}
+try { $ventaEventosLibres += (float)(Database::fetch("SELECT COALESCE(SUM(venta_manual),0) s FROM eventos WHERE COALESCE(usa_pos,1)=0 AND venta_manual IS NOT NULL AND (quote_id IS NULL OR quote_id NOT IN (SELECT id FROM quotes WHERE status='aceptada')) AND DATE_FORMAT(fecha_inicio,'%Y-%m')=?", [$mes])['s'] ?? 0); } catch (\Throwable $e) {}
+
+// POS del mes por tienda (para el filtro). Tolerante.
+$posPorTienda = [];
+try { $posPorTienda = Database::fetchAll("SELECT p.ubicacion_id, COALESCE(u.nombre,'(sin tienda)') nombre, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id=p.ubicacion_id WHERE p.estado<>'cancelado' AND DATE_FORMAT(p.created_at,'%Y-%m')=? GROUP BY p.ubicacion_id, u.nombre ORDER BY t DESC", [$mes]); } catch (\Throwable $e) {}
+
+// ============================================================
+// CONSOLIDADO (3 buckets: cotizaciones · eventos libres · POS)
+// ============================================================
+$totalConsolidado = $facturadoMes + $ventaEventosLibres + $ventasMes;
+$pctEventos       = $totalConsolidado > 0 ? round(($facturadoMes      / $totalConsolidado) * 100, 1) : 0;
+$pctLibres        = $totalConsolidado > 0 ? round(($ventaEventosLibres / $totalConsolidado) * 100, 1) : 0;
+$pctOperacion     = $totalConsolidado > 0 ? round(($ventasMes         / $totalConsolidado) * 100, 1) : 0;
 
 // ============================================================
 // PRÓXIMOS EVENTOS
@@ -589,18 +601,44 @@ if (isAdmin()):
     <div class="cons-total"><?php echo formatMoney($totalConsolidado); ?></div>
     <div class="cons-bar">
       <div class="cons-bar-pink"   style="width:<?php echo $pctEventos; ?>%"></div>
+      <div style="background:#8b5cf6;height:100%;width:<?php echo $pctLibres; ?>%"></div>
       <div class="cons-bar-yellow" style="width:<?php echo $pctOperacion; ?>%"></div>
     </div>
     <div class="cons-legend">
       <span class="cons-leg">
         <span class="cons-leg-dot" style="background:var(--pink)"></span>
-        Eventos &nbsp;<strong><?php echo formatMoney($facturadoMes); ?></strong>
+        Cotizaciones &nbsp;<strong><?php echo formatMoney($facturadoMes); ?></strong>
+      </span>
+      <span class="cons-leg">
+        <span class="cons-leg-dot" style="background:#8b5cf6"></span>
+        Eventos libres &nbsp;<strong><?php echo formatMoney($ventaEventosLibres); ?></strong>
       </span>
       <span class="cons-leg">
         <span class="cons-leg-dot" style="background:var(--yellow)"></span>
-        Operación (POS+Carta) &nbsp;<strong><?php echo formatMoney($ventasMes); ?></strong>
+        POS &nbsp;<strong><?php echo formatMoney($ventasMes); ?></strong>
       </span>
     </div>
+    <?php if (!empty($posPorTienda)): ?>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>POS por tienda:</span>
+      <select id="cons-pos-filtro" onchange="filtrarPosTienda()" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border,#ddd);background:#fff">
+        <option value="" data-monto="<?php echo (float)$ventasMes; ?>">Todas</option>
+        <?php foreach ($posPorTienda as $pt): ?>
+          <option value="<?php echo (int)$pt['ubicacion_id']; ?>" data-monto="<?php echo (float)$pt['t']; ?>"><?php echo clean($pt['nombre']); ?></option>
+        <?php endforeach; ?>
+      </select>
+      <strong id="cons-pos-val" style="color:var(--ink)"><?php echo formatMoney($ventasMes); ?></strong>
+    </div>
+    <?php endif; ?>
+    <div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Nota: un evento libre con venta manual podría solaparse con el POS si además facturó en caja.</div>
+    <script>
+      function fmtSoles(n){ return 'S/ ' + (Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+      function filtrarPosTienda(){
+        var sel = document.getElementById('cons-pos-filtro');
+        var opt = sel.options[sel.selectedIndex];
+        document.getElementById('cons-pos-val').textContent = fmtSoles(parseFloat(opt.getAttribute('data-monto')) || 0);
+      }
+    </script>
   </div>
   <div class="cons-right">
     <select class="cons-mes-select" onchange="location.href='?mes='+this.value">
