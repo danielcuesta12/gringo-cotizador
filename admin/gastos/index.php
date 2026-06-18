@@ -55,9 +55,12 @@ if ($q)       { $where[] = "g.concepto LIKE ?"; $params[] = '%' . $q . '%'; }
 $wsql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 $gastos = $ready ? Database::fetchAll(
-    "SELECT g.*, c.nombre AS categoria, ub.nombre AS ubicacion, u.name AS usuario
+    "SELECT g.*, ub.nombre AS ubicacion, u.name AS usuario,
+            (SELECT GROUP_CONCAT(DISTINCT c.nombre SEPARATOR ', ')
+               FROM gasto_items gi LEFT JOIN gasto_categorias c ON c.id = gi.categoria_id
+              WHERE gi.gasto_id = g.id AND c.nombre IS NOT NULL) AS categorias,
+            (SELECT COUNT(*) FROM gasto_items gi WHERE gi.gasto_id = g.id) AS n_lineas
      FROM gastos g
-     LEFT JOIN gasto_categorias c ON c.id = g.categoria_id
      LEFT JOIN ubicaciones ub ON ub.id = g.ubicacion_id
      LEFT JOIN users u ON u.id = g.usuario_id
      $wsql
@@ -133,7 +136,7 @@ include __DIR__ . '/../layout-top.php';
 
 <?php if (!$ready): ?>
   <div class="card"><div class="card-body">
-    <p>El módulo de gastos necesita su migración. Aplica <code>install/gastos.sql</code> en phpMyAdmin y recarga.</p>
+    <p>El módulo de gastos necesita su migración. Aplica <code>install/gastos.sql</code> y <code>install/55_gastos_v2.sql</code> en phpMyAdmin y recarga.</p>
   </div></div>
 <?php else: ?>
 
@@ -175,7 +178,10 @@ include __DIR__ . '/../layout-top.php';
     </div>
     <div class="g-meta">
       <span class="g-tag <?= $g['tipo'] ?>"><?= $g['tipo']==='empresa'?'Empresa':'Préstamo' ?></span>
-      <?php if ($g['categoria']): ?><span class="g-tag cat"><?= clean($g['categoria']) ?></span><?php endif; ?>
+      <?php if (!empty($g['categorias'])): ?><span class="g-tag cat"><?= clean($g['categorias']) ?></span><?php endif; ?>
+      <?php if ((int)($g['n_lineas'] ?? 1) > 1): ?><span class="g-tag cat"><?= (int)$g['n_lineas'] ?> líneas</span><?php endif; ?>
+      <?php if (($g['origen'] ?? 'manual') === 'pos'): ?><span class="g-tag cat">POS</span><?php endif; ?>
+      <?php if (($g['origen'] ?? 'manual') === 'evento'): ?><span class="g-tag cat">Evento</span><?php endif; ?>
       <?php if ($g['tipo']==='prestamo'): ?><span class="g-estado <?= $g['estado'] ?>"><?= $g['estado']==='pagado'?'Pagado':'Pendiente' ?></span><?php endif; ?>
     </div>
     <div class="g-meta">
