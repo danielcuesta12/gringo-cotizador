@@ -359,6 +359,10 @@ try {
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"/></svg></span> Categorías
         </a>
         <?php endif; ?>
+        <a href="<?php echo APP_URL; ?>/admin/gastos/reportes.php"
+           class="nav-link <?php echo ($activePage??'')==='gastos_rep'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></span> Reportes
+        </a>
       </div>
     </div>
     <?php endif; ?>
