@@ -627,6 +627,7 @@ if ($showCard) {
     .wz-bar.done i,.wz-bar.cur i{width:100%}
     .wz-cap{font-size:11px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:600}
     .wz-body{padding:18px}
+    .wz-body input::placeholder,.wz-body textarea::placeholder{font-family:var(--font)}
     .wz-panel{display:none}
     .wz-panel.wz-on{display:block;animation:wzSlide .25s ease}
     @keyframes wzSlide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
