@@ -113,7 +113,7 @@ try {
     <?php endif; ?>
 
     <?php /* ===== 3. Operación · POS y Cartas ===== */ ?>
-    <?php if (can('pos_terminal') || can('pedidos') || can('kds') || can('pos_monitor') || can('pos_caja') || can('pos_clientes') || can('cartas_pdf') || can('pos_metodos') || isAdmin()): ?>
+    <?php if (can('pos_terminal') || can('pedidos') || can('kds') || can('pos_monitor') || can('pos_caja') || can('pos_clientes') || can('cartas_pdf') || can('pos_metodos') || can('mesas') || isAdmin()): ?>
     <div class="sb-group" data-sb-group="operacion">
       <button type="button" class="nav-section-label sb-header" aria-expanded="true">
         <span class="sb-dot sb-dot-yellow"></span>Operación · POS y Cartas<span class="sb-chevron">&#9662;</span>
@@ -138,6 +138,13 @@ try {
         <a href="<?php echo APP_URL; ?>/admin/kds/index.php" target="_blank"
            class="nav-link">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span> KDS · Cocina
+        </a>
+        <?php endif; ?>
+
+        <?php if (can('mesas')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/mesas/index.php"
+           class="nav-link <?php echo ($activePage??'')==='mesas'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Mesas / Plano
         </a>
         <?php endif; ?>
 
