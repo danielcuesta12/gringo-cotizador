@@ -353,6 +353,12 @@ try {
            class="nav-link <?php echo ($activePage??'')==='gastos'?'active':''; ?>">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></span> Registro de gastos
         </a>
+        <?php if (isAdmin()): ?>
+        <a href="<?php echo APP_URL; ?>/admin/gastos/categorias.php"
+           class="nav-link <?php echo ($activePage??'')==='gastos_cat'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"/></svg></span> Categorías
+        </a>
+        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>
