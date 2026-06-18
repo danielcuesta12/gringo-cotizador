@@ -105,7 +105,6 @@
       function up() { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); renderCanvas(); }
       document.addEventListener('pointermove', move);
       document.addEventListener('pointerup', up);
-      renderCanvas();
     });
   }
 
