@@ -69,10 +69,13 @@ switch ($action) {
         $pdo = Database::getInstance();
         $pdo->beginTransaction();
         try {
+            // idmap: id temporal del cliente (negativo) → id real asignado.
+            // El cliente envía cada fila nueva con un id negativo distinto (-1,-2,…);
+            // si no manda id, se usa el índice en el arreglo para no perder el mapeo.
             $idmap = [];
             // Mesas: upsert + recolectar ids vivos
             $keepM = [];
-            foreach ($mesas as $m) {
+            foreach ($mesas as $i => $m) {
                 $forma = ($m['forma'] ?? 'cuadrada') === 'redonda' ? 'redonda' : 'cuadrada';
                 $numero = substr(trim((string)($m['numero'] ?? '')), 0, 20) ?: '?';
                 $cap = max(1, (int)($m['capacidad'] ?? 4));
@@ -85,7 +88,8 @@ switch ($action) {
                 } else {
                     $mid = Database::insert("INSERT INTO mesas (piso_id, ubicacion_id, numero, capacidad, forma, pos_x, pos_y, ancho, alto) VALUES (?,?,?,?,?,?,?,?,?)",
                         [$pid, $ubi, $numero, $cap, $forma, $x, $y, $w, $h]);
-                    if (isset($m['id'])) $idmap[(string)$m['id']] = $mid;
+                    $key = (isset($m['id']) && (int)$m['id'] < 0) ? (string)(int)$m['id'] : 'm' . $i;
+                    $idmap[$key] = $mid;
                 }
                 $keepM[] = $mid;
             }
@@ -96,7 +100,7 @@ switch ($action) {
             }
             // Elementos: mismo patrón
             $keepE = [];
-            foreach ($elems as $e) {
+            foreach ($elems as $i => $e) {
                 $tipo = ($e['tipo'] ?? 'etiqueta') === 'forma' ? 'forma' : 'etiqueta';
                 $texto = substr(trim((string)($e['texto'] ?? '')), 0, 120) ?: null;
                 $x = (int)($e['pos_x'] ?? 0); $y = (int)($e['pos_y'] ?? 0);
@@ -108,7 +112,8 @@ switch ($action) {
                 } else {
                     $eid = Database::insert("INSERT INTO mesa_elementos (piso_id, tipo, texto, pos_x, pos_y, ancho, alto) VALUES (?,?,?,?,?,?,?)",
                         [$pid, $tipo, $texto, $x, $y, $w, $h]);
-                    if (isset($e['id'])) $idmap[(string)$e['id']] = $eid;
+                    $key = (isset($e['id']) && (int)$e['id'] < 0) ? (string)(int)$e['id'] : 'e' . $i;
+                    $idmap[$key] = $eid;
                 }
                 $keepE[] = $eid;
             }
