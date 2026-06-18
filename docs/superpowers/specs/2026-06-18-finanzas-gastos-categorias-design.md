@@ -22,7 +22,8 @@ arqueo POS. Todo debe poder **nacer desde el registro de gastos**.
 2. **Estructura: multi-línea desde el inicio.** Cabecera (`gastos`) + líneas (`gasto_items`).
    El form arranca con **1 línea** y permite "agregar otra".
 3. **Alcance del módulo completo:** reportes por categoría/subcategoría + integración al
-   dashboard (utilidad) + absorción de gastos del POS. **Fuera de alcance:** presupuestos/metas.
+   dashboard (utilidad) + absorción de gastos del POS + **unificación de los "otros gastos" de
+   la liquidación de evento** en el registro global. **Fuera de alcance:** presupuestos/metas.
 4. **Patrón transversal obligatorio:** todo campo de selección de catálogo es un **combobox con
    búsqueda en vivo + crear ítem al vuelo** (no `<select>` plano). Aplica a categoría,
    subcategoría, insumo, proveedor.
@@ -49,8 +50,9 @@ Se mantiene: `tipo` (empresa/préstamo), `ubicacion_id`, `usuario_id`, `fecha`, 
 - `concepto` → título/descripción opcional del recibo.
 - `categoria_id` → se conserva por compatibilidad pero **deja de usarse** (baja a las líneas).
 - **Nuevas columnas:**
-  - `origen ENUM('manual','pos') NOT NULL DEFAULT 'manual'`
+  - `origen ENUM('manual','pos','evento') NOT NULL DEFAULT 'manual'`
   - `turno_id INT UNSIGNED NULL` (cuando `origen='pos'`, enlaza a `pos_turnos`)
+  - `evento_id INT UNSIGNED NULL` (cuando `origen='evento'`, enlaza al evento de liquidación)
   - `proveedor_id INT UNSIGNED NULL` (opcional, enlaza a `proveedores`)
 
 ### `gasto_items` (nueva — el detalle)
@@ -118,7 +120,7 @@ ocurre al vuelo desde el registro.
 ## 5. Reportes (`admin/gastos/reportes.php`)
 
 Permiso `gastos`. Filtros: rango de fechas (default mes actual), tienda, tipo
-(empresa/préstamo/ambos). Contenido:
+(empresa/préstamo/ambos) y **origen** (manual / POS / evento). Contenido:
 - Desglose **por categoría con drill-down a subcategoría**: monto, % del total, # de gastos.
 - Comparativa vs mes anterior.
 - Top subcategorías.
@@ -131,8 +133,9 @@ Los montos se calculan sobre `gasto_items` (join a `gastos` para fecha/tienda/ti
 - Panel "**Gastos del mes**" (`tipo='empresa'`) con total y top categorías.
 - Tarjeta **utilidad = ingresos consolidados − gastos empresa del mes**.
 - Préstamos mostrados aparte (no son gasto operativo, no restan utilidad).
-- **Lee solo de la tabla `gastos`/`gasto_items`** → los gastos del POS ya están absorbidos ahí,
-  por lo que **no hay doble conteo** (el dashboard no vuelve a leer `pos_turnos.gastos_json`).
+- **Lee solo de la tabla `gastos`/`gasto_items`** → los gastos del POS y de eventos ya están
+  ahí (absorbidos/unificados), por lo que **no hay doble conteo** (el dashboard no vuelve a leer
+  `pos_turnos.gastos_json` ni `evento_gastos`).
 
 ## 7. Absorción de gastos del POS
 
@@ -147,6 +150,33 @@ del turno insertar:
 la caja esperada). La absorción es solo para que esos gastos aparezcan en reportes/dashboard.
 **Idempotencia:** `cerrar_turno` solo corre sobre un turno `estado='abierto'` y lo pasa a
 `cerrado`, así que no se puede duplicar.
+
+## 7b. Unificación de los "otros gastos" de la liquidación de evento
+
+Hoy la liquidación (`admin/inventory/evento_detalle.php`) guarda sus "otros gastos" en una tabla
+propia **`evento_gastos`** (`evento_id, categoria_id, monto, descripcion`) con un `<select>`
+plano de `gasto_categorias` y caja de texto para nueva categoría — sin subcategorías ni búsqueda
+en vivo, y aislada del registro global.
+
+**Cambio: unificar en el registro global.**
+- Cada "otro gasto" del evento pasa a ser una fila de `gastos` con `origen='evento'`,
+  `evento_id`, `tipo='empresa'`, `estado='pagado'`, `ubicacion_id` = la del evento (o NULL para
+  food truck), `usuario_id` = quien lo registra, y **una** línea en `gasto_items`
+  (categoría, subcategoría, monto, `concepto` = descripción).
+- El form de "Otros gastos" en `evento_detalle.php` usa el **mismo combobox** de categoría +
+  subcategoría (búsqueda en vivo + crear al vuelo) vía `api/gastos.php`. Sigue siendo "agregar un
+  gasto a la vez" (no multi-línea), solo que ahora con la taxonomía real.
+- La **liquidación** lee sus "Otros gastos" desde `gastos`/`gasto_items`
+  `WHERE origen='evento' AND evento_id=?` (en vez de `evento_gastos`). El cálculo de utilidad del
+  evento (Ingresos − Mercadería − Papelería − Otros gastos) se mantiene; solo cambia la fuente.
+- **Eliminar el evento** borra también sus gastos unificados (`gastos WHERE origen='evento' AND
+  evento_id=?` y sus items).
+- **Migración:** copiar cada `evento_gastos` a `gastos` (`origen='evento'`) + su `gasto_item`.
+  `evento_gastos` queda obsoleta (se puede dejar como respaldo; el código ya no la lee).
+
+**Doble conteo:** los gastos del evento (tipo=empresa) restan en la utilidad **global** del
+dashboard, lo cual es correcto (son gastos reales de la empresa). No se restan en otro lado
+porque la única fuente es la tabla `gastos`.
 
 ## 8. Enganche con Inventario (híbrido)
 
@@ -169,8 +199,9 @@ no instalado (`inventarioListo()`).
 
 Una sola migración `install/55_gastos_subcategorias_items.sql`:
 - crea `gasto_subcategorias` y `gasto_items`;
-- altera `gastos` (añade `origen`, `turno_id`, `proveedor_id`) con guards de columna;
+- altera `gastos` (añade `origen`, `turno_id`, `evento_id`, `proveedor_id`) con guards de columna;
 - backfill: una línea en `gasto_items` por cada gasto existente;
+- migra `evento_gastos` → `gastos` (`origen='evento'`, `evento_id`) + su `gasto_item`;
 - (opcional) inserta categoría por defecto "Caja/Operación" para la absorción del POS.
 
 Aplicar en phpMyAdmin tras `git pull` (sin tracking automático; añadir a
