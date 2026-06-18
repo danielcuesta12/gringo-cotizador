@@ -2,8 +2,24 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/gastos.php';
 
 requirePermission('gastos');
+
+// Fix C — graceful degradation guard
+if (!gastosListo()) {
+    $pageTitle  = 'Reportes de gastos';
+    $activePage = 'gastos_rep';
+    include __DIR__ . '/../layout-top.php';
+    ?>
+    <div class="page-header"><div class="page-header-left"><h1>Reportes de gastos</h1></div></div>
+    <div class="card"><div class="card-body">
+      <p>El módulo de gastos v2 necesita su migración. Aplica <code>install/55_gastos_v2.sql</code> en phpMyAdmin y recarga.</p>
+    </div></div>
+    <?php
+    include __DIR__ . '/../layout-bottom.php';
+    return;
+}
 
 $desde = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['desde'] ?? '') ? $_GET['desde'] : date('Y-m-01');
 $hasta = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['hasta'] ?? '') ? $_GET['hasta'] : date('Y-m-t');
@@ -35,6 +51,13 @@ if (($_GET['export'] ?? '') === 'csv') {
 
 $total = (float)(Database::fetch("SELECT COALESCE(SUM(gi.monto),0) t FROM gasto_items gi JOIN gastos g ON g.id=gi.gasto_id $wsql", $params)['t'] ?? 0);
 
+// Fix A — Comparativa vs periodo anterior (mismo rango, desplazado 1 mes atrás)
+$prevParams    = $params;
+$prevParams[0] = date('Y-m-d', strtotime($desde . ' -1 month'));
+$prevParams[1] = date('Y-m-d', strtotime($hasta . ' -1 month'));
+$totalPrev = (float)(Database::fetch("SELECT COALESCE(SUM(gi.monto),0) t FROM gasto_items gi JOIN gastos g ON g.id=gi.gasto_id $wsql", $prevParams)['t'] ?? 0);
+$deltaPct  = $totalPrev > 0 ? round(($total - $totalPrev) / $totalPrev * 100) : null;
+
 $porCat = Database::fetchAll(
     "SELECT COALESCE(c.nombre,'(sin categoría)') categoria, COALESCE(gi.categoria_id,0) cid,
             COUNT(*) n, COALESCE(SUM(gi.monto),0) monto
@@ -51,6 +74,14 @@ foreach (Database::fetchAll(
      $wsql GROUP BY gi.categoria_id, gi.subcategoria_id, s.nombre ORDER BY monto DESC", $params) as $r) {
     $porSub[(int)$r['cid']][] = $r;
 }
+
+// Fix B — Top subcategorías global
+$topSub = Database::fetchAll(
+    "SELECT COALESCE(s.nombre,'(sin subcategoría)') subcategoria, COALESCE(c.nombre,'(sin categoría)') categoria, COALESCE(SUM(gi.monto),0) monto
+     FROM gasto_items gi JOIN gastos g ON g.id=gi.gasto_id
+     LEFT JOIN gasto_subcategorias s ON s.id=gi.subcategoria_id
+     LEFT JOIN gasto_categorias c ON c.id=gi.categoria_id
+     $wsql GROUP BY gi.subcategoria_id, s.nombre, c.nombre ORDER BY monto DESC LIMIT 8", $params);
 
 $ubis = Database::fetchAll("SELECT id, nombre FROM ubicaciones ORDER BY es_principal DESC, nombre");
 $expQs = http_build_query(['desde'=>$desde,'hasta'=>$hasta,'tipo'=>$fTipo,'origen'=>$fOrigen,'ubicacion_id'=>$fUbi?:'','export'=>'csv']);
@@ -87,7 +118,10 @@ include __DIR__ . '/../layout-top.php';
   <button class="btn btn-primary" type="submit">Aplicar</button>
 </form>
 
-<div class="rep-tot">Total: <?= formatMoney($total) ?></div>
+<div class="rep-tot">
+  Total: <?= formatMoney($total) ?>
+  <div style="font-size:13px;font-weight:600;opacity:.85;margin-top:4px">Periodo anterior: <?= formatMoney($totalPrev) ?><?php if ($deltaPct !== null): ?> · <span style="color:<?= $deltaPct<=0?'#bbf7d0':'#fecaca' ?>"><?= $deltaPct>0?'+':'' ?><?= $deltaPct ?>%</span><?php endif; ?></div>
+</div>
 
 <?php if (!$porCat): ?>
   <p style="color:#888;text-align:center;padding:30px">Sin gastos en el periodo.</p>
@@ -107,5 +141,21 @@ include __DIR__ . '/../layout-top.php';
   </div>
 </div>
 <?php endforeach; endif; ?>
+
+<?php if ($topSub): ?>
+<div class="rep-cat" style="margin-top:16px">
+  <div class="rep-cat-h" style="cursor:default">
+    <div class="nm">Top subcategorías</div>
+  </div>
+  <div class="rep-subs on">
+    <?php foreach ($topSub as $ts): ?>
+    <div class="rep-sub">
+      <span><?= clean($ts['subcategoria']) ?> <span style="color:#aaa">· <?= clean($ts['categoria']) ?></span></span>
+      <b><?= formatMoney((float)$ts['monto']) ?></b>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>
