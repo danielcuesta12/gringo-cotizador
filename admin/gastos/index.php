@@ -2,15 +2,14 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/gastos.php';
 
 requirePermission('gastos');
 
 $admin = isAdmin();
 $uid   = (int) (currentUser()['id'] ?? 0);
 
-$ready = (bool) Database::fetch(
-    "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'gastos'"
-);
+$ready = gastosListo();
 
 // ── Acciones (admin) ───────────────────────────────────────────────
 if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {

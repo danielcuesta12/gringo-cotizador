@@ -16,6 +16,16 @@ if ($g && !$admin && ((int)$g['usuario_id'] !== $uid || $g['tipo'] !== 'prestamo
     redirect('/admin/gastos/index.php');
 }
 $isEdit = (bool) $g;
+
+if (!gastosListo()) {
+    $pageTitle  = $isEdit ? 'Editar gasto' : 'Nuevo gasto';
+    $activePage = 'gastos';
+    include __DIR__ . '/../layout-top.php';
+    echo '<div class="card"><div class="card-body"><p>El módulo de gastos necesita su migración. Aplica <code>install/55_gastos_v2.sql</code> en phpMyAdmin y recarga.</p></div></div>';
+    include __DIR__ . '/../layout-bottom.php';
+    return;
+}
+
 $ubis   = Database::fetchAll("SELECT id, nombre FROM ubicaciones WHERE activa = 1 ORDER BY es_principal DESC, sort_order, nombre");
 $invOk  = function_exists('inventarioListo') && inventarioListo();
 
