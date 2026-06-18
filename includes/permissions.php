@@ -31,6 +31,7 @@ function permissionCatalog(): array {
             'pos_caja'     => 'POS Caja (arqueo)',
             'pos_monitor'  => 'POS En vivo',
             'pos_clientes' => 'Clientes POS',
+            'mesas'        => 'Mesas / Plano',
         ],
         'Inventario' => [
             'inv_insumos'     => 'Insumos',
@@ -108,6 +109,7 @@ function permissionPaths(): array {
         'pos_caja'     => '/admin/pos/caja.php',
         'pos_monitor'  => '/admin/pos/monitor.php',
         'pos_clientes' => '/admin/pos/clientes.php',
+        'mesas'        => '/admin/mesas/index.php',
         'inv_insumos'     => '/admin/inventory/insumos.php',
         'inv_stock'       => '/admin/inventory/stock.php',
         'inv_recetas'     => '/admin/inventory/recetas.php',
