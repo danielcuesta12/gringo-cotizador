@@ -44,6 +44,21 @@
       });
     });
     elTabs.appendChild(add);
+    if (st.pisos.length > 1) {
+      var delp = document.createElement('span');
+      delp.className = 'pe-tab';
+      delp.style.color = '#dc2626';
+      delp.textContent = '🗑 Piso';
+      delp.title = 'Eliminar el piso actual';
+      delp.addEventListener('click', function () {
+        var p = piso();
+        if (!confirm('¿Eliminar el piso "' + p.nombre + '" y todas sus mesas? No se puede deshacer.')) return;
+        post('eliminar_piso', { piso_id: p.id }).then(function (d) {
+          if (d.ok) { st.pisos.splice(st.pi, 1); st.pi = 0; st.sel = null; renderAll(); }
+        });
+      });
+      elTabs.appendChild(delp);
+    }
   }
 
   // ---------- canvas ----------
@@ -82,8 +97,19 @@
     }
     d.style.cssText = base;
     attachDrag(d, kind, obj);
-    if (selected) addHandles(d, obj);
+    if (selected) { addHandles(d, obj); addDeleteBadge(d); }
     return d;
+  }
+
+  // Botón ✕ de borrado directo, visible sobre el elemento seleccionado (táctil/mouse).
+  function addDeleteBadge(node) {
+    var x = document.createElement('span');
+    x.setAttribute('data-handle', '1'); // que el drag lo ignore
+    x.textContent = '✕';
+    x.title = 'Eliminar';
+    x.style.cssText = 'position:absolute;left:-8px;top:-8px;width:18px;height:18px;background:#dc2626;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;cursor:pointer;z-index:5;';
+    x.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); deleteSelected(); });
+    node.appendChild(x);
   }
 
   // ---------- drag (mover) ----------
@@ -146,12 +172,20 @@
     var del = document.createElement('button');
     del.textContent = '🗑 Eliminar';
     del.style.cssText = 'margin-top:10px;background:none;border:none;color:#dc2626;font-weight:800;cursor:pointer;font-size:13px;';
-    del.addEventListener('click', function () {
-      var arr = st.sel.kind === 'mesa' ? piso().mesas : piso().elementos;
-      var i = arr.indexOf(o); if (i >= 0) arr.splice(i, 1);
-      st.sel = null; renderCanvas(); renderProps();
-    });
+    del.addEventListener('click', deleteSelected);
     elProps.appendChild(del);
+    var hint = document.createElement('p');
+    hint.textContent = '(o tecla Suprimir / ✕ en el elemento)';
+    hint.style.cssText = 'margin-top:4px;font-size:10px;color:#aaa;';
+    elProps.appendChild(hint);
+  }
+
+  // Borra el elemento seleccionado (mesa o decoración) del piso actual.
+  function deleteSelected() {
+    if (!st.sel) return;
+    var arr = st.sel.kind === 'mesa' ? piso().mesas : piso().elementos;
+    var i = arr.indexOf(st.sel.ref); if (i >= 0) arr.splice(i, 1);
+    st.sel = null; renderCanvas(); renderProps();
   }
 
   function field(label, control) {
@@ -260,6 +294,15 @@
     // clic en vacío deselecciona
     mount.querySelector('.pe-canvas-wrap').addEventListener('pointerdown', function (e) {
       if (e.target === this || e.target === elCanvas) { st.sel = null; renderCanvas(); renderProps(); }
+    });
+    // tecla Suprimir / Backspace borra lo seleccionado (salvo escribiendo en un campo)
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (!st.sel) return;
+      var t = document.activeElement;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+      e.preventDefault();
+      deleteSelected();
     });
     if (!st.pisos.length) {
       // crear un primer piso por defecto
