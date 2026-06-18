@@ -91,22 +91,23 @@ function descontarStockPedido(int $pedidoId): void
  * y actualiza el costo unitario del insumo con costo PROMEDIO PONDERADO
  * (usando el stock global previo de ese insumo en todas las ubicaciones).
  */
-function invEntradaCompra(int $ubicacionId, int $insumoId, float $cantidad, float $costoUnit, array $opts = []): void
+function invEntradaCompra(int $ubicacionId, int $insumoId, float $cantidad, float $costoUnit, array $opts = []): int
 {
-    if ($insumoId <= 0 || $cantidad <= 0) return;
+    if ($insumoId <= 0 || $cantidad <= 0) return 0;
     try {
         $stockPrev = (float)(Database::fetch("SELECT COALESCE(SUM(stock),0) s FROM insumo_stock WHERE insumo_id = ?", [$insumoId])['s'] ?? 0);
         $costoPrev = (float)(Database::fetch("SELECT costo_unitario c FROM insumos WHERE id = ?", [$insumoId])['c'] ?? 0);
         $denom = $stockPrev + $cantidad;
         $nuevoCosto = $denom > 0 ? (($stockPrev * $costoPrev) + ($cantidad * $costoUnit)) / $denom : $costoUnit;
 
-        invMovimiento($ubicacionId, $insumoId, 'compra', $cantidad, [
+        $movId = invMovimiento($ubicacionId, $insumoId, 'compra', $cantidad, [
             'costo_unitario' => $costoUnit,
             'motivo'         => $opts['motivo'] ?? 'Compra',
             'ref'            => $opts['ref'] ?? null,
         ]);
         Database::execute("UPDATE insumos SET costo_unitario = ? WHERE id = ?", [round($nuevoCosto, 4), $insumoId]);
-    } catch (Exception $e) {}
+        return $movId;
+    } catch (Exception $e) { return 0; }
 }
 
 /** ¿Existe ya el módulo de inventario en la BD? (para mensajes "aplica el SQL"). */
