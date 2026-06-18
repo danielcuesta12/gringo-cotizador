@@ -619,8 +619,8 @@ if ($showCard) {
     .wz-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
     .wz-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:17px;cursor:pointer}
     .wz-back[disabled]{opacity:.25;cursor:default}
-    .wz-title{font-family:'Kimmy',serif;font-size:19px;font-weight:400;letter-spacing:1px}
-    .wz-total{font-family:'Kimmy',serif;font-size:18px;font-weight:400;letter-spacing:.5px;color:#FFDF00}
+    .wz-title{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.6px}
+    .wz-total{font-size:16px;font-weight:900;color:#FFDF00}
     .wz-steps{display:flex;gap:6px}
     .wz-bar{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}
     .wz-bar i{display:block;height:100%;width:0;background:#FFDF00;transition:width .3s}
