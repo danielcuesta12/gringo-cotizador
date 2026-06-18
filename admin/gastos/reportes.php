@@ -52,6 +52,8 @@ if (($_GET['export'] ?? '') === 'csv') {
 $total = (float)(Database::fetch("SELECT COALESCE(SUM(gi.monto),0) t FROM gasto_items gi JOIN gastos g ON g.id=gi.gasto_id $wsql", $params)['t'] ?? 0);
 
 // Fix A — Comparativa vs periodo anterior (mismo rango, desplazado 1 mes atrás)
+// CONTRATO: $params[0]/$params[1] son siempre $desde/$hasta (primer WHERE "g.fecha BETWEEN ? AND ?").
+// Si se reordena la construcción del WHERE, ajustar estos índices.
 $prevParams    = $params;
 $prevParams[0] = date('Y-m-d', strtotime($desde . ' -1 month'));
 $prevParams[1] = date('Y-m-d', strtotime($hasta . ' -1 month'));
@@ -120,7 +122,7 @@ include __DIR__ . '/../layout-top.php';
 
 <div class="rep-tot">
   Total: <?= formatMoney($total) ?>
-  <div style="font-size:13px;font-weight:600;opacity:.85;margin-top:4px">Periodo anterior: <?= formatMoney($totalPrev) ?><?php if ($deltaPct !== null): ?> · <span style="color:<?= $deltaPct<=0?'#bbf7d0':'#fecaca' ?>"><?= $deltaPct>0?'+':'' ?><?= $deltaPct ?>%</span><?php endif; ?></div>
+  <div style="font-size:13px;font-weight:600;opacity:.85;margin-top:4px">Periodo anterior: <?= formatMoney($totalPrev) ?><?php if ($deltaPct !== null): ?> · <span style="color:<?= $deltaPct<=0?'#bbf7d0':'#fecaca' ?>"><?= $deltaPct>0?'+':'' ?><?= $deltaPct ?>%</span><?php else: ?> · <span style="opacity:.6">(sin datos)</span><?php endif; ?></div>
 </div>
 
 <?php if (!$porCat): ?>
