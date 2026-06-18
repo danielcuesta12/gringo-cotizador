@@ -18,6 +18,11 @@ $insumos = Database::fetchAll(
 $costoTotal = 0; foreach ($insumos as $r) { $costoTotal += (float)$r['cantidad_inicial'] * (float)$r['costo_unitario']; }
 
 require_once __DIR__ . '/../../includes/inventario.php';
+require_once __DIR__ . '/../../includes/gastos.php';
+
+if (function_exists('gastosListo') && gastosListo()) {
+    gastoMigrarEventoLegacy((int)$id, (int)(currentUser()['id'] ?? 0));
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -85,25 +90,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accion === 'gasto_add') {
-        $monto = max(0, cleanFloat($_POST['monto'] ?? 0));
+        $monto = cleanFloat($_POST['monto'] ?? 0);
         $desc  = clean($_POST['descripcion'] ?? '');
         $catId = cleanInt($_POST['categoria_id'] ?? 0) ?: null;
-        $nuevaCat = clean($_POST['nueva_categoria'] ?? '');
-        if ($nuevaCat !== '') {
-            Database::execute("INSERT IGNORE INTO gasto_categorias (nombre) VALUES (?)", [$nuevaCat]);
-            $cr = Database::fetch("SELECT id FROM gasto_categorias WHERE nombre=?", [$nuevaCat]);
-            if ($cr) $catId = (int)$cr['id'];
-        }
+        $subId = cleanInt($_POST['subcategoria_id'] ?? 0) ?: null;
         if ($monto > 0) {
-            Database::insert("INSERT INTO evento_gastos (evento_id,categoria_id,monto,descripcion) VALUES (?,?,?,?)", [$id, $catId, $monto, ($desc ?: null)]);
+            gastoGuardar(
+                ['tipo' => 'empresa', 'concepto' => ($desc ?: 'Gasto de evento'),
+                 'ubicacion_id' => null, 'fecha' => date('Y-m-d'), 'estado' => 'pagado',
+                 'usuario_id' => (int)(currentUser()['id'] ?? 0), 'origen' => 'evento', 'evento_id' => (int)$id],
+                [['concepto' => $desc, 'monto' => $monto, 'categoria_id' => $catId, 'subcategoria_id' => $subId]]
+            );
             flashMessage('success', 'Gasto agregado.');
         }
-        redirect('/admin/inventory/evento_detalle.php?id=' . $id);
+        redirect('/admin/inventory/evento_detalle.php?id=' . (int)$id);
     }
     if ($accion === 'gasto_del') {
         $gid = cleanInt($_POST['gasto_id'] ?? 0);
-        if ($gid) Database::execute("DELETE FROM evento_gastos WHERE id=? AND evento_id=?", [$gid, $id]);
-        redirect('/admin/inventory/evento_detalle.php?id=' . $id);
+        if ($gid) {
+            $own = Database::fetch("SELECT id FROM gastos WHERE id=? AND origen='evento' AND evento_id=?", [$gid, (int)$id]);
+            if ($own) gastoEliminar($gid);
+        }
+        redirect('/admin/inventory/evento_detalle.php?id=' . (int)$id);
     }
 }
 
@@ -149,9 +157,14 @@ foreach ($dias as $d) {
 }
 $diaSel = cleanInt($_GET['dia'] ?? 0) ?: (int)($dias[count($dias) - 1]['id'] ?? 0);
 
-$catsGasto = Database::fetchAll("SELECT id, nombre FROM gasto_categorias ORDER BY nombre");
-$otrosGastos = Database::fetchAll("SELECT eg.*, gc.nombre AS cat_nombre FROM evento_gastos eg LEFT JOIN gasto_categorias gc ON gc.id=eg.categoria_id WHERE eg.evento_id=? ORDER BY eg.id DESC", [$id]);
-$totalOtros = 0; foreach ($otrosGastos as $g) { $totalOtros += (float)$g['monto']; }
+$otrosGastos = Database::fetchAll(
+    "SELECT g.id, g.monto, gi.concepto AS descripcion, c.nombre AS cat_nombre, s.nombre AS sub_nombre
+     FROM gastos g
+     LEFT JOIN gasto_items gi ON gi.gasto_id = g.id
+     LEFT JOIN gasto_categorias c ON c.id = gi.categoria_id
+     LEFT JOIN gasto_subcategorias s ON s.id = gi.subcategoria_id
+     WHERE g.origen='evento' AND g.evento_id=? ORDER BY g.id DESC", [(int)$id]);
+$totalOtros = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) t FROM gastos WHERE origen='evento' AND evento_id=?", [(int)$id])['t'] ?? 0);
 
 // Liquidación
 $saldoFin = eventoSaldoFinal($id);
@@ -325,7 +338,10 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
       <tbody>
       <?php foreach ($otrosGastos as $g): ?>
         <tr style="border-top:1px solid var(--border)">
-          <td style="padding:8px 12px"><?= $g['cat_nombre'] ? clean($g['cat_nombre']) : '<span style="color:var(--text-muted)">—</span>' ?></td>
+          <td style="padding:8px 12px">
+            <?= $g['cat_nombre'] ? clean($g['cat_nombre']) : '<span style="color:var(--text-muted)">—</span>' ?>
+            <?php if ($g['sub_nombre']): ?><span style="color:var(--text-muted)"> · <?= clean($g['sub_nombre']) ?></span><?php endif; ?>
+          </td>
           <td style="padding:8px 12px"><?= $g['descripcion'] ? clean($g['descripcion']) : '<span style="color:var(--text-muted)">—</span>' ?></td>
           <td style="padding:8px 12px;text-align:right;font-weight:600"><?= formatMoney((float)$g['monto']) ?></td>
           <td style="padding:8px 12px;text-align:right">
@@ -351,29 +367,20 @@ function fmtCant($v) { return rtrim(rtrim(number_format((float)$v, 3, '.', ''), 
     <?php endif; ?>
   </div>
   <div class="card-body" style="border-top:1px solid var(--border)">
-    <form method="post" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start" data-egc-scope="1">
       <?= csrfField() ?>
       <input type="hidden" name="accion" value="gasto_add">
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <label style="font-size:12px;font-weight:600">Monto (S/)</label>
-        <input type="text" inputmode="decimal" name="monto" placeholder="0.00" style="width:110px">
+      <input type="text" name="descripcion" placeholder="Descripción" style="min-width:150px">
+      <input type="text" name="monto" inputmode="decimal" placeholder="Monto S/" style="width:110px">
+      <div class="egc egc-cat" data-egc data-search="buscar_categorias" data-create="crear_categoria" data-csrf="<?= clean(csrfToken()) ?>" data-dep="" data-dep-create-key="" style="min-width:160px">
+        <input type="text" class="egc-input" placeholder="Categoría…" autocomplete="off">
+        <input type="hidden" class="egc-id" name="categoria_id" value="">
+        <div class="egc-menu"></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <label style="font-size:12px;font-weight:600">Categoría</label>
-        <select name="categoria_id" style="min-width:140px">
-          <option value="">— Elige —</option>
-          <?php foreach ($catsGasto as $cat): ?>
-            <option value="<?= (int)$cat['id'] ?>"><?= clean($cat['nombre']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <label style="font-size:12px;font-weight:600">Nueva categoría</label>
-        <input type="text" name="nueva_categoria" placeholder="Nueva categoría…" style="min-width:150px">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">
-        <label style="font-size:12px;font-weight:600">Descripción</label>
-        <input type="text" name="descripcion" placeholder="Descripción…">
+      <div class="egc" data-egc data-search="buscar_subcategorias" data-create="crear_subcategoria" data-csrf="<?= clean(csrfToken()) ?>" data-dep=".egc-cat .egc-id" data-dep-create-key="categoria_id" style="min-width:160px">
+        <input type="text" class="egc-input" placeholder="Subcategoría…" autocomplete="off">
+        <input type="hidden" class="egc-id" name="subcategoria_id" value="">
+        <div class="egc-menu"></div>
       </div>
       <button type="submit" class="btn btn-primary">Agregar gasto</button>
     </form>
