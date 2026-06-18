@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/nubefact.php';
+require_once __DIR__ . '/../includes/gastos.php';
 
 requireLogin();
 header('Content-Type: application/json; charset=utf-8');
@@ -192,6 +193,21 @@ case 'cerrar_turno':
         [$ingreso, $gastosTot, ($gastos ? json_encode($gastos, JSON_UNESCAPED_UNICODE) : null),
          $cajaReal, $cajaEsperada, $cajaReal, $diferencia,
          (int)$ag['n'], $ag['tot'], $ag['ef'], $ag['ta'], $ag['qr'], $ag['ot'], $tid]);
+    // Absorber los gastos del turno al registro global (origen='pos'). No cambia el arqueo.
+    if (gastosListo()) {
+        $ubiTurno = (int)($t['ubicacion_id'] ?? 0) ?: null;
+        $catPos = (int)(Database::fetch("SELECT id FROM gasto_categorias WHERE nombre='Caja / Operación'")['id'] ?? 0) ?: null;
+        foreach ($gastos as $gx) {
+            $m = (float)($gx['monto'] ?? 0);
+            if ($m <= 0) continue;
+            gastoGuardar(
+                ['tipo' => 'empresa', 'concepto' => (string)($gx['concepto'] ?? 'Gasto de caja'),
+                 'ubicacion_id' => $ubiTurno, 'fecha' => date('Y-m-d'), 'estado' => 'pagado',
+                 'usuario_id' => $uid, 'origen' => 'pos', 'turno_id' => $tid],
+                [['concepto' => (string)($gx['concepto'] ?? ''), 'monto' => $m, 'categoria_id' => $catPos]]
+            );
+        }
+    }
     pout(['ok'=>true]);
 
 case 'registrar_venta':
