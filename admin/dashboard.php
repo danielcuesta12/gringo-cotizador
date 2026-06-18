@@ -150,10 +150,24 @@ try { foreach (Database::fetchAll("SELECT nombre, fecha_inicio AS fecha, venta_m
 $posPorTienda = [];
 try { $posPorTienda = Database::fetchAll("SELECT p.ubicacion_id, COALESCE(u.nombre,'(sin tienda)') nombre, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id=p.ubicacion_id WHERE p.estado<>'cancelado' AND DATE_FORMAT(p.created_at,'%Y-%m')=? GROUP BY p.ubicacion_id, u.nombre ORDER BY t DESC", [$mes]); } catch (\Throwable $e) {}
 
+// ── Gastos del mes (tipo empresa) + utilidad ──
+$gastosMes = 0.0; $gastosPorCat = []; $utilidadMes = 0.0;
+try {
+    $gastosMes = (float)(Database::fetch(
+        "SELECT COALESCE(SUM(monto),0) t FROM gastos WHERE tipo='empresa' AND DATE_FORMAT(fecha,'%Y-%m')=?", [$mes])['t'] ?? 0);
+    $gastosPorCat = Database::fetchAll(
+        "SELECT COALESCE(c.nombre,'(sin categoría)') categoria, COALESCE(SUM(gi.monto),0) monto
+         FROM gasto_items gi JOIN gastos g ON g.id=gi.gasto_id
+         LEFT JOIN gasto_categorias c ON c.id=gi.categoria_id
+         WHERE g.tipo='empresa' AND DATE_FORMAT(g.fecha,'%Y-%m')=?
+         GROUP BY gi.categoria_id, c.nombre ORDER BY monto DESC LIMIT 6", [$mes]);
+} catch (\Throwable $e) { /* tablas no migradas */ }
+
 // ============================================================
 // CONSOLIDADO (3 buckets: cotizaciones · eventos libres · POS)
 // ============================================================
 $totalConsolidado = $facturadoMes + $ventaEventosLibres + $ventasMes;
+$utilidadMes      = $totalConsolidado - $gastosMes;
 $pctEventos       = $totalConsolidado > 0 ? round(($facturadoMes      / $totalConsolidado) * 100, 1) : 0;
 $pctLibres        = $totalConsolidado > 0 ? round(($ventaEventosLibres / $totalConsolidado) * 100, 1) : 0;
 $pctOperacion     = $totalConsolidado > 0 ? round(($ventasMes         / $totalConsolidado) * 100, 1) : 0;
@@ -596,6 +610,22 @@ include __DIR__ . '/layout-top.php';
 // ============================================================
 if (isAdmin()):
 ?>
+<div class="card" style="margin-bottom:16px"><div class="card-body">
+  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div><div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#888">Gastos del mes (empresa)</div>
+      <div style="font-size:24px;font-weight:900;color:#e23744"><?= formatMoney($gastosMes) ?></div></div>
+    <div style="text-align:right"><div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#888">Utilidad (ingresos − gastos)</div>
+      <div style="font-size:24px;font-weight:900;color:<?= $utilidadMes>=0?'#16a34a':'#e23744' ?>"><?= formatMoney($utilidadMes) ?></div></div>
+  </div>
+  <?php if ($gastosPorCat): ?>
+  <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+    <?php foreach ($gastosPorCat as $gc): ?>
+      <span style="background:var(--bg-page,#f1f1f4);border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700"><?= clean($gc['categoria']) ?>: <?= formatMoney((float)$gc['monto']) ?></span>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <div style="margin-top:10px"><a href="<?= APP_URL ?>/admin/gastos/reportes.php" style="font-size:13px;font-weight:800;color:#1E1E1E">Ver reportes →</a></div>
+</div></div>
 <div class="cons-card">
   <div class="cons-left">
     <div class="cons-eyebrow">Negocio &middot; <?php echo $mesLabel; ?></div>
