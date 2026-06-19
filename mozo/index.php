@@ -183,7 +183,12 @@ function refreshEstados(){
   var piso=st.pisos[st.pi]; if(!piso)return;
   PlanoRender.draw($('plano-board'), piso, {uploadUrl:UPLOAD, estados:EST.estados, montos:EST.montos, onMesaTap:onMesaTap});
 }
-function pollEstados(){ get('plano_estados').then(function(d){ if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{}}; if($('v-plano').classList.contains('on')) refreshEstados(); } }); setTimeout(pollEstados, 5000); }
+function pollEstados(){
+  get('plano_estados').then(function(d){
+    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{}}; if($('v-plano').classList.contains('on')) refreshEstados(); }
+  }, function(){ /* error de red: ignorar, igual reprogramamos */ })
+  .then(function(){ setTimeout(pollEstados, 5000); });
+}
 
 function onMesaTap(mesaId){
   // ¿ocupada? abre su cuenta : pide comensales
@@ -208,7 +213,7 @@ function renderCuenta(){
   if(!c.comandas.length){ b.innerHTML='<p style="padding:24px;text-align:center;color:#888">Cuenta vacía. Agrega el primer pedido.</p>'; return; }
   c.comandas.forEach(function(co){
     var h=document.createElement('div');
-    h.innerHTML='<div style="padding:7px 13px;font-size:9px;font-weight:800;color:#999;text-transform:uppercase;background:#efece4">Ronda '+co.ronda+' · '+co.estado+'</div>';
+    h.innerHTML='<div style="padding:7px 13px;font-size:9px;font-weight:800;color:#999;text-transform:uppercase;background:#efece4">Ronda '+co.ronda+' · '+esc(co.estado)+'</div>';
     b.appendChild(h);
     co.items.forEach(function(it, idx){
       var anul=!!it.anulado;
