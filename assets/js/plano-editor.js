@@ -170,7 +170,7 @@
   // ---------- panel de propiedades ----------
   function renderProps() {
     elProps.innerHTML = '';
-    if (!st.sel) { elProps.innerHTML = '<p style="color:#888;font-size:12px">Selecciona un elemento para editarlo.</p>'; return; }
+    if (!st.sel) { renderPlanoForm(); return; }
     var o = st.sel.ref;
     if (st.sel.kind === 'mesa') {
       elProps.appendChild(field('Número / nombre', inputText(o.numero, function (v) { o.numero = v; renderCanvas(); })));
@@ -190,6 +190,39 @@
     hint.textContent = '(o tecla Suprimir / ✕ en el elemento)';
     hint.style.cssText = 'margin-top:4px;font-size:10px;color:#aaa;';
     elProps.appendChild(hint);
+  }
+
+  // Panel "Forma del plano" (cuando no hay nada seleccionado): presets + tamaño personalizado.
+  function renderPlanoForm() {
+    var p = piso() || { ancho: 1000, alto: 700 };
+    var presets = [['Cuadrado', 1000, 1000], ['Horizontal', 1200, 700], ['Vertical', 700, 1100]];
+    var html = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#888;margin-bottom:6px">Forma del plano</div>';
+    presets.forEach(function (pr) {
+      var on = (p.ancho === pr[1] && p.alto === pr[2]);
+      html += '<button type="button" class="pe-formp" data-w="' + pr[1] + '" data-h="' + pr[2] + '" style="display:block;width:100%;text-align:left;margin-bottom:5px;padding:8px 10px;border-radius:8px;border:1.5px solid ' + (on ? '#FFDF00' : '#ddd') + ';background:' + (on ? '#fffbe6' : '#fff') + ';font-weight:700;font-size:13px;cursor:pointer">' + pr[0] + ' <span style="color:#999;font-weight:400">' + pr[1] + '×' + pr[2] + '</span></button>';
+    });
+    html += '<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#888;margin:10px 0 4px">Personalizado</div>';
+    html += '<div style="display:flex;gap:6px;align-items:center"><input id="pe-dw" type="number" value="' + p.ancho + '" style="width:50%;padding:6px;border:1.5px solid #ddd;border-radius:7px;font-size:13px"><span>×</span><input id="pe-dh" type="number" value="' + p.alto + '" style="width:50%;padding:6px;border:1.5px solid #ddd;border-radius:7px;font-size:13px"></div>';
+    html += '<button type="button" id="pe-dapply" style="width:100%;margin-top:7px;background:#1E1E1E;color:#fff;border:none;border-radius:8px;padding:8px;font-weight:800;cursor:pointer;font-size:13px">Aplicar tamaño</button>';
+    html += '<p style="font-size:10px;color:#aaa;margin-top:10px">Toca una mesa o elemento para editarlo.</p>';
+    elProps.innerHTML = html;
+    elProps.querySelectorAll('.pe-formp').forEach(function (b) {
+      b.addEventListener('click', function () { setDims(parseInt(b.getAttribute('data-w')), parseInt(b.getAttribute('data-h'))); });
+    });
+    var ap = document.getElementById('pe-dapply');
+    if (ap) ap.addEventListener('click', function () {
+      setDims(parseInt(document.getElementById('pe-dw').value), parseInt(document.getElementById('pe-dh').value));
+    });
+  }
+
+  // Cambia las dimensiones lógicas del piso (forma) y persiste.
+  function setDims(w, h) {
+    w = Math.max(300, Math.min(4000, w || 1000));
+    h = Math.max(300, Math.min(4000, h || 700));
+    var p = piso(); if (!p) return;
+    p.ancho = w; p.alto = h;
+    renderCanvas(); renderProps();
+    post('set_piso_dims', { piso_id: p.id, ancho: w, alto: h });
   }
 
   // Borra el elemento seleccionado (mesa o decoración) del piso actual.

@@ -8,7 +8,7 @@ if (!can('mesas')) { http_response_code(403); echo json_encode(['ok' => false, '
 header('Content-Type: application/json; charset=utf-8');
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$writes = ['crear_piso', 'renombrar_piso', 'eliminar_piso', 'guardar_piso', 'subir_fondo'];
+$writes = ['crear_piso', 'renombrar_piso', 'eliminar_piso', 'guardar_piso', 'subir_fondo', 'set_piso_dims'];
 if (in_array($action, $writes, true)) verifyCsrf();
 
 function jout($d) { echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; }
@@ -48,6 +48,13 @@ switch ($action) {
         $nombre = clean($_POST['nombre'] ?? '');
         if ($pid && $nombre !== '') Database::execute("UPDATE mesa_pisos SET nombre = ? WHERE id = ?", [$nombre, $pid]);
         jout(['ok' => true]);
+
+    case 'set_piso_dims':
+        $pid = cleanInt($_POST['piso_id'] ?? 0);
+        $w = max(300, min(4000, cleanInt($_POST['ancho'] ?? 1000)));
+        $h = max(300, min(4000, cleanInt($_POST['alto'] ?? 700)));
+        if ($pid) Database::execute("UPDATE mesa_pisos SET ancho = ?, alto = ? WHERE id = ?", [$w, $h, $pid]);
+        jout(['ok' => true, 'ancho' => $w, 'alto' => $h]);
 
     case 'eliminar_piso':
         $pid = cleanInt($_POST['piso_id'] ?? 0);
