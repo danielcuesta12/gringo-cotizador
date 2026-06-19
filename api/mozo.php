@@ -3,6 +3,8 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/cuentas.php';
+require_once __DIR__ . '/../includes/nubefact.php';
+require_once __DIR__ . '/../pos/escpos_build.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -12,7 +14,7 @@ function mozoEmp(): int { return (int)($_SESSION['mozo_emp'] ?? 0); }
 function mozoUbi(): int { return (int)($_SESSION['mozo_ubi'] ?? 0); }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia'];
+$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar'];
 if (in_array($action, $writes, true) && $action !== 'login_pin') verifyCsrf();
 
 // --- acciones públicas (sin sesión de mozo) ---
@@ -154,6 +156,30 @@ switch ($action) {
         if ($n > 0) mout(['ok' => false, 'error' => 'la cuenta tiene comandas']);
         Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
         mout(['ok' => true]);
+
+    case 'metodos':
+        mout(['ok' => true, 'metodos' => Database::fetchAll(
+            "SELECT nombre, tipo FROM pos_metodos_pago WHERE activo = 1 ORDER BY orden, id")]);
+
+    case 'turnos_local': {
+        $tl = turnoAbiertoLocal($ubi);
+        mout(['ok' => true, 'turnos' => $tl['turnos'], 'count' => $tl['count']]);
+    }
+
+    case 'precuenta': {
+        $cid = cleanInt($_POST['cuenta_id'] ?? 0);
+        $d = cuentaDetalle($cid, $ubi);
+        if (!$d || $d['estado'] !== 'abierta') mout(['ok' => false, 'error' => 'cuenta no abierta']);
+        Database::execute("UPDATE cuentas SET precuenta_at = NOW() WHERE id = ? AND ubicacion_id = ?", [$cid, $ubi]);
+        mout(['ok' => true, 'b64' => base64_encode(escposPrecuentaBytes($d))]);
+    }
+
+    case 'cobrar': {
+        geoGate($ubi);
+        $cid = cleanInt($_POST['cuenta_id'] ?? 0);
+        $payload = json_decode($_POST['payload'] ?? '{}', true) ?: [];
+        mout(cuentaCobrar($cid, $ubi, mozoEmp(), $payload));
+    }
 
     default:
         http_response_code(400);
