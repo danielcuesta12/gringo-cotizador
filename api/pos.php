@@ -432,8 +432,13 @@ case 'monitor':
     $compHora = Database::fetchAll("SELECT HOUR(p.created_at) h, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $wc GROUP BY HOUR(p.created_at) ORDER BY h", $pc);
     $mesasAbiertas = 0.0;
     try {
-        $mesasAbiertas = (float)(Database::fetch(
-            "SELECT COALESCE(SUM(total),0) t FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubi])['t'] ?? 0);
+        if ($ubi) {
+            $mesasAbiertas = (float)(Database::fetch(
+                "SELECT COALESCE(SUM(total),0) t FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubi])['t'] ?? 0);
+        } else {
+            $mesasAbiertas = (float)(Database::fetch(
+                "SELECT COALESCE(SUM(total),0) t FROM cuentas WHERE estado = 'abierta'")['t'] ?? 0);
+        }
     } catch (\Throwable $e) { /* cuentas no migradas */ }
     pout(['ok'=>true, 'fecha'=>$fecha, 'total'=>$tot, 'metodos'=>$metodos, 'ubicaciones'=>$ubis, 'recientes'=>$recientes,
           'por_hora'=>$porHora, 'comp'=>['fecha'=>$compFecha, 'total'=>$compTot, 'por_hora'=>$compHora],
