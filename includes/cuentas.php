@@ -261,6 +261,7 @@ function cuentaCobrar(int $cuentaId, int $ubicacionId, ?int $empleadoId, array $
         "SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)",
         [$cuentaId, $ubicacionId, $ubicacionId]);
     if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    if (!cuentaPagosListo()) return ['ok' => false, 'error' => 'cobro de mesas no disponible (falta migración 58)'];
     $ubi = (int)$c['ubicacion_id'];
     $mesaId = (int)$c['mesa_id'];
 
