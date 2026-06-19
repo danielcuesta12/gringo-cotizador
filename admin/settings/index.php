@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // POS: exigir nombre del pedido (checkbox)
     setSetting('pos_nombre_obligatorio', isset($_POST['pos_nombre_obligatorio']) ? '1' : '0');
+    setSetting('mozo_geocerca_activa', isset($_POST['mozo_geocerca_activa']) ? '1' : '0');
 
     // Logo activo (a o b)
     $activeLogoVal = in_array($_POST['active_logo'] ?? 'a', ['a','b']) ? $_POST['active_logo'] : 'a';
@@ -499,6 +500,10 @@ include __DIR__ . '/../layout-top.php';
             <span class="toggle-label" style="font-weight:700">Exigir nombre del pedido al cobrar</span>
             <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Si está activo, el cajero debe ponerle un nombre a cada pedido (o tener nombre/razón en boleta/factura). Sirve para cantar pedidos por nombre. Apágalo en horas pico si frena la caja.</span>
           </span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:10px">
+          <input type="checkbox" name="mozo_geocerca_activa" value="1" <?= getSetting('mozo_geocerca_activa','1')==='1'?'checked':'' ?> style="width:18px;height:18px">
+          <span>Geocerca del mozo (solo puede tomar pedidos dentro del local) — apágalo si el GPS falla</span>
         </label>
       </div>
     </div>
