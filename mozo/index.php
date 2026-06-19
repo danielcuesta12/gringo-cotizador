@@ -19,39 +19,60 @@ $csrf = csrfToken();
 <link rel="manifest" href="<?= APP_URL ?>/mozo/manifest.php">
 <title>El Gringo · Mozo</title>
 <style>
+:root{
+  --ng:#1E1E1E; --am:#FFDF00; --rosa:#FFBBC8; --crema:#FFEFBC;
+  --bg:#f4f1ea; --surface:#fff; --ink:#1E1E1E; --muted:#6f6a60; --faint:#9a948a;
+  --line:#e7e2d8; --danger:#dc2626; --ok:#16a34a;
+  --r-card:16px; --r-btn:12px; --ease:cubic-bezier(.22,1,.36,1);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f2ec;color:#1E1E1E;height:100dvh;overflow:hidden}
+html,body{overscroll-behavior:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
 .view{display:none;flex-direction:column;height:100dvh}
 .view.on{display:flex}
-.top{background:#1E1E1E;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;font-weight:800}
-.top .y{color:#FFDF00}
-.top button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-weight:800;font-size:13px}
+.top{background:var(--ng);color:#fff;padding:13px 14px;padding-top:max(13px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:15px}
+.top .y{color:var(--am)}
+.top button{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:10px;min-width:40px;height:40px;padding:0 12px;font-weight:800;font-size:18px;cursor:pointer;transition:background .15s}
+.top button:active{background:rgba(255,255,255,.3)}
 .body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
-.foot{background:#fff;border-top:1px solid #e7e3da;padding:11px 13px}
-.btn{display:block;width:100%;text-align:center;background:#FFDF00;color:#1E1E1E;font-weight:900;border:none;border-radius:12px;padding:14px;font-size:15px}
-.btn.dark{background:#1E1E1E;color:#FFDF00}
-.btn.red{background:#dc2626;color:#fff}
-.key{background:#fff;border:none;border-radius:12px;padding:16px 0;font-size:22px;font-weight:800}
-.qbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid #ddd;background:#fff;font-size:24px;font-weight:800;color:#1E1E1E;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
-.qbtn:active{transform:scale(.92);background:#f1f1f4}
-.qbtn.danger{color:#dc2626;border-color:#f0bcbc}
-.plus{width:40px;height:40px;border-radius:50%;background:#FFDF00;color:#1E1E1E;font-weight:900;font-size:24px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none;-webkit-tap-highlight-color:transparent}
-.pindots{display:flex;gap:11px;justify-content:center;margin:14px 0}
-.pindots span{width:14px;height:14px;border-radius:50%;border:2px solid #ccc}
-.pindots span.on{background:#1E1E1E;border-color:#1E1E1E}
-.row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid #e7e3da;background:#fff}
-.tag{font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;background:#efece4;color:#777}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;z-index:50}
-.modal.on{display:flex}
-.sheet{background:#fff;border-radius:18px 18px 0 0;width:100%;max-height:92dvh;overflow:auto;padding-bottom:env(safe-area-inset-bottom)}
-.opt{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px}
-.mark{width:20px;height:20px;border-radius:6px;border:2px solid #ccc;flex-shrink:0}
-.mark.on{background:#1E1E1E;border-color:#1E1E1E}
-.mark.rad{border-radius:50%}.mark.rad.on{background:#FFDF00;border-color:#FFDF00;box-shadow:inset 0 0 0 4px #fff}
-.chip{display:inline-block;font-size:12px;font-weight:800;padding:7px 12px;border-radius:9px;background:#eee;color:#555;white-space:nowrap}
-.chip.on{background:#1E1E1E;color:#FFDF00}
-.anul{text-decoration:line-through;color:#bbb}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1E1E1E;color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;z-index:80;display:none}
+.foot{background:var(--surface);border-top:1px solid var(--line);padding:12px 14px;box-shadow:0 -4px 16px rgba(0,0,0,.05)}
+.btn{display:block;width:100%;text-align:center;background:var(--am);color:var(--ng);font-weight:900;border:none;border-radius:var(--r-btn);padding:15px;font-size:15px;cursor:pointer;transition:transform .12s var(--ease),filter .12s}
+.btn:active{transform:scale(.985);filter:brightness(.95)}
+.btn.dark{background:var(--ng);color:var(--am)}
+.btn.red{background:var(--danger);color:#fff}
+.key{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 0;font-size:22px;font-weight:800;color:var(--ink);cursor:pointer;transition:background .12s}
+.key:active{background:#efeae0}
+.qbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid #d8d2c6;background:var(--surface);font-size:24px;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;cursor:pointer;flex:none;transition:transform .1s var(--ease),background .12s}
+.qbtn:active{transform:scale(.9);background:#f1ede4}
+.qbtn.danger{color:var(--danger);border-color:#f0bcbc}
+.plus{width:40px;height:40px;border-radius:50%;background:var(--am);color:var(--ng);font-weight:900;font-size:24px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none;transition:transform .1s var(--ease)}
+.plus:active{transform:scale(.9)}
+.pindots{display:flex;gap:12px;justify-content:center;margin:16px 0}
+.pindots span{width:14px;height:14px;border-radius:50%;border:2px solid #cfc8bb;transition:.15s var(--ease)}
+.pindots span.on{background:var(--ng);border-color:var(--ng);transform:scale(1.05)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:13px;border-bottom:1px solid var(--line);background:var(--surface);transition:background .12s}
+.row:active{background:#faf8f3}
+.tag{font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;background:var(--crema);color:#7a6300}
+.modal{position:fixed;inset:0;background:rgba(20,18,16,0);display:flex;align-items:flex-end;z-index:50;opacity:0;visibility:hidden;pointer-events:none;transition:background .22s ease,opacity .22s ease,visibility 0s .22s}
+.modal.on{opacity:1;visibility:visible;pointer-events:auto;background:rgba(20,18,16,.5);transition:background .22s ease,opacity .22s ease}
+.sheet{background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-height:92dvh;overflow:auto;padding-bottom:max(14px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .28s var(--ease)}
+.modal.on .sheet{transform:translateY(0)}
+.opt{display:flex;align-items:center;gap:11px;padding:11px 14px;font-size:15px;cursor:pointer;transition:background .12s}
+.opt:active{background:#faf8f3}
+.mark{width:22px;height:22px;border-radius:6px;border:2px solid #cfc8bb;flex-shrink:0;transition:.12s}
+.mark.on{background:var(--ng);border-color:var(--ng)}
+.mark.rad{border-radius:50%}.mark.rad.on{background:var(--am);border-color:var(--am);box-shadow:inset 0 0 0 4px #fff}
+.chip{display:inline-block;font-size:13px;font-weight:800;padding:8px 14px;border-radius:999px;background:#ebe6da;color:#5a5448;white-space:nowrap;cursor:pointer;transition:background .12s,color .12s}
+.chip:active{background:#dfd9cc}
+.chip.on{background:var(--ng);color:var(--am)}
+input[type=text],input[type=tel]{font-family:inherit;color:var(--ink)}
+input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px rgba(255,223,0,.4)}
+.anul{text-decoration:line-through;color:var(--faint)}
+.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+@media (prefers-reduced-motion: reduce){
+  .sheet,.modal,.btn,.qbtn,.plus,.chip,.row,.opt,.top button,.pindots span{transition:none}
+  .sheet{transform:none}
+}
 </style>
 </head>
 <body>
