@@ -20,8 +20,9 @@ $csrf = csrfToken();
 <title>El Gringo · Mozo</title>
 <style>
 :root{
-  --ng:#1E1E1E; --am:#FFDF00; --rosa:#FFBBC8; --crema:#FFEFBC;
-  --bg:#f4f1ea; --surface:#fff; --ink:#1E1E1E; --muted:#6f6a60; --faint:#9a948a;
+  /* Colores de marca: de company_settings vía brandHead() (fallback = marca base El Gringo). */
+  --ng:var(--black,#1E1E1E); --am:var(--c-brand,#FFDF00); --rosa:var(--pink,#FFBBC8); --crema:#FFEFBC;
+  --bg:#f4f1ea; --surface:#fff; --ink:var(--black,#1E1E1E); --muted:#6f6a60; --faint:#9a948a;
   --line:#e7e2d8; --danger:#dc2626; --ok:#16a34a;
   --r-card:16px; --r-btn:12px; --ease:cubic-bezier(.22,1,.36,1);
 }
@@ -74,6 +75,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px r
   .sheet{transform:none}
 }
 </style>
+<?= brandHead() ?>
 </head>
 <body>
 <?php if (!$ready): ?>

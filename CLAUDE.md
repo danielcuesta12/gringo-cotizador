@@ -34,6 +34,16 @@ Plataforma web integral para **El Gringo Burger Joint** (Lima, Perú), de marca 
 ### Colores de marca (IMPORTANTE)
 La marca es **amarillo `#FFDF00` + rosa `#FFBBC8` + negro `#1E1E1E`** (crema `#FFEFBC` secundario). El `--red #C8102E` es legado del cotizador original; en diseños nuevos (dashboard, emails, sidebar) **se usa la marca, no el rojo**.
 
+#### Marca EDITABLE — regla obligatoria para TODA pieza nueva
+Los colores de marca son **configurables por instancia** desde **Ajustes** (`company_settings.brand_primary`/`brand_secondary`/`brand_dark`, con selectores de color). El motor es `brandHead()` (`includes/helpers.php`): devuelve un `<style id="brand-override">` que sobreescribe variables CSS de marca **solo si el cliente configuró colores** (si no, devuelve `''` → la instancia base El Gringo se ve idéntica). Esto sirve directo al objetivo **multi-empresa** (Marcona = mismos archivos, otros colores).
+
+**Regla:** **NUNCA hardcodees colores de marca en HTML/CSS nuevo.** Usá las variables que `brandHead()` define, siempre con fallback al valor base:
+- amarillo → `var(--c-brand, #FFDF00)` (alias admin: `--brand`, `--yellow`; carta: `--accent`)
+- rosa → `var(--pink, #FFBBC8)`
+- negro → `var(--black, #1E1E1E)`
+
+Y en **toda página/superficie nueva** (admin, carta, mozo, POS, KDS, landing, futuras apps) incluí `<?= brandHead() ?>` al final del `<head>`, **después** del `<link>` al CSS. Para contextos PHP donde no sirven variables CSS (correos, `meta theme-color`, colores de gráficos JS) usá `brandPrimaryHex()`/`brandColor('brand_*')`. Ya enganchados: admin (`layout-top.php`), carta, landing, **mozo**. Si creás una superficie y olvidás esto, sus colores **no** seguirán a la instancia → bug de marca.
+
 ---
 
 ## Flujo de trabajo
