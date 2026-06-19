@@ -70,9 +70,10 @@ function cuentaTotalRecalc(int $cuentaId): float {
 }
 
 /** Detalle de la cuenta con sus comandas (rondas) e ítems. */
-function cuentaDetalle(int $cuentaId): ?array {
+function cuentaDetalle(int $cuentaId, int $ubicacionId = 0): ?array {
     $c = Database::fetch(
-        "SELECT cu.*, m.numero AS mesa_numero FROM cuentas cu LEFT JOIN mesas m ON m.id = cu.mesa_id WHERE cu.id = ?", [$cuentaId]);
+        "SELECT cu.*, m.numero AS mesa_numero FROM cuentas cu LEFT JOIN mesas m ON m.id = cu.mesa_id
+         WHERE cu.id = ? AND (? = 0 OR cu.ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
     if (!$c) return null;
     $comandas = [];
     $ronda = 0;
@@ -95,8 +96,8 @@ function cuentaDetalle(int $cuentaId): ?array {
 }
 
 /** Crea una comanda (pedido origen='mesa') desde un borrador de ítems. */
-function comandaEnviar(int $cuentaId, array $items, ?int $empleadoId): array {
-    $c = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta'", [$cuentaId]);
+function comandaEnviar(int $cuentaId, array $items, ?int $empleadoId, int $ubicacionId = 0): array {
+    $c = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
     if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
     // Normalizar ítems (mismo formato que el POS)
     $clean = [];
@@ -129,8 +130,10 @@ function comandaEnviar(int $cuentaId, array $items, ?int $empleadoId): array {
 }
 
 /** Anula un ítem (itemIdx) o una comanda completa (itemIdx=null). Solo antes de 'listo'. */
-function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motivo, ?int $empleadoId): array {
-    $p = Database::fetch("SELECT * FROM pedidos WHERE id = ? AND cuenta_id = ?", [$pedidoId, $cuentaId]);
+function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motivo, ?int $empleadoId, int $ubicacionId = 0): array {
+    $p = Database::fetch(
+        "SELECT p.* FROM pedidos p JOIN cuentas c ON c.id = p.cuenta_id
+         WHERE p.id = ? AND p.cuenta_id = ? AND (? = 0 OR c.ubicacion_id = ?)", [$pedidoId, $cuentaId, $ubicacionId, $ubicacionId]);
     if (!$p) return ['ok' => false, 'error' => 'comanda no encontrada'];
     if (!in_array($p['estado'], ['pendiente', 'en_preparacion'], true)) {
         return ['ok' => false, 'error' => 'no se puede anular: la cocina ya la marcó lista'];

@@ -294,7 +294,7 @@ function cardHTML(p,opts){
   var it=items.map(function(i){var mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(function(m){return m.nombre;}).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");
   // Mesa (Sub-build B)
   var mesaBadge = (p.origen === 'mesa' && p.mesa_numero)
-    ? '<span class="kcat" style="background:#1E1E1E;color:#FFDF00;font-weight:900">MESA ' + p.mesa_numero + (p.ronda ? ' · R' + p.ronda : '') + '</span>'
+    ? '<span class="kcat" style="background:#1E1E1E;color:#FFDF00;font-weight:900">MESA ' + esc(p.mesa_numero) + (p.ronda ? ' · R' + p.ronda : '') + '</span>'
     : '';
   var tag='<span class="ktp '+(p.origen==="pos"?"salon":esc(p.tipo_entrega))+'">'+(p.origen==="pos"?"SALÓN":p.tipo_entrega==="delivery"?"Delivery":"Recojo")+'</span>';
   var sb='<button class="ksalir-btn'+(porSalir.has(String(p.id))?' on':'')+'" data-salir="'+p.id+'" title="Por salir">🚀</button>';

@@ -129,7 +129,7 @@ try {
         if ($canal['origen'] === 'pos')   $canalPos   = (float)$canal['t'];
     }
 
-    $rowPrep     = Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE estado='en_preparacion'");
+    $rowPrep     = Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE estado='en_preparacion' AND origen <> 'mesa'");
     $enPreparacion = (int)($rowPrep['n'] ?? 0);
 
     $ticketProm  = $ventasHoyN > 0 ? $ventasHoyTotal / $ventasHoyN : 0.0;

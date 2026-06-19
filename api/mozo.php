@@ -114,7 +114,7 @@ switch ($action) {
 
     case 'cuenta': {
         $cid = cleanInt($_GET['cuenta_id'] ?? 0);
-        $d = cuentaDetalle($cid);
+        $d = cuentaDetalle($cid, $ubi);
         if (!$d) mout(['ok' => false, 'error' => 'cuenta no encontrada']);
         mout(['ok' => true, 'cuenta' => $d]);
     }
@@ -123,14 +123,14 @@ switch ($action) {
         geoGate($ubi);
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
         $items = json_decode($_POST['items'] ?? '[]', true) ?: [];
-        mout(comandaEnviar($cid, $items, mozoEmp()));
+        mout(comandaEnviar($cid, $items, mozoEmp(), $ubi));
 
     case 'anular':
         geoGate($ubi);
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
         $pid = cleanInt($_POST['pedido_id'] ?? 0);
         $idx = ($_POST['item_idx'] ?? '') === '' ? null : cleanInt($_POST['item_idx']);
-        mout(cuentaAnular($cid, $pid, $idx, clean($_POST['motivo'] ?? ''), mozoEmp()));
+        mout(cuentaAnular($cid, $pid, $idx, clean($_POST['motivo'] ?? ''), mozoEmp(), $ubi));
 
     case 'cerrar_cuenta_vacia':
         geoGate($ubi);
