@@ -320,13 +320,14 @@ function openBorrador(){
     var msum=it.modificadores.reduce(function(a,x){return a+x.precio;},0);
     var lt=(it.precio+msum)*it.qty;
     var mods=it.modificadores.map(function(m){return m.nombre;}).join(' · ');
+    var minus = it.qty<=1 ? '🗑' : '−';
     return '<div style="padding:11px 14px;border-bottom:1px solid #e7e3da;background:#fff">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
-        '<div><b>'+esc(it.nombre)+'</b>'+(mods?'<br><small style="color:#999">'+esc(mods)+'</small>':'')+'</div>'+
-        '<div style="text-align:right;white-space:nowrap"><b>S/ '+lt.toFixed(0)+'</b><br><span style="color:#dc2626;font-size:12px;font-weight:700;cursor:pointer" onclick="quitarBorr('+i+')">quitar</span></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+
+        '<div style="min-width:0"><b>'+esc(it.nombre)+'</b>'+(mods?'<br><small style="color:#999">'+esc(mods)+'</small>':'')+'</div>'+
+        '<b style="white-space:nowrap">S/ '+lt.toFixed(0)+'</b>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:12px;margin-top:9px">'+
-        '<button class="key" style="width:38px;height:34px;flex:none" onclick="borrQty('+i+',-1)">−</button>'+
+        '<button class="key" style="width:38px;height:34px;flex:none'+(it.qty<=1?';color:#dc2626':'')+'" onclick="borrQty('+i+',-1)">'+minus+'</button>'+
         '<b style="font-size:16px;min-width:18px;text-align:center">'+it.qty+'</b>'+
         '<button class="key" style="width:38px;height:34px;flex:none" onclick="borrQty('+i+',1)">+</button>'+
         '<input type="text" placeholder="Nota para cocina…" value="'+esc(it.nota||'')+'" oninput="borrNota('+i+',this.value)" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
@@ -344,7 +345,7 @@ function openBorrador(){
   openModal('m-borr');
 }
 function quitarBorr(i){ st.borrador.splice(i,1); updBorr(); if(st.borrador.length) openBorrador(); else closeModal('m-borr'); }
-function borrQty(i,d){ if(!st.borrador[i])return; st.borrador[i].qty=Math.max(1,(st.borrador[i].qty||1)+d); updBorr(); openBorrador(); }
+function borrQty(i,d){ var it=st.borrador[i]; if(!it)return; if(d<0 && it.qty<=1){ quitarBorr(i); return; } it.qty=Math.max(1,(it.qty||1)+d); updBorr(); openBorrador(); }
 function borrNota(i,v){ if(st.borrador[i]) st.borrador[i].nota=v; }
 function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
 
