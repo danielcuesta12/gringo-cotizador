@@ -250,3 +250,194 @@ function cuentaPagosArqueo(int $turnoId): array {
         'otros'=>(float)$r['ot'], 'total'=>(float)$r['tot'], 'n'=>(int)$r['n'],
     ];
 }
+
+/**
+ * Cobra una o más PARTES de una cuenta (split + pago mixto). Transaccional.
+ * El dinero va a cuenta_pagos (fuente de verdad); el comprobante (opcional) a un
+ * pedido-comprobante por parte (reusa nubefactEmitir). Cierra la cuenta al pagar el total.
+ */
+function cuentaCobrar(int $cuentaId, int $ubicacionId, ?int $empleadoId, array $payload): array {
+    $c = Database::fetch(
+        "SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)",
+        [$cuentaId, $ubicacionId, $ubicacionId]);
+    if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    $ubi = (int)$c['ubicacion_id'];
+    $mesaId = (int)$c['mesa_id'];
+
+    // 1) Resolver el turno de caja del local.
+    $tl = turnoAbiertoLocal($ubi);
+    if ($tl['count'] === 0) return ['ok' => false, 'sin_caja' => true, 'error' => 'No hay caja abierta en el local'];
+    $turnoId = 0;
+    if ($tl['count'] === 1) {
+        $turnoId = (int)$tl['turnos'][0]['id'];
+    } else {
+        $want = (int)($payload['turno_id'] ?? 0);
+        $ids = array_map(fn($t) => (int)$t['id'], $tl['turnos']);
+        if ($want && in_array($want, $ids, true)) $turnoId = $want;
+        else return ['ok' => false, 'multi_caja' => true, 'turnos' => $tl['turnos'], 'error' => 'Elige la caja'];
+    }
+
+    // 2) Consumo autoritativo + descuento.
+    $consumo = cuentaTotalRecalc($cuentaId);
+    $yaPagado = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['s'] ?? 0);
+    $modo = in_array($payload['modo'] ?? '', ['todo','iguales','items','montos'], true) ? $payload['modo'] : 'todo';
+
+    // Descuento: solo si aún no hay pagos (primera tanda) y no en modo items.
+    $descTipo = $c['descuento_tipo']; $descValor = (float)$c['descuento_valor']; $descMonto = (float)$c['descuento_monto'];
+    if ($yaPagado <= 0.001 && $modo !== 'items') {
+        $dIn = (array)($payload['descuento'] ?? []);
+        $dt = in_array($dIn['tipo'] ?? '', ['porcentaje','monto'], true) ? $dIn['tipo'] : null;
+        $dv = (float)($dIn['valor'] ?? 0);
+        $dm = 0.0;
+        if ($dt === 'porcentaje') $dm = $consumo * min(100, max(0, $dv)) / 100;
+        elseif ($dt === 'monto')  $dm = min($consumo, max(0, $dv));
+        $descTipo = $dt; $descValor = $dv; $descMonto = round($dm, 2);
+    }
+    $montoCobrar = round(max(0, $consumo - $descMonto), 2);
+
+    // 3) Validar partes y construir su monto + items de comprobante.
+    $partesIn = (array)($payload['partes'] ?? []);
+    if (!$partesIn) return ['ok' => false, 'error' => 'sin partes a cobrar'];
+    // Mapa de ítems de la cuenta (para modo items): "pedidoId:idx" => item.
+    $itemsMap = [];
+    if ($modo === 'items') {
+        foreach (Database::fetchAll("SELECT id, items_json FROM pedidos WHERE cuenta_id = ? AND estado <> 'cancelado'", [$cuentaId]) as $pp) {
+            $arr = json_decode($pp['items_json'] ?? '[]', true) ?: [];
+            foreach ($arr as $idx => $it) { $itemsMap[$pp['id'] . ':' . $idx] = $it; }
+        }
+    }
+    $partes = [];
+    $sumPartes = 0.0;
+    foreach ($partesIn as $i => $pi) {
+        $compItems = null;
+        if ($modo === 'items') {
+            $monto = 0.0; $compItems = [];
+            foreach ((array)($pi['item_keys'] ?? []) as $k) {
+                if (!isset($itemsMap[$k])) return ['ok' => false, 'error' => 'ítem inválido en la división'];
+                $it = $itemsMap[$k];
+                if (!empty($it['anulado'])) continue;
+                $monto += itemLineTotal($it);
+                $compItems[] = ['nombre' => (string)($it['nombre'] ?? 'Ítem'), 'qty' => max(1,(int)($it['qty'] ?? 1)),
+                                'precio' => (float)($it['precio'] ?? 0), 'modificadores' => (array)($it['modificadores'] ?? [])];
+            }
+            $monto = round($monto, 2);
+        } else {
+            $monto = round((float)($pi['monto'] ?? 0), 2);
+        }
+        if ($monto <= 0) return ['ok' => false, 'error' => 'parte con monto inválido'];
+        // pagos de la parte (mixto): suman el monto de la parte.
+        $pagos = [];
+        $sumPagos = 0.0;
+        foreach ((array)($pi['pagos'] ?? []) as $pg) {
+            $met = trim((string)($pg['metodo'] ?? ''));
+            $mn  = round((float)($pg['monto'] ?? 0), 2);
+            if ($met === '' || $mn <= 0) continue;
+            $pagos[] = ['metodo' => $met, 'monto' => $mn];
+            $sumPagos += $mn;
+        }
+        if (!$pagos) return ['ok' => false, 'error' => 'parte sin pagos'];
+        if (abs(round($sumPagos, 2) - $monto) > 0.01) return ['ok' => false, 'error' => 'los pagos no suman el monto de la parte'];
+        $comp = null;
+        $cIn = $pi['comprobante'] ?? null;
+        if (is_array($cIn)) {
+            $ct = in_array($cIn['tipo'] ?? '', ['ticket','boleta','factura'], true) ? $cIn['tipo'] : 'ticket';
+            $comp = [
+                'tipo' => $ct,
+                'cliente_tipo' => in_array($cIn['cliente_tipo'] ?? '', ['nombre','dni','ruc'], true) ? $cIn['cliente_tipo'] : null,
+                'cliente_nombre' => clean($cIn['cliente_nombre'] ?? ''),
+                'cliente_documento' => preg_replace('/[^0-9A-Za-z]/', '', (string)($cIn['cliente_documento'] ?? '')),
+                'cliente_razon_social' => clean($cIn['cliente_razon_social'] ?? ''),
+                'cliente_email' => cleanEmail($cIn['cliente_email'] ?? ''),
+                'items' => $compItems, // null salvo modo items
+            ];
+        }
+        $partes[] = ['num' => $i + 1, 'monto' => $monto, 'pagos' => $pagos, 'comp' => $comp];
+        $sumPartes += $monto;
+    }
+    $sumPartes = round($sumPartes, 2);
+
+    // 4) No sobrepagar.
+    if (round($yaPagado + $sumPartes, 2) > $montoCobrar + 0.01) {
+        return ['ok' => false, 'error' => 'el cobro supera el saldo de la cuenta'];
+    }
+
+    // 5) Transacción: descuento + pagos + comprobantes (+ cierre si se completa).
+    $pdo = Database::getInstance();
+    $emitDespues = []; // [pedidoId, parteNum, tipo]
+    $comprobantes = [];
+    try {
+        $pdo->beginTransaction();
+
+        if ($yaPagado <= 0.001) {
+            Database::execute("UPDATE cuentas SET descuento_tipo = ?, descuento_valor = ?, descuento_monto = ? WHERE id = ?",
+                [$descTipo, $descValor, $descMonto, $cuentaId]);
+        }
+
+        $parteBase = (int)(Database::fetch("SELECT COALESCE(MAX(parte_num),0) m FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['m'] ?? 0);
+
+        foreach ($partes as $k => $pt) {
+            $parteNum = $parteBase + $k + 1;
+            // Comprobante (opcional): pedido-comprobante por parte.
+            $compPid = null;
+            if ($pt['comp']) {
+                $cm = $pt['comp'];
+                $compItems = $cm['items'];
+                if (!is_array($compItems) || !$compItems) {
+                    $compItems = [['nombre' => 'Consumo en salón', 'qty' => 1, 'precio' => $pt['monto'], 'modificadores' => []]];
+                }
+                $nombrePed = 'Mesa ' . ($c['mesa_id'] ? (Database::fetch('SELECT numero FROM mesas WHERE id=?', [$mesaId])['numero'] ?? '') : '') . ' · parte ' . $parteNum;
+                $compPid = (int) Database::insert(
+                    "INSERT INTO pedidos (ubicacion_id, nombre, tipo_entrega, items_json, total, estado, metodo_pago, origen, cuenta_id, mesa_id,
+                        comprobante_tipo, cliente_tipo, cliente_nombre, cliente_documento, cliente_razon_social, cliente_email, aceptado_at, completado_at, horario)
+                     VALUES (?,?, 'recojo', ?, ?, 'entregado', 'mesa', 'mesa', ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 'En salón')",
+                    [$ubi, $nombrePed, json_encode($compItems, JSON_UNESCAPED_UNICODE), $pt['monto'], $cuentaId, $mesaId,
+                     $cm['tipo'], $cm['cliente_tipo'], ($cm['cliente_nombre'] ?: null), ($cm['cliente_documento'] ?: null),
+                     ($cm['cliente_razon_social'] ?: null), ($cm['cliente_email'] ?: null)]);
+                if (in_array($cm['tipo'], ['boleta','factura'], true)) $emitDespues[] = ['pid' => $compPid, 'parte' => $parteNum, 'tipo' => $cm['tipo']];
+            }
+            // Pagos (mixto) → cuenta_pagos.
+            foreach ($pt['pagos'] as $pg) {
+                $tipoRow = Database::fetch("SELECT tipo FROM pos_metodos_pago WHERE nombre = ? LIMIT 1", [$pg['metodo']]);
+                $tipo = $tipoRow['tipo'] ?? 'otros';
+                Database::insert(
+                    "INSERT INTO cuenta_pagos (cuenta_id, ubicacion_id, turno_id, parte_num, metodo_pago, tipo, monto, empleado_id, comprobante_pedido_id)
+                     VALUES (?,?,?,?,?,?,?,?,?)",
+                    [$cuentaId, $ubi, $turnoId, $parteNum, $pg['metodo'], $tipo, $pg['monto'], $empleadoId, $compPid]);
+            }
+        }
+
+        // ¿Quedó pagada por completo?
+        $pagadoTot = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['s'] ?? 0);
+        $cerrada = round($pagadoTot, 2) >= $montoCobrar - 0.01;
+        if ($cerrada) {
+            Database::execute("UPDATE cuentas SET estado = 'cerrada', cobrada_at = NOW(), cerrada_at = NOW() WHERE id = ?", [$cuentaId]);
+            // Trazabilidad: asignar turno a las comandas (NO entran al arqueo por el guard origen='mesa').
+            Database::execute("UPDATE pedidos SET turno_id = ? WHERE cuenta_id = ? AND origen = 'mesa' AND estado <> 'cancelado' AND turno_id IS NULL", [$turnoId, $cuentaId]);
+        }
+
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return ['ok' => false, 'error' => 'no se pudo registrar el cobro'];
+    }
+
+    // 6) Emitir comprobantes electrónicos FUERA de la transacción (red; nunca rompe el cobro).
+    foreach ($emitDespues as $em) {
+        $est = 'pendiente'; $serie = ''; $num = 0; $err = '';
+        if (function_exists('nubefactConfigurado') && function_exists('nubefactEmitir') && nubefactConfigurado()) {
+            $r = nubefactEmitir($em['pid']);
+            $est = $r['estado'] ?? (!empty($r['ok']) ? 'emitido' : 'error');
+            $serie = $r['serie'] ?? ''; $num = (int)($r['numero'] ?? 0); $err = $r['error'] ?? '';
+        }
+        $comprobantes[] = ['parte'=>$em['parte'],'tipo'=>$em['tipo'],'estado'=>$est,'serie'=>$serie,'numero'=>$num,'error'=>$err,'pedido_id'=>$em['pid']];
+    }
+
+    $pagadoTot = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['s'] ?? 0);
+    return [
+        'ok' => true,
+        'cerrada' => round($pagadoTot, 2) >= $montoCobrar - 0.01,
+        'pagado' => round($pagadoTot, 2),
+        'falta' => round(max(0, $montoCobrar - $pagadoTot), 2),
+        'comprobantes' => $comprobantes,
+    ];
+}
