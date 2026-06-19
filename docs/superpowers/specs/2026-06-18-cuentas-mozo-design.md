@@ -20,6 +20,7 @@ Las 3 partes: **A — Mesas & Plano (hecho)** · **B — Cuentas & Mozo (este sp
 4. **Toma de pedido:** el mozo arma un **borrador** y solo al "Enviar a cocina" se crea la comanda (la siguiente ronda). El pie del modal de producto va en **2 filas** (cantidad arriba, botón "Agregar" a fila completa); mismo criterio en el pie de la cuenta y del borrador.
 5. **Anulación:** solo se puede anular mientras la comanda **no esté "Listo"** (estados `pendiente`/`en_preparacion`). Una vez que cocina la marca Listo, no se anula ("no se puede descocinar"). Como el inventario se descuenta al marcar Listo, anular-antes-de-Listo **nunca toca stock** (sin lógica de reversa).
 6. **Frontera con el dinero:** las comandas de mesa (`origen='mesa'`) NO son venta hasta que se cobran (C). Dashboard y arqueo del POS **excluyen `origen='mesa'`** de los ingresos. La pestaña **EN VIVO** (monitor) muestra aparte **"Mesas abiertas (sin cobrar): S/ X"** = suma de cuentas abiertas.
+7. **Atado al local (anti-fraude):** **geocerca GPS dura**, reusando la infraestructura de Asistencia. El mozo solo puede operar dentro del radio del local. A diferencia de Asistencia (geocerca blanda que solo marca en rojo), aquí **bloquea**.
 
 ## B.1 — Modelo de datos
 
@@ -93,12 +94,22 @@ El mozo anula **un ítem** o **una comanda completa**, con **motivo** (chips: "c
 - **EN VIVO** (`admin/pos/monitor.php`): mostrar aparte **"Mesas abiertas (sin cobrar): S/ X"** = `SUM(cuentas.total WHERE estado='abierta' AND ubicacion_id=?)`, separado de las ventas realizadas.
 - **Inventario:** se descuenta al marcar Listo en el KDS, igual que cualquier pedido (consumo real, independiente del cobro).
 
-## B.7 — Archivos, permisos, integración
+## B.7 — Atado al local: geocerca GPS dura (anti-fraude)
 
-- Migración `install/57_cuentas.sql`: crea `cuentas`, `cuenta_anulaciones`; `ALTER pedidos ADD cuenta_id, mesa_id`; amplía `pedidos.origen` con `'mesa'` (guards de columna; `MODIFY` del ENUM). Fila en `check_migraciones.sql`.
-- `includes/cuentas.php`: lógica compartida — `cuentaListo()`, `cuentaAbrir`, `cuentaDetalle`, `cuentaTotalRecalc`, `cuentaAnular`, `mesaEstados($ubicacionId)`, `comandaEnviar`.
+Evita que el mozo abra cuentas o envíe comandas desde fuera del restaurante (ej. desde su casa). **Reusa columnas que ya existen** en `ubicaciones` (del módulo de Asistencia): `lat`, `lng`, `geocerca_radio` (default 100 m), `geocerca_activa`. No requiere esquema nuevo.
+
+- **Cómo:** la app del mozo pide la geolocalización del navegador (HTTPS, permiso de ubicación) al iniciar y la **envía con cada escritura** (`abrir_cuenta`, `enviar_comanda`, `anular`). El servidor calcula la distancia (haversine) al `lat/lng` del local y la compara con `geocerca_radio`.
+- **Enforcement DURO:** si `geocerca_activa=1` y el mozo está **fuera del radio** (o el navegador niega/no entrega la ubicación), la API **rechaza** la operación con un mensaje claro ("Debes estar en el local · activa la ubicación"). Es un bloqueo, no una marca como en Asistencia.
+- **Configuración:** el admin fija `lat/lng/geocerca_radio` y activa `geocerca_activa` por local (la pantalla de config de Asistencia ya lo hace; se reutiliza). Si `geocerca_activa=0`, no se restringe (para locales aún sin configurar) — se recomienda activarla.
+- **Helper:** `dentroGeocerca(int $ubicacionId, ?float $lat, ?float $lng): bool` en `includes/cuentas.php` (haversine; `true` si geocerca inactiva o dentro del radio, `false` si activa y fuera/sin datos). Lo invocan las escrituras de `api/mozo.php`.
+- **Nota:** el GPS puede falsearse con esfuerzo; combinado con el PIN es un disuasivo fuerte y suficiente para este contexto. (Enrolamiento de dispositivos queda como endurecimiento futuro si hace falta.)
+
+## B.8 — Archivos, permisos, integración
+
+- Migración `install/57_cuentas.sql`: crea `cuentas`, `cuenta_anulaciones`; `ALTER pedidos ADD cuenta_id, mesa_id`; amplía `pedidos.origen` con `'mesa'` (guards de columna; `MODIFY` del ENUM). Fila en `check_migraciones.sql`. (La geocerca NO necesita esquema: reusa `ubicaciones.lat/lng/geocerca_radio/geocerca_activa`.)
+- `includes/cuentas.php`: lógica compartida — `cuentaListo()`, `cuentaAbrir`, `cuentaDetalle`, `cuentaTotalRecalc`, `cuentaAnular`, `mesaEstados($ubicacionId)`, `comandaEnviar`, y `dentroGeocerca($ubicacionId, $lat, $lng)` (B.7).
 - `mozo/index.php` (app) + `mozo/manifest.php` + reusar `sw.js` (PWA instalable).
-- `api/mozo.php`: `login_pin`, `plano_estados`, `abrir_cuenta`, `cuenta`, `menu`, `enviar_comanda`, `anular`, `cerrar_cuenta_vacia`. Sesión de mozo (no `requireLogin`); `verifyCsrf()` en escrituras vía header.
+- `api/mozo.php`: `login_pin`, `plano_estados`, `abrir_cuenta`, `cuenta`, `menu`, `enviar_comanda`, `anular`, `cerrar_cuenta_vacia`. Sesión de mozo (no `requireLogin`); `verifyCsrf()` en escrituras vía header. Las escrituras (`abrir_cuenta`/`enviar_comanda`/`anular`) reciben `lat`/`lng` y exigen `dentroGeocerca(...)` (B.7).
 - KDS: `api/kds_pedidos.php` enriquece la comanda con `mesa` (numero) y ronda; `admin/kds/index.php` dibuja el badge MESA N · Ronda. Las comandas `origen='mesa'` nacen `en_preparacion` (entran directo, sin gating de WhatsApp).
 - Dashboard/arqueo/monitor: cambios de B.6.
 
