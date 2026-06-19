@@ -122,6 +122,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div></div>
 <!-- modal borrador (revisar antes de enviar) -->
 <div class="modal" id="m-borr"><div class="sheet" id="m-borr-in"></div></div>
+<!-- ficha de mesa (info al tocar) -->
+<div class="modal" id="m-mesa"><div class="sheet" id="m-mesa-in"></div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -182,7 +184,10 @@ function drawPlano(){
 var EST={estados:{},montos:{}};
 function refreshEstados(){
   var piso=st.pisos[st.pi]; if(!piso)return;
-  PlanoRender.draw($('plano-board'), piso, {uploadUrl:UPLOAD, estados:EST.estados, montos:EST.montos, onMesaTap:onMesaTap});
+  var board=$('plano-board');
+  // alto disponible: desde el borde superior del tablero hasta el fondo de la pantalla
+  var avail=Math.max(220, window.innerHeight - board.getBoundingClientRect().top - 12);
+  PlanoRender.draw(board, piso, {uploadUrl:UPLOAD, estados:EST.estados, montos:EST.montos, maxHeight:avail, onMesaTap:onMesaTap});
 }
 function pollEstados(){
   get('plano_estados').then(function(d){
@@ -192,10 +197,35 @@ function pollEstados(){
 }
 
 function onMesaTap(mesaId){
-  // ¿ocupada? abre su cuenta : pide comensales
-  if(EST.estados[mesaId]==='ocupada'){ abrirYver(mesaId, 0); }
+  // ocupada → ficha de info ; libre → pedir comensales y abrir
+  if(EST.estados[mesaId]==='ocupada'){ openMesaInfo(mesaId); }
   else { st.comMesa=mesaId; st.comN=2; $('com-mesa').textContent=mesaNum(mesaId); $('com-n').textContent='2'; openModal('m-com'); }
 }
+function minDesde(at){ try{ var t=new Date(String(at).replace(' ','T')); return Math.max(0,Math.round((Date.now()-t.getTime())/60000)); }catch(e){ return 0; } }
+function openMesaInfo(mesaId){
+  get('mesa_info&mesa_id='+mesaId).then(function(d){
+    if(!d.ok){ toast(d.error||'No se pudo abrir'); return; }
+    var c=d.cuenta; st.cuenta=c;
+    var rondas=c.comandas.length;
+    var items=[]; c.comandas.forEach(function(co){ (co.items||[]).forEach(function(it){ if(!it.anulado) items.push(it.qty+'× '+it.nombre); }); });
+    var resumen=items.slice(0,6).join(' · ')+(items.length>6?' …':'');
+    var mins=c.abierta_at?minDesde(c.abierta_at):0;
+    $('m-mesa-in').innerHTML=
+      '<div style="padding:15px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start">'+
+        '<div><div style="font-weight:900;font-size:19px">Mesa '+esc(c.mesa_numero||'')+'</div>'+
+          '<div style="font-size:12px;color:#888;margin-top:2px">👥 '+c.num_comensales+(c.mozo_nombre?(' · '+esc(c.mozo_nombre)):'')+'</div></div>'+
+        '<div style="font-weight:900;font-size:21px">S/ '+Number(c.total).toFixed(0)+'</div></div>'+
+      '<div style="padding:0 16px;font-size:11px;color:#888">⏱ Abierta '+mins+' min · '+rondas+' ronda'+(rondas===1?'':'s')+'</div>'+
+      (resumen?('<div style="margin:9px 16px 0;padding-top:8px;border-top:1px solid #eee;font-size:12px;color:#555;line-height:1.5">'+esc(resumen)+'</div>'):'')+
+      '<div style="padding:13px 16px">'+
+        '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>'+
+        '<button class="btn" style="background:#1E1E1E;color:#FFDF00;margin-top:8px" onclick="toast(\'El cobro llega en la próxima entrega (Sub-build C)\')">Cobrar</button>'+
+        '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>'+
+      '</div>';
+    openModal('m-mesa');
+  });
+}
+function verCuentaDesdeInfo(){ closeModal('m-mesa'); if(st.cuenta) loadCuenta(st.cuenta.id); }
 function mesaNum(id){ var n='?'; st.pisos.forEach(function(p){ (p.mesas||[]).forEach(function(m){ if(m.id==id) n=m.numero; }); }); return n; }
 function comStep(d){ st.comN=Math.max(0, st.comN+d); $('com-n').textContent=st.comN; }
 function confirmAbrir(){ closeModal('m-com'); abrirYver(st.comMesa, st.comN); }

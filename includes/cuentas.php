@@ -72,7 +72,9 @@ function cuentaTotalRecalc(int $cuentaId): float {
 /** Detalle de la cuenta con sus comandas (rondas) e ítems. */
 function cuentaDetalle(int $cuentaId, int $ubicacionId = 0): ?array {
     $c = Database::fetch(
-        "SELECT cu.*, m.numero AS mesa_numero FROM cuentas cu LEFT JOIN mesas m ON m.id = cu.mesa_id
+        "SELECT cu.*, m.numero AS mesa_numero, e.nombre AS mozo_nombre FROM cuentas cu
+         LEFT JOIN mesas m ON m.id = cu.mesa_id
+         LEFT JOIN empleados e ON e.id = cu.empleado_id
          WHERE cu.id = ? AND (? = 0 OR cu.ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
     if (!$c) return null;
     $comandas = [];
@@ -91,7 +93,8 @@ function cuentaDetalle(int $cuentaId, int $ubicacionId = 0): ?array {
     return [
         'id' => (int)$c['id'], 'mesa_id' => (int)$c['mesa_id'], 'mesa_numero' => $c['mesa_numero'],
         'num_comensales' => (int)$c['num_comensales'], 'estado' => $c['estado'],
-        'total' => (float)$c['total'], 'comandas' => $comandas,
+        'total' => (float)$c['total'], 'mozo_nombre' => $c['mozo_nombre'], 'abierta_at' => $c['abierta_at'],
+        'comandas' => $comandas,
     ];
 }
 

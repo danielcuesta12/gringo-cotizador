@@ -19,14 +19,18 @@
     var estados = opts.estados || {}, montos = opts.montos || {}, onTap = opts.onMesaTap;
     var W = piso.ancho || 1000, H = piso.alto || 700;
     var cw = container.clientWidth || W;
-    var scale = cw / W;
+    var ch = opts.maxHeight || 0; // si se pasa, ajusta a ancho Y alto (llena la pantalla)
+    var scale = ch ? Math.min(cw / W, ch / H) : cw / W;
+    var stageW = W * scale, stageH = H * scale;
+    var boxH = ch || stageH;
 
     container.innerHTML = '';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
-    container.style.height = (H * scale) + 'px';
+    container.style.height = boxH + 'px';
 
-    var stage = elem('div', 'position:absolute;left:0;top:0;transform-origin:top left;width:' + W + 'px;height:' + H + 'px;transform:scale(' + scale + ');');
+    var offX = Math.max(0, (cw - stageW) / 2), offY = Math.max(0, (boxH - stageH) / 2); // centrar
+    var stage = elem('div', 'position:absolute;left:' + offX + 'px;top:' + offY + 'px;transform-origin:top left;width:' + W + 'px;height:' + H + 'px;transform:scale(' + scale + ');');
 
     if (piso.fondo_img) {
       var bg = elem('img', 'position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;opacity:.45;');

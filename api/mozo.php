@@ -122,6 +122,14 @@ switch ($action) {
         mout(['ok' => true, 'cuenta' => $d]);
     }
 
+    case 'mesa_info': {
+        $mesaId = cleanInt($_GET['mesa_id'] ?? 0);
+        $cu = Database::fetch("SELECT id FROM cuentas WHERE mesa_id = ? AND ubicacion_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1", [$mesaId, $ubi]);
+        if (!$cu) mout(['ok' => false, 'error' => 'sin cuenta abierta']);
+        $d = cuentaDetalle((int)$cu['id'], $ubi);
+        mout($d ? ['ok' => true, 'cuenta' => $d] : ['ok' => false, 'error' => 'no encontrada']);
+    }
+
     case 'enviar_comanda':
         geoGate($ubi);
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
