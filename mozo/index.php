@@ -113,6 +113,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="key" style="width:46px" onclick="comStep(-1)">−</button><b id="com-n" style="font-size:22px">2</b><button class="key" style="width:46px" onclick="comStep(1)">+</button>
   </div>
   <button class="btn" onclick="confirmAbrir()">Abrir cuenta</button>
+  <button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal('m-com')">Cancelar</button>
 </div></div>
 <!-- modal anular -->
 <div class="modal" id="m-anul"><div class="sheet" style="padding:18px">
@@ -172,7 +173,8 @@ function doLogin(){
 }
 
 // ---- App ----
-function enterApp(){ loadPlano(); showView('v-plano'); pollEstados(); }
+function enterApp(){ loadPlano(); showView('v-plano'); pollEstados(); navPush(); }
+function navPush(){ try{ history.pushState(null,''); }catch(e){} }
 function loadPlano(){ get('plano').then(function(d){ st.pisos=d.pisos||[]; st.pi=0; drawPlano(); }); }
 function drawPlano(){
   var tabs=$('plano-tabs'); tabs.innerHTML='';
@@ -340,6 +342,17 @@ function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
 
 // arranque: ¿ya hay sesión?
+// Botón atrás del navegador → retrocede dentro de la app (cierra modal / vuelve de vista).
+window.addEventListener('popstate', function(){
+  var m=document.querySelector('.modal.on');
+  if(m){ m.classList.remove('on'); navPush(); return; }                              // cerrar modal abierto
+  if($('v-cat').classList.contains('on')){ showView('v-cuenta'); navPush(); return; } // catálogo → cuenta
+  if($('v-cuenta').classList.contains('on')){ goPlano(); return; }                     // cuenta → plano (home)
+  // en plano / PIN: dejar que salga
+});
+// Cerrar cualquier modal tocando fuera de la hoja.
+document.querySelectorAll('.modal').forEach(function(m){ m.addEventListener('click', function(e){ if(e.target===m) closeModal(m.id); }); });
+
 get('sesion').then(function(d){ if(d.ok&&d.mozo){ st.emp=d.mozo.emp; $('plano-mozo').textContent=d.mozo.nombre+' 👤'; geo(); enterApp(); } else { $('pin-ubi').textContent=''; loadMozos(); } });
 </script>
 <?php endif; ?>
