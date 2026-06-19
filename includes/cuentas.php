@@ -195,3 +195,31 @@ function mesaEstados(int $ubicacionId): array {
     }
     return ['estados' => $estados, 'montos' => $montos, 'minutos' => $minutos];
 }
+
+/** Turnos de caja ABIERTOS en un local (para asignar el cobro de mesa al arqueo). */
+function turnoAbiertoLocal(int $ubicacionId): array {
+    $rows = Database::fetchAll(
+        "SELECT t.id, t.abierto_en, COALESCE(u.name, u.email, CONCAT('Caja ', t.usuario_id)) AS usuario
+         FROM pos_turnos t LEFT JOIN users u ON u.id = t.usuario_id
+         WHERE t.ubicacion_id = ? AND t.estado = 'abierto' ORDER BY t.id DESC", [$ubicacionId]);
+    foreach ($rows as &$r) { $r['id'] = (int)$r['id']; }
+    unset($r);
+    return ['turnos' => $rows, 'count' => count($rows)];
+}
+
+/** Suma de pagos de mesa de un turno, por bucket (para el arqueo). */
+function cuentaPagosArqueo(int $turnoId): array {
+    $z = ['efectivo'=>0.0,'tarjeta'=>0.0,'qr'=>0.0,'otros'=>0.0,'total'=>0.0,'n'=>0];
+    if (!cuentaPagosListo()) return $z;
+    $r = Database::fetch(
+        "SELECT COALESCE(SUM(CASE WHEN tipo='efectivo' THEN monto ELSE 0 END),0) ef,
+                COALESCE(SUM(CASE WHEN tipo='tarjeta'  THEN monto ELSE 0 END),0) ta,
+                COALESCE(SUM(CASE WHEN tipo='qr'       THEN monto ELSE 0 END),0) qr,
+                COALESCE(SUM(CASE WHEN tipo NOT IN ('efectivo','tarjeta','qr') THEN monto ELSE 0 END),0) ot,
+                COALESCE(SUM(monto),0) tot, COUNT(*) n
+         FROM cuenta_pagos WHERE turno_id = ?", [$turnoId]);
+    return [
+        'efectivo'=>(float)$r['ef'], 'tarjeta'=>(float)$r['ta'], 'qr'=>(float)$r['qr'],
+        'otros'=>(float)$r['ot'], 'total'=>(float)$r['tot'], 'n'=>(int)$r['n'],
+    ];
+}
