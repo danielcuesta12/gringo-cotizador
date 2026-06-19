@@ -34,6 +34,20 @@ try {
         $p['id']     = (int)$p['id'];
         $p['items']  = json_decode($p['items_json'] ?? '[]', true) ?: [];
         $p['origen'] = $p['origen'] ?? 'carta';
+        // Mesa (Sub-build B): numero de mesa + nº de ronda dentro de la cuenta
+        $p['mesa_numero'] = null;
+        $p['ronda'] = null;
+        if (($p['origen'] ?? '') === 'mesa' && !empty($p['mesa_id'])) {
+            try {
+                $mn = Database::fetch("SELECT numero FROM mesas WHERE id = ?", [(int)$p['mesa_id']]);
+                $p['mesa_numero'] = $mn['numero'] ?? null;
+                if (!empty($p['cuenta_id'])) {
+                    $p['ronda'] = (int)(Database::fetch(
+                        "SELECT COUNT(*) n FROM pedidos WHERE cuenta_id = ? AND id <= ?",
+                        [(int)$p['cuenta_id'], (int)$p['id']])['n'] ?? 1);
+                }
+            } catch (\Throwable $e) { /* tablas de mesas no migradas */ }
+        }
     }
     unset($p);
 

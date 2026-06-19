@@ -292,15 +292,19 @@ function cardHTML(p,opts){
   var done=opts.parteCat&&partesListas.has(p.id+":"+opts.parteCat);
   var num=String(p.id).padStart(3,"0");
   var it=items.map(function(i){var mods=(i.modificadores&&i.modificadores.length)?'<div class="kim">'+esc(i.modificadores.map(function(m){return m.nombre;}).join(", "))+'</div>':'';return '<div class="ki"><span class="kiq">'+esc(i.qty)+'x</span><span>'+esc(i.nombre)+'</span></div>'+mods;}).join("");
+  // Mesa (Sub-build B)
+  var mesaBadge = (p.origen === 'mesa' && p.mesa_numero)
+    ? '<span class="kcat" style="background:#1E1E1E;color:#FFDF00;font-weight:900">MESA ' + p.mesa_numero + (p.ronda ? ' · R' + p.ronda : '') + '</span>'
+    : '';
   var tag='<span class="ktp '+(p.origen==="pos"?"salon":esc(p.tipo_entrega))+'">'+(p.origen==="pos"?"SALÓN":p.tipo_entrega==="delivery"?"Delivery":"Recojo")+'</span>';
   var sb='<button class="ksalir-btn'+(porSalir.has(String(p.id))?' on':'')+'" data-salir="'+p.id+'" title="Por salir">🚀</button>';
   var pin=(withId&&mm.has(String(p.id)))?'<span class="kpin" onclick="soltar('+p.id+')" title="Soltar">📌</span>':'';
   var nm=esc(p.nombre)||('#'+num);
   // Fila 1: tiempo grande + cohete
   var top='<div class="kctop '+cl+'">'+(ip?'<span class="kpay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Esperando pago</span>':'<span class="kti2 '+cl+'"'+(withId?' id="kt-'+p.id+'"':'')+'>'+ft(ms)+'</span>')+(ip?'':sb)+'</div>';
-  // Fila 2: número + nombre  ·  Fila 3: etiquetas (más pequeñas)
+  // Fila 2: número + nombre  ·  Fila 3: etiquetas (más pequeñas, mesa primero)
   var idrow='<div class="kcid"><span class="kon">#'+num+'</span><span class="kname">'+nm+'</span></div>';
-  var tagsrow='<div class="kctags">'+tag+pin+'</div>';
+  var tagsrow='<div class="kctags">'+mesaBadge+tag+pin+'</div>';
   var split=opts.nCats>1?'<span class="ksplit">✂️ parte de #'+num+'</span>':'';
   var foot;
   if(ip){foot='<button class="bac" onclick="ac('+p.id+')">Aceptar</button><button class="bcl" onclick="cn('+p.id+')">✕</button>';}
