@@ -99,8 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="cat-tabs" style="display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#efece4"></div>
   <div class="body" id="cat-list"></div>
   <div class="foot" id="cat-foot" style="background:#FFEFBC;border-top-color:#e7d99a;display:none">
-    <div style="font-size:11px;font-weight:800;color:#8a6d00;margin-bottom:7px" id="cat-borr"></div>
-    <button class="btn dark" onclick="enviarComanda()">🍳 Enviar a cocina</button>
+    <button class="btn dark" id="cat-borr-btn" onclick="openBorrador()">🛒 Ver borrador</button>
   </div>
 </div>
 
@@ -121,6 +120,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="anul-motivos" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px"></div>
   <button class="btn" style="background:#eee;color:#555" onclick="closeModal('m-anul')">Cancelar</button>
 </div></div>
+<!-- modal borrador (revisar antes de enviar) -->
+<div class="modal" id="m-borr"><div class="sheet" id="m-borr-in"></div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -277,9 +278,34 @@ function addBorr(){ var s=st.prodSel; var mods=[]; Object.keys(s.sel).forEach(fu
   st.borrador.push({product_id:s.p.id, nombre:s.p.nombre, precio:parseFloat(s.p.precio), qty:s.qty, modificadores:mods, nota:nota});
   closeModal('m-prod'); updBorr();
 }
-function updBorr(){ var n=st.borrador.length; var tot=st.borrador.reduce(function(s,it){ var m=it.modificadores.reduce(function(a,x){return a+x.precio;},0); return s+(it.precio+m)*it.qty; },0);
-  $('cat-foot').style.display=n?'block':'none'; $('cat-borr').textContent='Borrador · '+n+' ítems · S/ '+tot.toFixed(0); }
-function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
+function borrTotal(){ return st.borrador.reduce(function(s,it){ var m=it.modificadores.reduce(function(a,x){return a+x.precio;},0); return s+(it.precio+m)*it.qty; },0); }
+function updBorr(){ var n=st.borrador.length;
+  $('cat-foot').style.display=n?'block':'none';
+  var b=$('cat-borr-btn'); if(b) b.textContent='🛒 Ver borrador · '+n+' ítem'+(n===1?'':'s')+' · S/ '+borrTotal().toFixed(0); }
+function openBorrador(){
+  if(!st.borrador.length){ toast('El borrador está vacío'); return; }
+  var rows=st.borrador.map(function(it,i){
+    var msum=it.modificadores.reduce(function(a,x){return a+x.precio;},0);
+    var lt=(it.precio+msum)*it.qty;
+    var mods=it.modificadores.map(function(m){return m.nombre;}).join(' · ');
+    return '<div class="row" style="align-items:flex-start"><div>'+it.qty+'× '+esc(it.nombre)+
+      (mods?'<br><small style="color:#999">'+esc(mods)+'</small>':'')+
+      (it.nota?'<br><small style="color:#c98a00">Nota: '+esc(it.nota)+'</small>':'')+
+      '</div><div style="text-align:right;white-space:nowrap"><b>S/ '+lt.toFixed(0)+'</b><br>'+
+      '<span style="color:#dc2626;font-size:12px;font-weight:700;cursor:pointer" onclick="quitarBorr('+i+')">quitar</span></div></div>';
+  }).join('');
+  $('m-borr-in').innerHTML=
+    '<div style="padding:14px 16px 6px;font-weight:900;font-size:16px">Borrador · Mesa '+esc(st.cuenta.mesa_numero||'')+'</div>'+
+    '<div style="max-height:50dvh;overflow:auto">'+rows+'</div>'+
+    '<div style="padding:12px 16px;border-top:1px solid #eee">'+
+      '<div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-bottom:10px"><span>Total</span><span>S/ '+borrTotal().toFixed(0)+'</span></div>'+
+      '<button class="btn dark" onclick="enviarComanda()">🍳 Enviar a cocina</button>'+
+      '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-borr\')">Seguir agregando</button>'+
+    '</div>';
+  openModal('m-borr');
+}
+function quitarBorr(i){ st.borrador.splice(i,1); updBorr(); if(st.borrador.length) openBorrador(); else closeModal('m-borr'); }
+function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
 
