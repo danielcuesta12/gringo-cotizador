@@ -375,6 +375,10 @@ a{color:inherit;text-decoration:none}
             <div class="kpi-lbl">Ticket prom.</div>
             <div class="kpi-val" id="kpi-avg">—</div>
           </div>
+          <div class="kpi-sub kpi-cell" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">
+            <div class="kpi-lbl" style="color:var(--muted)">Mesas abiertas (sin cobrar)</div>
+            <div class="kpi-val" id="kpi-mesas" style="color:var(--blue)">—</div>
+          </div>
         </div>
       </div>
     </div>
@@ -602,6 +606,7 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
   var elKpiTotal = document.getElementById("kpi-total");
   var elKpiN     = document.getElementById("kpi-n");
   var elKpiAvg   = document.getElementById("kpi-avg");
+  var elKpiMesas = document.getElementById("kpi-mesas");
   var elMetodos  = document.getElementById("mon-metodos");
   var elUbisEl   = document.getElementById("mon-ubis");
   var elRecientes= document.getElementById("mon-recientes");
@@ -682,6 +687,7 @@ var SEC_ORDER_KEY = 'monitor_sec_order';
     elKpiTotal.textContent = fmtMoney(t);
     elKpiN.textContent     = n;
     elKpiAvg.textContent   = fmtMoney(avg);
+    if (elKpiMesas) elKpiMesas.textContent = fmtMoney(parseFloat(d.mesas_abiertas) || 0);
 
     if (n === 0) {
       elMetodos.innerHTML   = '<p class="empty">Sin ventas para este día</p>';

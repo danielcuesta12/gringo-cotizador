@@ -106,21 +106,21 @@ $opNote         = '';
 try {
     $rowHoy = Database::fetch(
         "SELECT COALESCE(SUM(total),0) t, COUNT(*) n FROM pedidos
-         WHERE estado<>'cancelado' AND DATE(created_at)=CURDATE()"
+         WHERE estado<>'cancelado' AND origen<>'mesa' AND DATE(created_at)=CURDATE()"
     );
     $ventasHoyTotal = (float)($rowHoy['t'] ?? 0);
     $ventasHoyN     = (int)($rowHoy['n'] ?? 0);
 
     $rowMes = Database::fetch(
         "SELECT COALESCE(SUM(total),0) t FROM pedidos
-         WHERE estado<>'cancelado' AND DATE_FORMAT(created_at,'%Y-%m')=?",
+         WHERE estado<>'cancelado' AND origen<>'mesa' AND DATE_FORMAT(created_at,'%Y-%m')=?",
         [$mes]
     );
     $ventasMes = (float)($rowMes['t'] ?? 0);
 
     $canales = Database::fetchAll(
         "SELECT origen, COALESCE(SUM(total),0) t FROM pedidos
-         WHERE estado<>'cancelado' AND DATE_FORMAT(created_at,'%Y-%m')=?
+         WHERE estado<>'cancelado' AND origen<>'mesa' AND DATE_FORMAT(created_at,'%Y-%m')=?
          GROUP BY origen",
         [$mes]
     );
@@ -148,7 +148,7 @@ try { foreach (Database::fetchAll("SELECT nombre, fecha_inicio AS fecha, venta_m
 
 // POS del mes por tienda (para el filtro). Tolerante.
 $posPorTienda = [];
-try { $posPorTienda = Database::fetchAll("SELECT p.ubicacion_id, COALESCE(u.nombre,'(sin tienda)') nombre, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id=p.ubicacion_id WHERE p.estado<>'cancelado' AND DATE_FORMAT(p.created_at,'%Y-%m')=? GROUP BY p.ubicacion_id, u.nombre ORDER BY t DESC", [$mes]); } catch (\Throwable $e) {}
+try { $posPorTienda = Database::fetchAll("SELECT p.ubicacion_id, COALESCE(u.nombre,'(sin tienda)') nombre, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id=p.ubicacion_id WHERE p.estado<>'cancelado' AND p.origen<>'mesa' AND DATE_FORMAT(p.created_at,'%Y-%m')=? GROUP BY p.ubicacion_id, u.nombre ORDER BY t DESC", [$mes]); } catch (\Throwable $e) {}
 
 // ── Gastos del mes (tipo empresa) + utilidad ──
 $gastosMes = 0.0; $gastosPorCat = []; $utilidadMes = 0.0;

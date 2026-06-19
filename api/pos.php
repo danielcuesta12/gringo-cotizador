@@ -430,8 +430,14 @@ case 'monitor':
     if ($ubi) { $wc .= " AND p.ubicacion_id = ?"; $pc[] = $ubi; }
     $compTot  = Database::fetch("SELECT COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $wc", $pc);
     $compHora = Database::fetchAll("SELECT HOUR(p.created_at) h, COUNT(*) n, COALESCE(SUM(p.total),0) t FROM pedidos p WHERE $wc GROUP BY HOUR(p.created_at) ORDER BY h", $pc);
+    $mesasAbiertas = 0.0;
+    try {
+        $mesasAbiertas = (float)(Database::fetch(
+            "SELECT COALESCE(SUM(total),0) t FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubi])['t'] ?? 0);
+    } catch (\Throwable $e) { /* cuentas no migradas */ }
     pout(['ok'=>true, 'fecha'=>$fecha, 'total'=>$tot, 'metodos'=>$metodos, 'ubicaciones'=>$ubis, 'recientes'=>$recientes,
-          'por_hora'=>$porHora, 'comp'=>['fecha'=>$compFecha, 'total'=>$compTot, 'por_hora'=>$compHora]]);
+          'por_hora'=>$porHora, 'comp'=>['fecha'=>$compFecha, 'total'=>$compTot, 'por_hora'=>$compHora],
+          'mesas_abiertas'=>$mesasAbiertas]);
 
 default:
     pout(['ok'=>false,'error'=>'Acción no válida']);
