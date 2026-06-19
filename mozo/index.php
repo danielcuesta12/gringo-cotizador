@@ -32,6 +32,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn.dark{background:#1E1E1E;color:#FFDF00}
 .btn.red{background:#dc2626;color:#fff}
 .key{background:#fff;border:none;border-radius:12px;padding:16px 0;font-size:22px;font-weight:800}
+.qbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid #ddd;background:#fff;font-size:24px;font-weight:800;color:#1E1E1E;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
+.qbtn:active{transform:scale(.92);background:#f1f1f4}
+.qbtn.danger{color:#dc2626;border-color:#f0bcbc}
+.plus{width:40px;height:40px;border-radius:50%;background:#FFDF00;color:#1E1E1E;font-weight:900;font-size:24px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none;-webkit-tap-highlight-color:transparent}
 .pindots{display:flex;gap:11px;justify-content:center;margin:14px 0}
 .pindots span{width:14px;height:14px;border-radius:50%;border:2px solid #ccc}
 .pindots span.on{background:#1E1E1E;border-color:#1E1E1E}
@@ -110,7 +114,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div style="font-weight:900;font-size:16px;margin-bottom:4px">Abrir Mesa <span id="com-mesa"></span></div>
   <div style="font-size:12px;color:#888;margin-bottom:12px">¿Cuántos comensales? (opcional)</div>
   <div style="display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:14px">
-    <button class="key" style="width:46px" onclick="comStep(-1)">−</button><b id="com-n" style="font-size:22px">2</b><button class="key" style="width:46px" onclick="comStep(1)">+</button>
+    <button class="qbtn" onclick="comStep(-1)">−</button><b id="com-n" style="font-size:22px;min-width:26px;text-align:center">2</b><button class="qbtn" onclick="comStep(1)">+</button>
   </div>
   <button class="btn" onclick="confirmAbrir()">Abrir cuenta</button>
   <button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal('m-com')">Cancelar</button>
@@ -275,7 +279,7 @@ function drawCat(){
   cats.forEach(function(c){ var t=document.createElement('span'); t.className='chip'+(c===st.catCat?' on':''); t.textContent=c; t.onclick=function(){ st.catCat=c; drawCat(); }; tabs.appendChild(t); });
   var list=$('cat-list'); list.innerHTML='';
   st.catProd.filter(function(p){return p.categoria===st.catCat;}).forEach(function(p){
-    var r=document.createElement('div'); r.className='row'; r.innerHTML='<div>'+esc(p.nombre)+(p.grupos&&p.grupos.length?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px"><b>S/ '+Number(p.precio).toFixed(0)+'</b><span style="width:26px;height:26px;border-radius:50%;background:#FFDF00;color:#1E1E1E;font-weight:900;display:flex;align-items:center;justify-content:center">+</span></div>';
+    var r=document.createElement('div'); r.className='row'; r.innerHTML='<div>'+esc(p.nombre)+(p.grupos&&p.grupos.length?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px"><b>S/ '+Number(p.precio).toFixed(0)+'</b><span class="plus">+</span></div>';
     r.onclick=function(){ openProd(p); };
     list.appendChild(r);
   });
@@ -294,7 +298,7 @@ function renderProd(){
   });
   html+='<div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin:8px 0 4px">Nota para cocina</div><input id="prod-nota" placeholder="Sin cebolla…" value="'+esc(s.nota)+'" style="width:100%;padding:9px 11px;border:1.5px solid #ddd;border-radius:8px;font-size:13px"></div>';
   // pie en 2 filas
-  html+='<div style="border-top:1px solid #eee;padding:11px 16px 16px"><div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:11px"><span style="font-size:11px;font-weight:800;color:#888;text-transform:uppercase">Cantidad</span><div style="display:flex;align-items:center;gap:14px"><button class="key" style="width:40px" onclick="prodQty(-1)">−</button><b id="prod-qty" style="font-size:18px">'+s.qty+'</b><button class="key" style="width:40px" onclick="prodQty(1)">+</button></div></div><button class="btn dark" onclick="addBorr()">Agregar · S/ <span id="prod-tot">'+prodTotal().toFixed(0)+'</span></button></div>';
+  html+='<div style="border-top:1px solid #eee;padding:11px 16px 16px"><div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:11px"><span style="font-size:11px;font-weight:800;color:#888;text-transform:uppercase">Cantidad</span><div style="display:flex;align-items:center;gap:14px"><button class="qbtn" onclick="prodQty(-1)">−</button><b id="prod-qty" style="font-size:18px;min-width:24px;text-align:center">'+s.qty+'</b><button class="qbtn" onclick="prodQty(1)">+</button></div></div><button class="btn dark" onclick="addBorr()">Agregar · S/ <span id="prod-tot">'+prodTotal().toFixed(0)+'</span></button></div>';
   $('m-prod-in').innerHTML=html;
   $('m-prod-in').querySelectorAll('.opt').forEach(function(el){ el.onclick=function(){ toggleOpt(el); }; });
 }
@@ -327,9 +331,9 @@ function openBorrador(){
         '<b style="white-space:nowrap">S/ '+lt.toFixed(0)+'</b>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:12px;margin-top:9px">'+
-        '<button class="key" style="width:38px;height:34px;flex:none'+(it.qty<=1?';color:#dc2626':'')+'" onclick="borrQty('+i+',-1)">'+minus+'</button>'+
-        '<b style="font-size:16px;min-width:18px;text-align:center">'+it.qty+'</b>'+
-        '<button class="key" style="width:38px;height:34px;flex:none" onclick="borrQty('+i+',1)">+</button>'+
+        '<button class="qbtn'+(it.qty<=1?' danger':'')+'" onclick="borrQty('+i+',-1)">'+minus+'</button>'+
+        '<b style="font-size:17px;min-width:22px;text-align:center">'+it.qty+'</b>'+
+        '<button class="qbtn" onclick="borrQty('+i+',1)">+</button>'+
         '<input type="text" placeholder="Nota para cocina…" value="'+esc(it.nota||'')+'" oninput="borrNota('+i+',this.value)" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
       '</div>'+
     '</div>';
