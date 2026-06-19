@@ -198,7 +198,7 @@ const API="<?= APP_URL ?>/api", CSRF="<?= $csrf ?>";
 let UBI=<?= (int)$defaultUbi ?>;
 const IS_ADMIN=<?= $esAdmin ? 'true' : 'false' ?>;
 let D={pedidos:[],cfg:{tn:10,tr:20,rs:3},ids:new Set()},tmr=null,actx=null;
-let mo=[], mm=new Set(), dragging=false;
+let mo=[], mm=new Set(), dragging=false, anchors={};
 let vista="all", catOcultas=new Set(), partesListas=new Set(), porSalir=new Set(), _laneSig="", _allSig="";
 function lsKey(k){return k+"_"+UBI;}
 function slugCat(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"sin";}
@@ -246,7 +246,7 @@ function changeUbi(v){UBI=parseInt(v)||0;loadOrder();D.ids=new Set();D.pedidos=[
 
 async function init(){loadOrder();await fKDS();if(tmr)clearInterval(tmr);tmr=setInterval(fKDS,(D.cfg.rs||15)*1000);setInterval(tick,1000);}
 
-async function fKDS(){try{const r=await fetch(API+"/kds_pedidos.php?estados=pendiente,en_preparacion&ubicacion_id="+UBI+"&limite=50");const d=await r.json();if(!d.ok)return;const ps=(d.pedidos||[]).filter(p=>["pendiente","en_preparacion"].includes(p.estado));const ni=ps.map(p=>p.id.toString());const hn=ni.some(id=>!D.ids.has(id));if(hn&&D.ids.size>0)alerta();else if(D.ids.size===0&&ps.some(p=>p.estado==="pendiente"))alerta();D.ids=new Set(ni);const rc=Date.now();ps.forEach(p=>{p._base=p.elapsed_seconds?parseFloat(p.elapsed_seconds):0;p._recv=rc;});D.pedidos=ps;rKDS();}catch(e){}}
+async function fKDS(){try{const r=await fetch(API+"/kds_pedidos.php?estados=pendiente,en_preparacion&ubicacion_id="+UBI+"&limite=50");const d=await r.json();if(!d.ok)return;const ps=(d.pedidos||[]).filter(p=>["pendiente","en_preparacion"].includes(p.estado));const ni=ps.map(p=>p.id.toString());const hn=ni.some(id=>!D.ids.has(id));if(hn&&D.ids.size>0)alerta();else if(D.ids.size===0&&ps.some(p=>p.estado==="pendiente"))alerta();D.ids=new Set(ni);const rc=Date.now();const live=new Set();ps.forEach(p=>{const id=p.id.toString();live.add(id);if(p.estado==="pendiente"){delete anchors[id];p._base=0;p._recv=rc;return;}if(anchors[id]===undefined){anchors[id]={base:(p.elapsed_seconds?parseFloat(p.elapsed_seconds):0),recv:rc};}p._base=anchors[id].base;p._recv=anchors[id].recv;});Object.keys(anchors).forEach(id=>{if(!live.has(id))delete anchors[id];});D.pedidos=ps;rKDS();}catch(e){}}
 
 function srt(ps){const now=Date.now();const pn=ps.filter(p=>p.estado==="pendiente");const ep=ps.filter(p=>p.estado==="en_preparacion");ep.sort((a,b)=>{const ma=a._recv!==undefined?(a._base+(now-a._recv)/1000):0;const mb=b._recv!==undefined?(b._base+(now-b._recv)/1000):0;return mb-ma;});const ai=ep.filter(p=>!mm.has(p.id.toString())).map(p=>p.id.toString());const mi=mo.filter(id=>ps.find(p=>p.id.toString()===id&&mm.has(id)));const mp={};ps.forEach(p=>mp[p.id.toString()]=p);return prioritizeSalir([...ai,...mi,...pn.map(p=>p.id.toString())].map(id=>mp[id]).filter(Boolean));}
 
@@ -348,10 +348,10 @@ function tick(){const now=Date.now();const cl=document.getElementById("clk");if(
   }
 }
 
-async function ac(id){const r=await req("kds_update.php",{action:"aceptar",id});if(r.ok){const p=D.pedidos.find(x=>x.id==id);if(p){p.estado="en_preparacion";p._base=0;p._recv=Date.now();}rKDS();}}
+async function ac(id){const r=await req("kds_update.php",{action:"aceptar",id});if(r.ok){const p=D.pedidos.find(x=>x.id==id);const _n=Date.now();anchors[id.toString()]={base:0,recv:_n};if(p){p.estado="en_preparacion";p._base=0;p._recv=_n;}rKDS();}}
 function purgarPartes(id){var pre=id+":";[...partesListas].forEach(function(k){if(k.indexOf(pre)===0)partesListas.delete(k);});saveParts();}
-async function ls(id){const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"marcar_listo",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
-async function cn(id){if(!confirm("¿Cancelar este pedido?"))return;const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"cancelar",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
+async function ls(id){const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"marcar_listo",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());anchors[id.toString()]&&delete anchors[id.toString()];mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
+async function cn(id){if(!confirm("¿Cancelar este pedido?"))return;const c=document.getElementById("kc-"+id);if(c){c.style.transition="opacity 0.3s,transform 0.3s";c.style.opacity="0";c.style.transform="scale(0.95)";}await req("kds_update.php",{action:"cancelar",id});D.pedidos=D.pedidos.filter(p=>p.id!=id);D.ids.delete(id.toString());anchors[id.toString()]&&delete anchors[id.toString()];mm.delete(id.toString());purgarPartes(id);_laneSig="";sv();setTimeout(rKDS,350);if(histOpen)fHist();}
 
 function sv(){if(vista==="all"){const cs=document.querySelectorAll("#kg .kc");mo=[...cs].map(c=>c.dataset.id);localStorage.setItem(lsKey("ko"),JSON.stringify(mo));}localStorage.setItem(lsKey("km"),JSON.stringify([...mm]));}
 

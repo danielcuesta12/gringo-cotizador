@@ -40,6 +40,13 @@ try {
 
   <nav class="sidebar-nav">
 
+    <div class="sb-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="sbSearch" placeholder="Buscar sección…" autocomplete="off" spellcheck="false">
+      <button type="button" id="sbSearchClear" aria-label="Limpiar">&#10005;</button>
+    </div>
+    <div class="sb-search-empty" id="sbSearchEmpty">Sin coincidencias</div>
+
     <?php /* ===== 1. Dashboard (standalone) ===== */ ?>
     <?php if (can('dashboard')): ?>
     <a href="<?php echo APP_URL; ?>/admin/dashboard.php"
@@ -474,6 +481,35 @@ try {
       if (_sbScrollT) return;
       _sbScrollT = setTimeout(function () { _sbScrollT = null; try { localStorage.setItem(SKEY, String(scroller.scrollTop)); } catch (e) {} }, 100);
     });
+
+    // ── Buscador en vivo del sidebar ──
+    var sbSearch = document.getElementById('sbSearch');
+    var sbClear  = document.getElementById('sbSearchClear');
+    var sbEmpty  = document.getElementById('sbSearchEmpty');
+    if (sbSearch) {
+      var sbLinks  = nav.querySelectorAll('.nav-link');
+      var sbGroups = nav.querySelectorAll('.sb-group');
+      var sbFilter = function () {
+        var q = sbSearch.value.trim().toLowerCase();
+        var searching = q.length > 0;
+        nav.classList.toggle('searching', searching);
+        var anyLink = false;
+        sbLinks.forEach(function (a) {
+          var match = !searching || a.textContent.toLowerCase().indexOf(q) >= 0;
+          a.classList.toggle('sb-hidden', !match);
+          if (match && searching) anyLink = true;
+        });
+        sbGroups.forEach(function (g) {
+          var has = false;
+          g.querySelectorAll('.nav-link').forEach(function (a) { if (!a.classList.contains('sb-hidden')) has = true; });
+          g.classList.toggle('sb-hidden', searching && !has);
+        });
+        if (sbEmpty) sbEmpty.classList.toggle('on', searching && !anyLink);
+      };
+      sbSearch.addEventListener('input', sbFilter);
+      sbSearch.addEventListener('keydown', function (e) { if (e.key === 'Escape') { sbSearch.value = ''; sbFilter(); } });
+      if (sbClear) sbClear.addEventListener('click', function () { sbSearch.value = ''; sbFilter(); sbSearch.focus(); });
+    }
   })();
   </script>
 

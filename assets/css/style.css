@@ -1111,3 +1111,17 @@ table.data-table {
 .pe-canvas{position:relative}
 .pe-props{width:180px;flex-shrink:0;background:#fff;border:1px solid var(--border,#e3e3e3);border-radius:10px;padding:12px}
 @media(max-width:760px){.pe-main{flex-direction:column}.pe-tools,.pe-props{width:100%}.pe-tools{flex-direction:row;flex-wrap:wrap}.pe-tool{flex:1;min-width:120px}}
+
+/* ── Buscador del sidebar ── */
+.sb-search{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 10px;margin:0 2px 10px}
+.sb-search svg{width:15px;height:15px;color:rgba(255,255,255,.45);flex-shrink:0}
+.sb-search input{flex:1;min-width:0;background:none;border:none;outline:none;color:#F5E6D0;font-size:13px;font-family:inherit}
+.sb-search input::placeholder{color:rgba(255,255,255,.4)}
+.sb-search #sbSearchClear{display:none;background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0}
+.sidebar-nav.searching .sb-search #sbSearchClear{display:block}
+/* mientras se busca, mostrar ítems aunque el grupo esté colapsado */
+.sidebar-nav.searching .sb-group.collapsed .sb-items{display:block}
+.sidebar-nav.searching .sb-header{opacity:.6}
+.sb-hidden{display:none !important}
+.sb-search-empty{display:none;color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:14px 0}
+.sidebar-nav.searching .sb-search-empty.on{display:block}
