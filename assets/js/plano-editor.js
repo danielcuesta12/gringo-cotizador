@@ -3,18 +3,8 @@
 (function () {
   'use strict';
   var GRID = 10;
-  var fitScale = 1; // escala base para que el piso quepa en pantalla
-  var view = { zoom: 1, panX: 0, panY: 0 }; // zoom/pan del visor (pinch + dos dedos)
-  var ptrs = {}, viewGesturing = false, pinch0 = null; // multitáctil
+  var scale = 1; // factor de escala del lienzo para que todo el piso quepa en pantalla
   var api, csrf, uploadUrl;
-
-  // Transform combinado del lienzo: pan + (fit × zoom). transform-origin top-left.
-  function applyTransform() {
-    if (!elCanvas) return;
-    elCanvas.style.transform = 'translate(' + view.panX + 'px,' + view.panY + 'px) scale(' + (fitScale * view.zoom) + ')';
-  }
-  function fitView() { view.zoom = 1; view.panX = 0; view.panY = 0; }
-  function clampZoom(z) { return Math.max(0.3, Math.min(5, z)); }
   var st = { ubi: 0, pisos: [], pi: 0, sel: null }; // sel = {kind:'mesa'|'elem', ref:obj}
   var tmpSeq = -1; // ids temporales negativos para nuevos
   var mount, elCanvas, elProps, elTabs;
@@ -79,16 +69,15 @@
     var wrap = elCanvas.parentNode; // .pe-canvas-wrap
     var availW = (wrap.clientWidth || p.ancho) - 4;
     var maxH = Math.round(window.innerHeight * 0.72);
-    fitScale = Math.min(availW / p.ancho, maxH / p.alto, 1); // nunca agrandar más de 1:1
-    if (!(fitScale > 0)) fitScale = 1;
+    scale = Math.min(availW / p.ancho, maxH / p.alto, 1); // nunca agrandar más de 1:1
+    if (!(scale > 0)) scale = 1;
     elCanvas.innerHTML = '';
     elCanvas.style.width = p.ancho + 'px';
     elCanvas.style.height = p.alto + 'px';
     elCanvas.style.transformOrigin = 'top left';
-    applyTransform();
-    wrap.style.height = Math.ceil(p.alto * fitScale) + 'px';
+    elCanvas.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = Math.ceil(p.alto * scale) + 'px';
     wrap.style.overflow = 'hidden';
-    wrap.style.touchAction = 'none'; // manejamos pinch/pan nosotros (no zoom del navegador)
     if (p.fondo_img) {
       var bg = document.createElement('img');
       bg.src = uploadUrl + p.fondo_img;
@@ -138,19 +127,16 @@
   function attachDrag(node, kind, obj) {
     node.addEventListener('pointerdown', function (ev) {
       if (ev.target.getAttribute('data-handle')) return; // resize maneja aparte
-      if (viewGesturing) return;                          // dos dedos: el visor manda
       ev.preventDefault();
       st.sel = { kind: kind, ref: obj };
       renderProps();
       var rect = elCanvas.getBoundingClientRect();
-      // rect es el tamaño VISUAL (fit×zoom); escala efectiva = rect.width / ancho lógico.
-      var eff = rect.width / piso().ancho || 1;
-      var ox = (ev.clientX - rect.left) / eff - obj.pos_x;
-      var oy = (ev.clientY - rect.top) / eff - obj.pos_y;
+      // rect es el tamaño VISUAL (ya escalado); convertimos a coordenadas lógicas dividiendo por scale.
+      var ox = (ev.clientX - rect.left) / scale - obj.pos_x;
+      var oy = (ev.clientY - rect.top) / scale - obj.pos_y;
       function move(e) {
-        if (viewGesturing) return;                        // un 2º dedo entró: no muevas la mesa
-        obj.pos_x = Math.max(0, snap((e.clientX - rect.left) / eff - ox));
-        obj.pos_y = Math.max(0, snap((e.clientY - rect.top) / eff - oy));
+        obj.pos_x = Math.max(0, snap((e.clientX - rect.left) / scale - ox));
+        obj.pos_y = Math.max(0, snap((e.clientY - rect.top) / scale - oy));
         node.style.left = obj.pos_x + 'px';
         node.style.top = obj.pos_y + 'px';
       }
@@ -168,11 +154,9 @@
     h.addEventListener('pointerdown', function (ev) {
       ev.preventDefault(); ev.stopPropagation();
       var rect = elCanvas.getBoundingClientRect();
-      var eff = rect.width / piso().ancho || 1;
       function move(e) {
-        if (viewGesturing) return;
-        obj.ancho = Math.max(20, snap((e.clientX - rect.left) / eff - obj.pos_x));
-        obj.alto = Math.max(20, snap((e.clientY - rect.top) / eff - obj.pos_y));
+        obj.ancho = Math.max(20, snap((e.clientX - rect.left) / scale - obj.pos_x));
+        obj.alto = Math.max(20, snap((e.clientY - rect.top) / scale - obj.pos_y));
         node.style.width = obj.ancho + 'px';
         node.style.height = obj.alto + 'px';
       }
@@ -321,7 +305,7 @@
   }
 
   // ---------- render maestro ----------
-  function renderAll() { fitView(); renderTabs(); renderCanvas(); renderProps(); }
+  function renderAll() { renderTabs(); renderCanvas(); renderProps(); }
 
   function init(opts) {
     api = window.EG_MESAS_API; csrf = window.EG_CSRF; uploadUrl = window.EG_UPLOAD_URL || '';
@@ -335,7 +319,6 @@
           '<div class="pe-tool" data-t="mesaC">▢ Mesa cuadrada</div>' +
           '<div class="pe-tool" data-t="etiqueta">🔤 Etiqueta</div>' +
           '<div class="pe-tool" data-t="forma">▬ Barra / pared</div>' +
-          '<div class="pe-tool" data-t="fit">⤢ Ajustar vista</div>' +
           '<label class="pe-tool" style="cursor:pointer">🖼 Fondo<input type="file" accept="image/*" style="display:none"></label>' +
           '<div class="pe-save">Guardar</div>' +
           '<div class="pe-status"></div>' +
@@ -351,62 +334,12 @@
     mount.querySelector('[data-t="mesaC"]').addEventListener('click', function () { addMesa('cuadrada'); });
     mount.querySelector('[data-t="etiqueta"]').addEventListener('click', function () { addElem('etiqueta'); });
     mount.querySelector('[data-t="forma"]').addEventListener('click', function () { addElem('forma'); });
-    mount.querySelector('[data-t="fit"]').addEventListener('click', function () { fitView(); applyTransform(); });
     mount.querySelector('.pe-save').addEventListener('click', function () { save(statusEl); });
     mount.querySelector('input[type=file]').addEventListener('change', function () { if (this.files[0]) subirFondo(this.files[0], statusEl); });
-    var wrapEl = mount.querySelector('.pe-canvas-wrap');
     // clic en vacío deselecciona
-    wrapEl.addEventListener('pointerdown', function (e) {
+    mount.querySelector('.pe-canvas-wrap').addEventListener('pointerdown', function (e) {
       if (e.target === this || e.target === elCanvas) { st.sel = null; renderCanvas(); renderProps(); }
     });
-
-    // ── Visor: zoom (pinch trackpad/táctil) + pan (dos dedos) ──
-    function zoomAt(cx, cy, factor) {
-      var s = fitScale * view.zoom;
-      var lx = (cx - view.panX) / s, ly = (cy - view.panY) / s;
-      view.zoom = clampZoom(view.zoom * factor);
-      var s2 = fitScale * view.zoom;
-      view.panX = cx - lx * s2; view.panY = cy - ly * s2;
-      applyTransform();
-    }
-    // Trackpad: pinch llega como wheel+ctrlKey; scroll de dos dedos como wheel normal.
-    wrapEl.addEventListener('wheel', function (e) {
-      e.preventDefault();
-      var rect = wrapEl.getBoundingClientRect();
-      if (e.ctrlKey) { zoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY / 100)); }
-      else { view.panX -= e.deltaX; view.panY -= e.deltaY; applyTransform(); }
-    }, { passive: false });
-    // Multitáctil (tablet): dos dedos = pinch + arrastre del visor.
-    function pdist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-    function pmid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
-    wrapEl.addEventListener('pointerdown', function (e) {
-      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-      if (Object.keys(ptrs).length === 2) {
-        viewGesturing = true;
-        var ps = Object.keys(ptrs).map(function (k) { return ptrs[k]; });
-        pinch0 = { d: pdist(ps[0], ps[1]), m: pmid(ps[0], ps[1]), zoom: view.zoom, panX: view.panX, panY: view.panY };
-      }
-    });
-    wrapEl.addEventListener('pointermove', function (e) {
-      if (!ptrs[e.pointerId]) return;
-      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-      if (viewGesturing && pinch0 && Object.keys(ptrs).length >= 2) {
-        e.preventDefault();
-        var ps = Object.keys(ptrs).map(function (k) { return ptrs[k]; });
-        var d = pdist(ps[0], ps[1]), m = pmid(ps[0], ps[1]);
-        var rect = wrapEl.getBoundingClientRect();
-        var ax = pinch0.m.x - rect.left, ay = pinch0.m.y - rect.top;
-        var s0 = fitScale * pinch0.zoom, lx = (ax - pinch0.panX) / s0, ly = (ay - pinch0.panY) / s0;
-        view.zoom = clampZoom(pinch0.zoom * (pinch0.d ? d / pinch0.d : 1));
-        var s2 = fitScale * view.zoom;
-        view.panX = (ax - lx * s2) + (m.x - pinch0.m.x);
-        view.panY = (ay - ly * s2) + (m.y - pinch0.m.y);
-        applyTransform();
-      }
-    });
-    function ptrUp(e) { if (ptrs[e.pointerId]) delete ptrs[e.pointerId]; if (Object.keys(ptrs).length < 2) { viewGesturing = false; pinch0 = null; } }
-    document.addEventListener('pointerup', ptrUp);
-    document.addEventListener('pointercancel', ptrUp);
     // recalcular la escala al cambiar el tamaño de la ventana (debounce)
     var _rsz = null;
     window.addEventListener('resize', function () { clearTimeout(_rsz); _rsz = setTimeout(function () { if (st.pisos.length) renderCanvas(); }, 150); });
