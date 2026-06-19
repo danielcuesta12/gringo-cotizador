@@ -117,7 +117,8 @@
       var sub = document.createElement('span'); sub.style.cssText = 'font-size:8px;color:#888;font-weight:700;'; sub.textContent = obj.capacidad + ' pers';
       d.appendChild(num); d.appendChild(sub);
     } else if (obj.tipo === 'etiqueta') {
-      base += 'display:flex;align-items:center;font-weight:800;color:#1E1E1E;font-size:13px;' + (selected ? 'outline:2px solid #FFDF00;' : '');
+      var efs = Math.max(10, Math.round(obj.alto * 0.62)); // el texto escala con el alto de la caja
+      base += 'display:flex;align-items:center;white-space:nowrap;font-weight:800;color:#1E1E1E;font-size:' + efs + 'px;' + (selected ? 'outline:2px solid #FFDF00;' : '');
       d.textContent = obj.texto || '(texto)';
     } else {
       base += 'background:#1E1E1E;opacity:.8;border-radius:5px;' + (selected ? 'outline:2px solid #FFDF00;' : '');

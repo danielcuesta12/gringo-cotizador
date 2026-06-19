@@ -42,7 +42,8 @@
       var d = elem('div', 'position:absolute;left:' + e.pos_x + 'px;top:' + e.pos_y + 'px;width:' + e.ancho + 'px;height:' + e.alto + 'px;');
       if (e.tipo === 'etiqueta') {
         d.textContent = e.texto || '';
-        d.style.cssText += 'font-weight:800;color:#1E1E1E;font-size:13px;display:flex;align-items:center;';
+        var efs = Math.max(10, Math.round((e.alto || 24) * 0.62)); // el texto escala con el alto
+        d.style.cssText += 'font-weight:800;color:#1E1E1E;white-space:nowrap;font-size:' + efs + 'px;display:flex;align-items:center;';
       } else {
         d.style.cssText += 'background:#1E1E1E;opacity:.8;border-radius:5px;';
       }
