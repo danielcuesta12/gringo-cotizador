@@ -117,10 +117,24 @@ function cuentaDetalle(int $cuentaId, int $ubicacionId = 0): ?array {
             'items'     => json_decode($p['items_json'] ?? '[]', true) ?: [],
         ];
     }
+    $total  = (float)$c['total'];
+    $descMonto = (float)($c['descuento_monto'] ?? 0);
+    $montoCobrar = round(max(0, $total - $descMonto), 2);
+    $pagado = 0.0;
+    if (cuentaPagosListo()) {
+        $pagado = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['s'] ?? 0);
+    }
     return [
         'id' => (int)$c['id'], 'mesa_id' => (int)$c['mesa_id'], 'mesa_numero' => $c['mesa_numero'],
         'num_comensales' => (int)$c['num_comensales'], 'estado' => $c['estado'],
-        'total' => (float)$c['total'], 'mozo_nombre' => $c['mozo_nombre'], 'abierta_at' => $c['abierta_at'],
+        'total' => $total, 'mozo_nombre' => $c['mozo_nombre'], 'abierta_at' => $c['abierta_at'],
+        'precuenta_at' => $c['precuenta_at'] ?? null,
+        'descuento_tipo' => $c['descuento_tipo'] ?? null,
+        'descuento_valor' => (float)($c['descuento_valor'] ?? 0),
+        'descuento_monto' => $descMonto,
+        'monto_cobrar' => $montoCobrar,
+        'pagado' => round($pagado, 2),
+        'falta' => round(max(0, $montoCobrar - $pagado), 2),
         'comandas' => $comandas,
     ];
 }
@@ -185,13 +199,26 @@ function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motiv
     return ['ok' => true];
 }
 
-/** Estados de mesa de un local: las que tienen cuenta abierta → 'ocupada' + monto. */
+/** Estados de mesa de un local. ocupada · precuenta (rosa) · por_cobrar (parcial). */
 function mesaEstados(int $ubicacionId): array {
     $estados = []; $montos = []; $minutos = [];
-    foreach (Database::fetchAll("SELECT mesa_id, total, TIMESTAMPDIFF(MINUTE, abierta_at, NOW()) AS mins FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubicacionId]) as $r) {
-        $estados[(int)$r['mesa_id']] = 'ocupada';
-        $montos[(int)$r['mesa_id']]  = (float)$r['total'];
-        $minutos[(int)$r['mesa_id']] = max(0, (int)$r['mins']);
+    $hasPagos = cuentaPagosListo();
+    $sel = $hasPagos
+        ? "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
+                  COALESCE((SELECT SUM(monto) FROM cuenta_pagos WHERE cuenta_id = cu.id),0) AS pagado
+           FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'"
+        : "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
+                  0 AS pagado
+           FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'";
+    foreach (Database::fetchAll($sel, [$ubicacionId]) as $r) {
+        $mid = (int)$r['mesa_id'];
+        $pagado = (float)$r['pagado'];
+        if ($pagado > 0.001)               $estado = 'por_cobrar';
+        elseif (!empty($r['precuenta_at'])) $estado = 'precuenta';
+        else                                $estado = 'ocupada';
+        $estados[$mid] = $estado;
+        $montos[$mid]  = (float)$r['total'];
+        $minutos[$mid] = max(0, (int)$r['mins']);
     }
     return ['estados' => $estados, 'montos' => $montos, 'minutos' => $minutos];
 }
