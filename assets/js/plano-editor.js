@@ -124,7 +124,7 @@
     }
     d.style.cssText = base;
     attachDrag(d, kind, obj);
-    if (selected) { addHandles(d, obj); addDeleteBadge(d); }
+    if (selected) { addHandles(d, obj); addDeleteBadge(d); if (kind === 'mesa') addDuplicateBadge(d); }
     return d;
   }
 
@@ -137,6 +137,30 @@
     x.style.cssText = 'position:absolute;left:-8px;top:-8px;width:18px;height:18px;background:#dc2626;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;cursor:pointer;z-index:5;';
     x.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); deleteSelected(); });
     node.appendChild(x);
+  }
+
+  // Botón ⧉ para duplicar la mesa seleccionada (esquina superior derecha).
+  function addDuplicateBadge(node) {
+    var x = document.createElement('span');
+    x.setAttribute('data-handle', '1');
+    x.textContent = '⧉';
+    x.title = 'Duplicar mesa';
+    x.style.cssText = 'position:absolute;right:-8px;top:-8px;width:20px;height:20px;background:#1E1E1E;color:#FFDF00;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:pointer;z-index:5;';
+    x.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); duplicarMesa(); });
+    node.appendChild(x);
+  }
+
+  // Clona la mesa seleccionada (idéntica: forma, tamaño, comensales) con el siguiente número.
+  function duplicarMesa() {
+    if (!st.sel || st.sel.kind !== 'mesa') return;
+    var o = st.sel.ref, ms = piso().mesas;
+    var nums = ms.map(function (x) { return parseInt(x.numero, 10); }).filter(function (n) { return !isNaN(n); });
+    var next = nums.length ? Math.max.apply(null, nums) + 1 : ms.length + 1;
+    var nm = { id: tmpSeq--, numero: String(next), capacidad: o.capacidad, forma: o.forma,
+               pos_x: snap(o.pos_x + 20), pos_y: snap(o.pos_y + 20), ancho: o.ancho, alto: o.alto };
+    ms.push(nm);
+    st.sel = { kind: 'mesa', ref: nm };
+    renderCanvas(); renderProps();
   }
 
   // ---------- drag (mover) ----------
@@ -194,6 +218,11 @@
       elProps.appendChild(field('Número / nombre', inputText(o.numero, function (v) { o.numero = v; renderCanvas(); })));
       elProps.appendChild(field('Comensales', stepper(o.capacidad, function (v) { o.capacidad = v; renderCanvas(); })));
       elProps.appendChild(field('Forma', formaToggle(o)));
+      var dup = document.createElement('button');
+      dup.textContent = '⧉ Duplicar mesa';
+      dup.style.cssText = 'width:100%;margin-top:4px;background:#1E1E1E;color:#FFDF00;border:none;border-radius:8px;padding:9px;font-weight:800;cursor:pointer;font-size:13px;';
+      dup.addEventListener('click', duplicarMesa);
+      elProps.appendChild(dup);
     } else if (o.tipo === 'etiqueta') {
       elProps.appendChild(field('Texto', inputText(o.texto || '', function (v) { o.texto = v; renderCanvas(); })));
     } else {
