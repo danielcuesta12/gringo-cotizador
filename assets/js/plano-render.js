@@ -49,22 +49,31 @@
       stage.appendChild(d);
     });
 
+    var uN = opts.umbralNaranja || 20, uR = opts.umbralRojo || 30;
+    // Color de la mesa: libre neutro; ocupada por tiempo (verde<uN, naranja<uR, rojo); precuenta rosa.
+    function mesaColor(estado, mins) {
+      if (estado === 'libre') return { bg: '#ffffff', border: '#c9d6c9' };
+      if (estado === 'precuenta') return { bg: '#FFD8E0', border: '#FF8FA6' };
+      if (mins >= uR) return { bg: '#fde8e8', border: '#dc2626' };
+      if (mins >= uN) return { bg: '#fff2e0', border: '#f97316' };
+      return { bg: '#eaf6ec', border: '#16a34a' };
+    }
     (piso.mesas || []).forEach(function (m) {
-      var st = estados[m.id] || 'libre';
-      var c = COLORS[st] || COLORS.libre;
+      var estado = estados[m.id] || 'libre';
+      var mins = (opts.minutos && opts.minutos[m.id]) || 0;
+      var c = mesaColor(estado, mins);
       var d = elem('div',
         'position:absolute;left:' + m.pos_x + 'px;top:' + m.pos_y + 'px;width:' + m.ancho + 'px;height:' + m.alto + 'px;' +
-        'background:' + c.bg + ';border:2px solid ' + c.border + ';color:#1E1E1E;' +
+        'background:' + c.bg + ';border:3px solid ' + c.border + ';color:#1E1E1E;box-sizing:border-box;' +
         'border-radius:' + (m.forma === 'redonda' ? '50%' : '12px') + ';' +
-        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-        'box-shadow:0 2px 6px rgba(0,0,0,.1);cursor:' + (onTap ? 'pointer' : 'default') + ';user-select:none;');
+        'display:flex;align-items:center;justify-content:center;' +
+        'box-shadow:0 2px 6px rgba(0,0,0,.12);cursor:' + (onTap ? 'pointer' : 'default') + ';user-select:none;');
       d.setAttribute('data-mesa-id', m.id);
-      var num = elem('b', 'font-size:16px;line-height:1.1;');
+      // Solo el número, grande y proporcional al tamaño de la mesa.
+      var fs = Math.max(14, Math.round(Math.min(m.ancho, m.alto) * 0.42));
+      var num = elem('b', 'font-size:' + fs + 'px;line-height:1;font-weight:800;');
       num.textContent = m.numero;
       d.appendChild(num);
-      var sub = elem('span', 'font-size:9px;font-weight:800;color:' + c.sub + ';');
-      sub.textContent = (montos[m.id] != null) ? ('S/ ' + Number(montos[m.id]).toFixed(0)) : (m.capacidad + ' pers');
-      d.appendChild(sub);
       if (onTap) d.addEventListener('click', function () { onTap(m.id, m); });
       stage.appendChild(d);
     });

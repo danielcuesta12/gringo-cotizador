@@ -54,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // POS: exigir nombre del pedido (checkbox)
     setSetting('pos_nombre_obligatorio', isset($_POST['pos_nombre_obligatorio']) ? '1' : '0');
     setSetting('mozo_geocerca_activa', isset($_POST['mozo_geocerca_activa']) ? '1' : '0');
+    setSetting('mesa_umbral_naranja', (string) max(1, (int)($_POST['mesa_umbral_naranja'] ?? 20)));
+    setSetting('mesa_umbral_rojo',    (string) max(1, (int)($_POST['mesa_umbral_rojo'] ?? 30)));
 
     // Logo activo (a o b)
     $activeLogoVal = in_array($_POST['active_logo'] ?? 'a', ['a','b']) ? $_POST['active_logo'] : 'a';
@@ -505,6 +507,16 @@ include __DIR__ . '/../layout-top.php';
           <input type="checkbox" name="mozo_geocerca_activa" value="1" <?= getSetting('mozo_geocerca_activa','1')==='1'?'checked':'' ?> style="width:18px;height:18px">
           <span>Geocerca del mozo (solo puede tomar pedidos dentro del local) — apágalo si el GPS falla</span>
         </label>
+        <div style="margin-top:14px">
+          <div style="font-weight:700;margin-bottom:6px">Tiempo de mesa (color del borde en el plano)</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
+            <label style="display:flex;align-items:center;gap:6px">🟠 Naranja desde
+              <input type="number" name="mesa_umbral_naranja" min="1" value="<?= (int)getSetting('mesa_umbral_naranja','20') ?>" style="width:64px;padding:6px;border:1.5px solid var(--border,#ddd);border-radius:7px"> min</label>
+            <label style="display:flex;align-items:center;gap:6px">🔴 Rojo desde
+              <input type="number" name="mesa_umbral_rojo" min="1" value="<?= (int)getSetting('mesa_umbral_rojo','30') ?>" style="width:64px;padding:6px;border:1.5px solid var(--border,#ddd);border-radius:7px"> min</label>
+          </div>
+          <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:5px">Verde antes del naranja. Por defecto: naranja a los 20 min, rojo a los 30.</span>
+        </div>
       </div>
     </div>
 

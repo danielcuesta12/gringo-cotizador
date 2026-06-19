@@ -181,17 +181,17 @@ function drawPlano(){
   $('plano-piso').textContent=piso.nombre;
   refreshEstados();
 }
-var EST={estados:{},montos:{}};
+var EST={estados:{},montos:{},minutos:{},uN:20,uR:30};
 function refreshEstados(){
   var piso=st.pisos[st.pi]; if(!piso)return;
   var board=$('plano-board');
   // alto disponible: desde el borde superior del tablero hasta el fondo de la pantalla
   var avail=Math.max(220, window.innerHeight - board.getBoundingClientRect().top - 12);
-  PlanoRender.draw(board, piso, {uploadUrl:UPLOAD, estados:EST.estados, montos:EST.montos, maxHeight:avail, onMesaTap:onMesaTap});
+  PlanoRender.draw(board, piso, {uploadUrl:UPLOAD, estados:EST.estados, montos:EST.montos, minutos:EST.minutos, umbralNaranja:EST.uN, umbralRojo:EST.uR, maxHeight:avail, onMesaTap:onMesaTap});
 }
 function pollEstados(){
   get('plano_estados').then(function(d){
-    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{}}; if($('v-plano').classList.contains('on')) refreshEstados(); }
+    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{},minutos:d.minutos||{},uN:d.umbral_naranja||20,uR:d.umbral_rojo||30}; if($('v-plano').classList.contains('on')) refreshEstados(); }
   }, function(){ /* error de red: ignorar, igual reprogramamos */ })
   .then(function(){ setTimeout(pollEstados, 5000); });
 }

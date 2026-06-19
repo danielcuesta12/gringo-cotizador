@@ -160,10 +160,11 @@ function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motiv
 
 /** Estados de mesa de un local: las que tienen cuenta abierta → 'ocupada' + monto. */
 function mesaEstados(int $ubicacionId): array {
-    $estados = []; $montos = [];
-    foreach (Database::fetchAll("SELECT mesa_id, total FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubicacionId]) as $r) {
+    $estados = []; $montos = []; $minutos = [];
+    foreach (Database::fetchAll("SELECT mesa_id, total, TIMESTAMPDIFF(MINUTE, abierta_at, NOW()) AS mins FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubicacionId]) as $r) {
         $estados[(int)$r['mesa_id']] = 'ocupada';
         $montos[(int)$r['mesa_id']]  = (float)$r['total'];
+        $minutos[(int)$r['mesa_id']] = max(0, (int)$r['mins']);
     }
-    return ['estados' => $estados, 'montos' => $montos];
+    return ['estados' => $estados, 'montos' => $montos, 'minutos' => $minutos];
 }

@@ -79,7 +79,11 @@ switch ($action) {
     }
 
     case 'plano_estados':
-        mout(array_merge(['ok' => true], mesaEstados($ubi)));
+        mout(array_merge([
+            'ok' => true,
+            'umbral_naranja' => (int)(getSetting('mesa_umbral_naranja', '20') ?: 20),
+            'umbral_rojo'    => (int)(getSetting('mesa_umbral_rojo', '30') ?: 30),
+        ], mesaEstados($ubi)));
 
     case 'menu': {
         $prods = Database::fetchAll(
