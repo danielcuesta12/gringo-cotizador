@@ -3,11 +3,31 @@
 (function () {
   'use strict';
   var GRID = 10;
-  var scale = 1; // factor de escala del lienzo para que todo el piso quepa en pantalla
+  var zoom = 0; // escala de la vista (0 = aún sin calcular → encuadra el piso)
   var api, csrf, uploadUrl;
   var st = { ubi: 0, pisos: [], pi: 0, sel: null }; // sel = {kind:'mesa'|'elem', ref:obj}
   var tmpSeq = -1; // ids temporales negativos para nuevos
-  var mount, elCanvas, elProps, elTabs;
+  var mount, elCanvas, elProps, elTabs, elWrap, elSizer;
+
+  // Factor para encuadrar todo el piso en la ventana (sin pasar de 1:1).
+  function fitFactor(p) {
+    var availW = ((elWrap && elWrap.clientWidth) || p.ancho) - 4;
+    var maxH = Math.round(window.innerHeight * 0.72);
+    var f = Math.min(availW / p.ancho, maxH / p.alto, 1);
+    return f > 0 ? f : 1;
+  }
+  function zoomLabel() { var l = mount && mount.querySelector('.pe-zlbl'); if (l) l.textContent = Math.round(zoom * 100) + '%'; }
+  // Aplica el zoom actual: dimensiona el área scrolleable y escala el lienzo (sin reconstruir).
+  function applyZoom() {
+    var p = piso(); if (!p || !elSizer) return;
+    elSizer.style.width = Math.ceil(p.ancho * zoom) + 'px';
+    elSizer.style.height = Math.ceil(p.alto * zoom) + 'px';
+    elCanvas.style.transform = 'scale(' + zoom + ')';
+    zoomLabel();
+  }
+  function setZoom(z) { zoom = Math.max(0.2, Math.min(3, z)); applyZoom(); }
+  function zoomBy(f) { setZoom(zoom * f); }
+  function fitToWindow() { zoom = fitFactor(piso()); applyZoom(); }
 
   function snap(v) { return Math.round(v / GRID) * GRID; }
   function piso() { return st.pisos[st.pi]; }
@@ -65,19 +85,15 @@
   // ---------- canvas ----------
   function renderCanvas() {
     var p = piso();
-    // Escalar el piso completo para que quepa en pantalla (ancho disponible y ~72vh de alto).
-    var wrap = elCanvas.parentNode; // .pe-canvas-wrap
-    var availW = (wrap.clientWidth || p.ancho) - 4;
-    var maxH = Math.round(window.innerHeight * 0.72);
-    scale = Math.min(availW / p.ancho, maxH / p.alto, 1); // nunca agrandar más de 1:1
-    if (!(scale > 0)) scale = 1;
+    if (!(zoom > 0)) zoom = fitFactor(p); // primer render / piso nuevo → encuadrar
+    elSizer.style.width = Math.ceil(p.ancho * zoom) + 'px';
+    elSizer.style.height = Math.ceil(p.alto * zoom) + 'px';
     elCanvas.innerHTML = '';
     elCanvas.style.width = p.ancho + 'px';
     elCanvas.style.height = p.alto + 'px';
     elCanvas.style.transformOrigin = 'top left';
-    elCanvas.style.transform = 'scale(' + scale + ')';
-    wrap.style.height = Math.ceil(p.alto * scale) + 'px';
-    wrap.style.overflow = 'hidden';
+    elCanvas.style.transform = 'scale(' + zoom + ')';
+    zoomLabel();
     if (p.fondo_img) {
       var bg = document.createElement('img');
       bg.src = uploadUrl + p.fondo_img;
@@ -131,12 +147,13 @@
       st.sel = { kind: kind, ref: obj };
       renderProps();
       var rect = elCanvas.getBoundingClientRect();
-      // rect es el tamaño VISUAL (ya escalado); convertimos a coordenadas lógicas dividiendo por scale.
-      var ox = (ev.clientX - rect.left) / scale - obj.pos_x;
-      var oy = (ev.clientY - rect.top) / scale - obj.pos_y;
+      // rect es el tamaño VISUAL (ya escalado); escala efectiva = rect.width / ancho lógico.
+      var eff = rect.width / piso().ancho || 1;
+      var ox = (ev.clientX - rect.left) / eff - obj.pos_x;
+      var oy = (ev.clientY - rect.top) / eff - obj.pos_y;
       function move(e) {
-        obj.pos_x = Math.max(0, snap((e.clientX - rect.left) / scale - ox));
-        obj.pos_y = Math.max(0, snap((e.clientY - rect.top) / scale - oy));
+        obj.pos_x = Math.max(0, snap((e.clientX - rect.left) / eff - ox));
+        obj.pos_y = Math.max(0, snap((e.clientY - rect.top) / eff - oy));
         node.style.left = obj.pos_x + 'px';
         node.style.top = obj.pos_y + 'px';
       }
@@ -154,9 +171,10 @@
     h.addEventListener('pointerdown', function (ev) {
       ev.preventDefault(); ev.stopPropagation();
       var rect = elCanvas.getBoundingClientRect();
+      var eff = rect.width / piso().ancho || 1;
       function move(e) {
-        obj.ancho = Math.max(20, snap((e.clientX - rect.left) / scale - obj.pos_x));
-        obj.alto = Math.max(20, snap((e.clientY - rect.top) / scale - obj.pos_y));
+        obj.ancho = Math.max(20, snap((e.clientX - rect.left) / eff - obj.pos_x));
+        obj.alto = Math.max(20, snap((e.clientY - rect.top) / eff - obj.pos_y));
         node.style.width = obj.ancho + 'px';
         node.style.height = obj.alto + 'px';
       }
@@ -221,7 +239,7 @@
     h = Math.max(300, Math.min(4000, h || 700));
     var p = piso(); if (!p) return;
     p.ancho = w; p.alto = h;
-    renderCanvas(); renderProps();
+    zoom = 0; renderCanvas(); renderProps(); // re-encuadrar a la nueva forma
     post('set_piso_dims', { piso_id: p.id, ancho: w, alto: h });
   }
 
@@ -305,7 +323,7 @@
   }
 
   // ---------- render maestro ----------
-  function renderAll() { renderTabs(); renderCanvas(); renderProps(); }
+  function renderAll() { zoom = 0; renderTabs(); renderCanvas(); renderProps(); }
 
   function init(opts) {
     api = window.EG_MESAS_API; csrf = window.EG_CSRF; uploadUrl = window.EG_UPLOAD_URL || '';
@@ -320,13 +338,17 @@
           '<div class="pe-tool" data-t="etiqueta">🔤 Etiqueta</div>' +
           '<div class="pe-tool" data-t="forma">▬ Barra / pared</div>' +
           '<label class="pe-tool" style="cursor:pointer">🖼 Fondo<input type="file" accept="image/*" style="display:none"></label>' +
+          '<div class="pe-tool" data-t="fit">⤢ Ajustar vista</div>' +
+          '<div class="pe-zoombar"><button type="button" data-z="out" title="Alejar">−</button><span class="pe-zlbl">100%</span><button type="button" data-z="in" title="Acercar">+</button></div>' +
           '<div class="pe-save">Guardar</div>' +
           '<div class="pe-status"></div>' +
         '</div>' +
-        '<div class="pe-canvas-wrap"><div class="pe-canvas"></div></div>' +
+        '<div class="pe-canvas-wrap"><div class="pe-canvas-sizer"><div class="pe-canvas"></div></div></div>' +
         '<div class="pe-props"></div>' +
       '</div>';
     elTabs = mount.querySelector('.pe-tabs');
+    elWrap = mount.querySelector('.pe-canvas-wrap');
+    elSizer = mount.querySelector('.pe-canvas-sizer');
     elCanvas = mount.querySelector('.pe-canvas');
     elProps = mount.querySelector('.pe-props');
     var statusEl = mount.querySelector('.pe-status');
@@ -334,15 +356,18 @@
     mount.querySelector('[data-t="mesaC"]').addEventListener('click', function () { addMesa('cuadrada'); });
     mount.querySelector('[data-t="etiqueta"]').addEventListener('click', function () { addElem('etiqueta'); });
     mount.querySelector('[data-t="forma"]').addEventListener('click', function () { addElem('forma'); });
+    mount.querySelector('[data-t="fit"]').addEventListener('click', fitToWindow);
+    mount.querySelector('[data-z="out"]').addEventListener('click', function () { zoomBy(0.83); });
+    mount.querySelector('[data-z="in"]').addEventListener('click', function () { zoomBy(1.2); });
     mount.querySelector('.pe-save').addEventListener('click', function () { save(statusEl); });
     mount.querySelector('input[type=file]').addEventListener('change', function () { if (this.files[0]) subirFondo(this.files[0], statusEl); });
     // clic en vacío deselecciona
-    mount.querySelector('.pe-canvas-wrap').addEventListener('pointerdown', function (e) {
-      if (e.target === this || e.target === elCanvas) { st.sel = null; renderCanvas(); renderProps(); }
+    elWrap.addEventListener('pointerdown', function (e) {
+      if (e.target === elWrap || e.target === elSizer || e.target === elCanvas) { st.sel = null; renderCanvas(); renderProps(); }
     });
-    // recalcular la escala al cambiar el tamaño de la ventana (debounce)
+    // al cambiar el tamaño de la ventana, re-aplicar el zoom (conserva el nivel actual)
     var _rsz = null;
-    window.addEventListener('resize', function () { clearTimeout(_rsz); _rsz = setTimeout(function () { if (st.pisos.length) renderCanvas(); }, 150); });
+    window.addEventListener('resize', function () { clearTimeout(_rsz); _rsz = setTimeout(function () { if (st.pisos.length) applyZoom(); }, 150); });
     // tecla Suprimir / Backspace borra lo seleccionado (salvo escribiendo en un campo)
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;

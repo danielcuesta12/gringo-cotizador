@@ -1105,10 +1105,14 @@ table.data-table {
 .pe-tool:hover{border-color:#FFDF00}
 .pe-save{background:#FFDF00;color:#1E1E1E;text-align:center;font-weight:800;padding:10px;border-radius:9px;cursor:pointer}
 .pe-status{font-size:12px;color:var(--text-muted,#888);text-align:center;min-height:16px}
-.pe-canvas-wrap{flex:1;overflow:auto;border:1px solid var(--border,#e3e3e3);border-radius:10px;background:
+.pe-canvas-wrap{flex:1;overflow:auto;border:1px solid var(--border,#e3e3e3);border-radius:10px;height:72vh;background:#f7f5f0}
+.pe-canvas-sizer{position:relative;overflow:hidden;background:
   repeating-linear-gradient(0deg,#f0ede6,#f0ede6 1px,transparent 1px,transparent 20px),
-  repeating-linear-gradient(90deg,#f0ede6,#f0ede6 1px,transparent 1px,transparent 20px),#f7f5f0;max-height:70vh}
+  repeating-linear-gradient(90deg,#f0ede6,#f0ede6 1px,transparent 1px,transparent 20px),#f7f5f0}
 .pe-canvas{position:relative}
+.pe-zoombar{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:2px}
+.pe-zoombar button{width:30px;height:30px;border:1.5px solid var(--border,#ddd);background:#fff;border-radius:8px;font-size:16px;font-weight:800;cursor:pointer;line-height:1;color:#1E1E1E}
+.pe-zlbl{font-size:12px;font-weight:700;min-width:42px;text-align:center;color:#555}
 .pe-props{width:180px;flex-shrink:0;background:#fff;border:1px solid var(--border,#e3e3e3);border-radius:10px;padding:12px}
 @media(max-width:760px){.pe-main{flex-direction:column}.pe-tools,.pe-props{width:100%}.pe-tools{flex-direction:row;flex-wrap:wrap}.pe-tool{flex:1;min-width:120px}}
 
