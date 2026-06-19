@@ -12,6 +12,38 @@ function cuentasListo(): bool {
     } catch (\Throwable $e) { return false; }
 }
 
+/** ¿Existe la tabla de pagos de mesa? (Sub-build C) */
+function cuentaPagosListo(): bool {
+    try {
+        return (bool) Database::fetch(
+            "SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='cuenta_pagos'");
+    } catch (\Throwable $e) { return false; }
+}
+
+/** Total de una línea de ítem (0 si anulado): (precio + suma de modificadores) * qty. */
+function itemLineTotal(array $it): float {
+    if (!empty($it['anulado'])) return 0.0;
+    $qty  = max(1, (int)($it['qty'] ?? 1));
+    $base = (float)($it['precio'] ?? 0);
+    $mods = 0.0;
+    foreach ((array)($it['modificadores'] ?? []) as $m) $mods += (float)($m['precio'] ?? 0);
+    return ($base + $mods) * $qty;
+}
+
+/** Reparte $total en $n partes a 2 decimales; el resto de centavos va a la última. Suman exacto. */
+function repartoCentavos(float $total, int $n): array {
+    $n = max(1, $n);
+    $cent  = (int) round($total * 100);
+    $base  = intdiv($cent, $n);
+    $resto = $cent - $base * $n;
+    $out = [];
+    for ($i = 0; $i < $n; $i++) {
+        $c = $base + ($i === $n - 1 ? $resto : 0);
+        $out[] = round($c / 100, 2);
+    }
+    return $out;
+}
+
 /** Distancia en metros entre dos coordenadas (haversine). */
 function haversineM(float $lat1, float $lng1, float $lat2, float $lng2): float {
     $R = 6371000.0;
@@ -56,12 +88,7 @@ function cuentaTotalRecalc(int $cuentaId): float {
     foreach (Database::fetchAll("SELECT items_json FROM pedidos WHERE cuenta_id = ? AND estado <> 'cancelado'", [$cuentaId]) as $row) {
         $items = json_decode($row['items_json'] ?? '[]', true) ?: [];
         foreach ($items as $it) {
-            if (!empty($it['anulado'])) continue;
-            $qty  = max(1, (int)($it['qty'] ?? 1));
-            $base = (float)($it['precio'] ?? 0);
-            $mods = 0.0;
-            foreach ((array)($it['modificadores'] ?? []) as $m) $mods += (float)($m['precio'] ?? 0);
-            $total += ($base + $mods) * $qty;
+            $total += itemLineTotal($it);
         }
     }
     $total = round($total, 2);
