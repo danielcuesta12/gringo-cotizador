@@ -3,6 +3,7 @@
 (function () {
   'use strict';
   var GRID = 10;
+  var scale = 1; // factor de escala del lienzo para que todo el piso quepa en pantalla
   var api, csrf, uploadUrl;
   var st = { ubi: 0, pisos: [], pi: 0, sel: null }; // sel = {kind:'mesa'|'elem', ref:obj}
   var tmpSeq = -1; // ids temporales negativos para nuevos
@@ -64,9 +65,19 @@
   // ---------- canvas ----------
   function renderCanvas() {
     var p = piso();
+    // Escalar el piso completo para que quepa en pantalla (ancho disponible y ~72vh de alto).
+    var wrap = elCanvas.parentNode; // .pe-canvas-wrap
+    var availW = (wrap.clientWidth || p.ancho) - 4;
+    var maxH = Math.round(window.innerHeight * 0.72);
+    scale = Math.min(availW / p.ancho, maxH / p.alto, 1); // nunca agrandar más de 1:1
+    if (!(scale > 0)) scale = 1;
     elCanvas.innerHTML = '';
     elCanvas.style.width = p.ancho + 'px';
     elCanvas.style.height = p.alto + 'px';
+    elCanvas.style.transformOrigin = 'top left';
+    elCanvas.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = Math.ceil(p.alto * scale) + 'px';
+    wrap.style.overflow = 'hidden';
     if (p.fondo_img) {
       var bg = document.createElement('img');
       bg.src = uploadUrl + p.fondo_img;
@@ -120,11 +131,12 @@
       st.sel = { kind: kind, ref: obj };
       renderProps();
       var rect = elCanvas.getBoundingClientRect();
-      var ox = ev.clientX - rect.left - obj.pos_x;
-      var oy = ev.clientY - rect.top - obj.pos_y;
+      // rect es el tamaño VISUAL (ya escalado); convertimos a coordenadas lógicas dividiendo por scale.
+      var ox = (ev.clientX - rect.left) / scale - obj.pos_x;
+      var oy = (ev.clientY - rect.top) / scale - obj.pos_y;
       function move(e) {
-        obj.pos_x = Math.max(0, snap(e.clientX - rect.left - ox));
-        obj.pos_y = Math.max(0, snap(e.clientY - rect.top - oy));
+        obj.pos_x = Math.max(0, snap((e.clientX - rect.left) / scale - ox));
+        obj.pos_y = Math.max(0, snap((e.clientY - rect.top) / scale - oy));
         node.style.left = obj.pos_x + 'px';
         node.style.top = obj.pos_y + 'px';
       }
@@ -143,8 +155,8 @@
       ev.preventDefault(); ev.stopPropagation();
       var rect = elCanvas.getBoundingClientRect();
       function move(e) {
-        obj.ancho = Math.max(20, snap(e.clientX - rect.left - obj.pos_x));
-        obj.alto = Math.max(20, snap(e.clientY - rect.top - obj.pos_y));
+        obj.ancho = Math.max(20, snap((e.clientX - rect.left) / scale - obj.pos_x));
+        obj.alto = Math.max(20, snap((e.clientY - rect.top) / scale - obj.pos_y));
         node.style.width = obj.ancho + 'px';
         node.style.height = obj.alto + 'px';
       }
@@ -295,6 +307,9 @@
     mount.querySelector('.pe-canvas-wrap').addEventListener('pointerdown', function (e) {
       if (e.target === this || e.target === elCanvas) { st.sel = null; renderCanvas(); renderProps(); }
     });
+    // recalcular la escala al cambiar el tamaño de la ventana (debounce)
+    var _rsz = null;
+    window.addEventListener('resize', function () { clearTimeout(_rsz); _rsz = setTimeout(function () { if (st.pisos.length) renderCanvas(); }, 150); });
     // tecla Suprimir / Backspace borra lo seleccionado (salvo escribiendo en un campo)
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
