@@ -252,7 +252,7 @@ function renderProd(){
   var s=st.prodSel, p=s.p;
   var html='<div style="padding:15px 16px 6px"><div style="font-weight:900;font-size:17px">'+esc(p.nombre)+'</div><div style="color:#888;font-size:12px">S/ '+Number(p.precio).toFixed(2)+'</div></div><div style="padding:6px 16px">';
   (p.grupos||[]).forEach(function(g){
-    var multi=(parseInt(g.max_select||1)!==1);
+    var multi=(g.tipo==='multiple');
     html+='<div style="font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin:8px 0 2px">'+esc(g.nombre)+'</div>';
     (g.opciones||[]).forEach(function(o){
       var on=(s.sel[g.id]&&s.sel[g.id][o.id]);

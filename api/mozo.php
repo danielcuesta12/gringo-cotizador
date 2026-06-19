@@ -88,16 +88,19 @@ switch ($action) {
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE lp.location_id = ? AND lp.available = 1
              ORDER BY c.sort_order, c.name, lp.sort_order, p.name", [$ubi]);
-        // grupos de modificadores por producto
+        // grupos de modificadores por producto (tolerante: si faltan tablas, queda sin modificadores)
         foreach ($prods as &$pr) {
-            $pr['grupos'] = Database::fetchAll(
-                "SELECT g.id, g.nombre, g.min_select, g.max_select FROM grupos_modificadores g
-                 JOIN product_modifier_groups pmg ON pmg.grupo_id = g.id
-                 WHERE pmg.product_id = ? ORDER BY g.id", [(int)$pr['id']]);
-            foreach ($pr['grupos'] as &$g) {
-                $g['opciones'] = Database::fetchAll("SELECT id, nombre, precio FROM modificadores WHERE grupo_id = ? AND activo = 1 ORDER BY id", [(int)$g['id']]);
-            }
-            unset($g);
+            try {
+                $pr['grupos'] = Database::fetchAll(
+                    "SELECT g.id, g.nombre, g.tipo, g.max_opciones, g.requerido FROM grupos_modificadores g
+                     JOIN product_modifier_groups pmg ON pmg.grupo_id = g.id
+                     WHERE pmg.product_id = ? AND g.activo = 1 ORDER BY g.orden, g.id", [(int)$pr['id']]);
+                foreach ($pr['grupos'] as &$g) {
+                    $g['opciones'] = Database::fetchAll(
+                        "SELECT id, nombre, precio_adicional AS precio FROM modificadores WHERE grupo_id = ? AND activo = 1 ORDER BY orden, id", [(int)$g['id']]);
+                }
+                unset($g);
+            } catch (\Throwable $e) { $pr['grupos'] = []; }
         }
         unset($pr);
         $cats = [];
