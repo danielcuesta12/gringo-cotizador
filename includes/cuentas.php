@@ -568,3 +568,56 @@ function cuentaSepararMesa(int $cuentaId, int $mesaId, int $ubicacionId): array 
     if ($n <= 0) return ['ok' => false, 'error' => 'la mesa no está en este grupo'];
     return ['ok' => true, 'mesas' => cuentaMesasLista($cuentaId)];
 }
+
+/** Mesas del local fuera del grupo de $cuentaId, marcadas libre/ocupada. Libres primero. */
+function mesasParaJuntar(int $cuentaId, int $ubicacionId): array {
+    $grupo = [];
+    foreach (cuentaMesasLista($cuentaId) as $m) $grupo[(int)$m['id']] = 1;
+    $out = [];
+    foreach (Database::fetchAll("SELECT id, numero FROM mesas WHERE ubicacion_id = ? AND activa = 1 ORDER BY numero+0, numero", [$ubicacionId]) as $m) {
+        $mid = (int)$m['id'];
+        if (isset($grupo[$mid])) continue;
+        $out[] = ['id' => $mid, 'numero' => (string)$m['numero'], 'ocupada' => cuentaAbiertaDeMesa($mid) ? true : false];
+    }
+    usort($out, function ($a, $b) { return ($a['ocupada'] ? 1 : 0) - ($b['ocupada'] ? 1 : 0); }); // libres primero (usort estable en PHP 8)
+    return $out;
+}
+
+/** Mueve la cuenta a una mesa LIBRE (cambia la principal; la mesa vieja queda libre). */
+function cuentaTransferir(int $cuentaId, int $mesaDestino, int $ubicacionId): array {
+    $c = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
+    if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    if ($mesaDestino === (int)$c['mesa_id']) return ['ok' => false, 'error' => 'ya está en esa mesa'];
+    $m = Database::fetch("SELECT id FROM mesas WHERE id = ? AND ubicacion_id = ? AND activa = 1", [$mesaDestino, (int)$c['ubicacion_id']]);
+    if (!$m) return ['ok' => false, 'error' => 'mesa inválida'];
+    if (cuentaAbiertaDeMesa($mesaDestino)) return ['ok' => false, 'error' => 'la mesa no está libre'];
+    Database::execute("UPDATE cuentas SET mesa_id = ? WHERE id = ?", [$mesaDestino, $cuentaId]);
+    return ['ok' => true, 'mesas' => cuentaMesasLista($cuentaId)];
+}
+
+/** Fusiona la cuenta abierta de $mesaOrigen DENTRO de $cuentaDestino. Ambas sin pagos. Transaccional. */
+function cuentaFusionar(int $cuentaDestino, int $mesaOrigen, int $ubicacionId): array {
+    if (!cuentaMesasListo()) return ['ok' => false, 'error' => 'función no disponible'];
+    $dest = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)", [$cuentaDestino, $ubicacionId, $ubicacionId]);
+    if (!$dest) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    $orig = cuentaAbiertaDeMesa($mesaOrigen);
+    if (!$orig) return ['ok' => false, 'error' => 'la mesa no tiene cuenta'];
+    $origId = (int)$orig['id'];
+    if ($origId === $cuentaDestino) return ['ok' => false, 'error' => 'es la misma cuenta'];
+    if ((int)$orig['ubicacion_id'] !== (int)$dest['ubicacion_id']) return ['ok' => false, 'error' => 'otra ubicación'];
+    if (cuentaTieneCobro($cuentaDestino) || cuentaTieneCobro($origId)) return ['ok' => false, 'error' => 'alguna cuenta ya tiene pagos'];
+    $pdo = Database::getInstance();
+    try {
+        $pdo->beginTransaction();
+        Database::execute("UPDATE pedidos SET cuenta_id = ? WHERE cuenta_id = ?", [$cuentaDestino, $origId]);          // comandas (mantienen mesa_id)
+        Database::execute("UPDATE cuenta_mesas SET cuenta_id = ? WHERE cuenta_id = ?", [$cuentaDestino, $origId]);     // secundarias de la origen → destino
+        Database::execute("INSERT IGNORE INTO cuenta_mesas (cuenta_id, mesa_id) VALUES (?, ?)", [$cuentaDestino, (int)$orig['mesa_id']]); // principal de la origen → secundaria
+        Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ?", [$origId]);      // cerrar origen
+        cuentaTotalRecalc($cuentaDestino);
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return ['ok' => false, 'error' => 'no se pudo fusionar'];
+    }
+    return ['ok' => true, 'mesas' => cuentaMesasLista($cuentaDestino)];
+}

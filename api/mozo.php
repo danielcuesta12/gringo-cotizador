@@ -14,7 +14,7 @@ function mozoEmp(): int { return (int)($_SESSION['mozo_emp'] ?? 0); }
 function mozoUbi(): int { return (int)($_SESSION['mozo_ubi'] ?? 0); }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar', 'juntar_mesa', 'separar_mesa'];
+$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar', 'juntar_mesa', 'separar_mesa', 'fusionar_cuenta', 'transferir_cuenta'];
 if (in_array($action, $writes, true) && $action !== 'login_pin') verifyCsrf();
 
 // --- acciones públicas (sin sesión de mozo) ---
@@ -198,6 +198,17 @@ switch ($action) {
     case 'separar_mesa':
         geoGate($ubi);
         mout(cuentaSepararMesa(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
+
+    case 'mesas_para_juntar':
+        mout(['ok' => true, 'mesas' => mesasParaJuntar(cleanInt($_GET['cuenta_id'] ?? 0), $ubi)]);
+
+    case 'fusionar_cuenta':
+        geoGate($ubi);
+        mout(cuentaFusionar(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
+
+    case 'transferir_cuenta':
+        geoGate($ubi);
+        mout(cuentaTransferir(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
 
     default:
         http_response_code(400);

@@ -412,6 +412,7 @@ function openMesaInfo(mesaId){
       '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>';
     if (sinPagos) acciones += '<button class="btn" style="margin-top:8px" onclick="openJuntar()">Juntar mesa</button>';
     if (sinPagos && nSec > 0) acciones += '<button class="btn" style="margin-top:8px" onclick="openSeparar()">Separar mesa</button>';
+    acciones += '<button class="btn" style="margin-top:8px" onclick="openMover()">Mover a mesa libre</button>';
     acciones += '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>';
     $('m-mesa-in').innerHTML=
       '<div style="padding:15px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start">'+
@@ -426,16 +427,35 @@ function openMesaInfo(mesaId){
 }
 function verCuentaDesdeInfo(){ closeModal('m-mesa'); if(st.cuenta) loadCuenta(st.cuenta.id); }
 function openJuntar(){
-  get('mesas_libres').then(function(d){
+  get('mesas_para_juntar&cuenta_id='+st.cuenta.id).then(function(d){
     if(!d.ok){ toast('Error'); return; }
-    if(!d.mesas.length){ toast('No hay mesas libres'); return; }
+    if(!d.mesas.length){ toast('No hay otras mesas'); return; }
     $('pick-tit').textContent='Juntar a esta cuenta';
     var box=$('pick-body'); box.innerHTML='';
-    d.mesas.forEach(function(m){ var b=document.createElement('button'); b.className='btn'; b.style.marginBottom='8px'; b.textContent='Mesa '+m.numero; b.onclick=function(){ doJuntar(m.id); }; box.appendChild(b); });
+    d.mesas.forEach(function(m){
+      var b=document.createElement('button'); b.className='btn'; b.style.marginBottom='8px';
+      b.textContent = m.ocupada ? ('Mesa '+m.numero+' · ocupada') : ('Mesa '+m.numero);
+      b.onclick = m.ocupada
+        ? function(){ if(confirm('¿Unir la cuenta de Mesa '+m.numero+' a esta?')) doFusionar(m.id); }
+        : function(){ doJuntar(m.id); };
+      box.appendChild(b);
+    });
     openModal('m-pick');
   });
 }
+function doFusionar(mesaId){ geo().then(function(){ post('fusionar_cuenta', withGeo({cuenta_id:st.cuenta.id, mesa_id:mesaId})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} closeModal('m-pick'); toast('Cuentas unidas'); openMesaInfo(st.cuenta.mesa_id); }); }); }
 function doJuntar(mesaId){ geo().then(function(){ post('juntar_mesa', withGeo({cuenta_id:st.cuenta.id, mesa_id:mesaId})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} closeModal('m-pick'); toast('Mesa juntada'); openMesaInfo(st.cuenta.mesa_id); }); }); }
+function openMover(){
+  get('mesas_libres').then(function(d){
+    if(!d.ok){ toast('Error'); return; }
+    if(!d.mesas.length){ toast('No hay mesas libres'); return; }
+    $('pick-tit').textContent='Mover a mesa libre';
+    var box=$('pick-body'); box.innerHTML='';
+    d.mesas.forEach(function(m){ var b=document.createElement('button'); b.className='btn'; b.style.marginBottom='8px'; b.textContent='Mesa '+m.numero; b.onclick=function(){ doTransferir(m.id); }; box.appendChild(b); });
+    openModal('m-pick');
+  });
+}
+function doTransferir(mesaId){ geo().then(function(){ post('transferir_cuenta', withGeo({cuenta_id:st.cuenta.id, mesa_id:mesaId})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} closeModal('m-pick'); toast('Cuenta movida'); openMesaInfo(mesaId); }); }); }
 function openSeparar(){
   var sec=(st.cuenta.mesas||[]).filter(function(m){return !m.principal;});
   if(!sec.length){ toast('No hay mesas para separar'); return; }
