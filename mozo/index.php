@@ -228,6 +228,8 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 <div class="modal" id="m-borr"><div class="sheet" id="m-borr-in"></div></div>
 <!-- ficha de mesa (info al tocar) -->
 <div class="modal" id="m-mesa"><div class="sheet" id="m-mesa-in"></div></div>
+<!-- picker juntar / separar -->
+<div class="modal" id="m-pick"><div class="sheet"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)"><b id="pick-tit"></b><button type="button" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center" onclick="closeModal('m-pick')">&#x2715;</button></div><div id="pick-body" style="padding:14px 16px"></div></div></div>
 <!-- COBRO -->
 <div class="modal" id="m-cobro" aria-hidden="true">
   <div class="sheet" role="dialog" aria-modal="true">
@@ -402,22 +404,47 @@ function openMesaInfo(mesaId){
     var items=[]; c.comandas.forEach(function(co){ (co.items||[]).forEach(function(it){ if(!it.anulado) items.push(it.qty+'× '+it.nombre); }); });
     var resumen=items.slice(0,6).join(' · ')+(items.length>6?' …':'');
     var mins=c.abierta_at?minDesde(c.abierta_at):0;
+    var grupo = (c.mesas && c.mesas.length) ? c.mesas.map(function(m){return esc(m.numero);}).join(' + ') : esc(c.mesa_numero||'');
+    var sinPagos = !(c.pagado > 0);
+    var nSec = (c.mesas||[]).filter(function(m){return !m.principal;}).length;
+    var acciones =
+      '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>'+
+      '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>';
+    if (sinPagos) acciones += '<button class="btn" style="margin-top:8px" onclick="openJuntar()">Juntar mesa</button>';
+    if (sinPagos && nSec > 0) acciones += '<button class="btn" style="margin-top:8px" onclick="openSeparar()">Separar mesa</button>';
+    acciones += '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>';
     $('m-mesa-in').innerHTML=
       '<div style="padding:15px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start">'+
-        '<div><div style="font-weight:900;font-size:19px">Mesa '+esc(c.mesa_numero||'')+'</div>'+
+        '<div><div style="font-weight:900;font-size:19px">Mesa '+grupo+'</div>'+
           '<div style="font-size:12px;color:#888;margin-top:2px">'+c.num_comensales+' comensales'+(c.mozo_nombre?(' · '+esc(c.mozo_nombre)):'')+'</div></div>'+
         '<div style="font-weight:900;font-size:21px">S/ '+Number(c.total).toFixed(0)+'</div></div>'+
-      '<div style="padding:0 16px;font-size:11px;color:#888">⏱ Abierta '+mins+' min · '+rondas+' ronda'+(rondas===1?'':'s')+'</div>'+
+      '<div style="padding:0 16px;font-size:11px;color:#888">Abierta '+mins+' min · '+rondas+' ronda'+(rondas===1?'':'s')+'</div>'+
       (resumen?('<div style="margin:9px 16px 0;padding-top:8px;border-top:1px solid #eee;font-size:12px;color:#555;line-height:1.5">'+esc(resumen)+'</div>'):'')+
-      '<div style="padding:13px 16px">'+
-        '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>'+
-        '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>'+
-        '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>'+
-      '</div>';
+      '<div style="padding:13px 16px">'+acciones+'</div>';
     openModal('m-mesa');
   });
 }
 function verCuentaDesdeInfo(){ closeModal('m-mesa'); if(st.cuenta) loadCuenta(st.cuenta.id); }
+function openJuntar(){
+  get('mesas_libres').then(function(d){
+    if(!d.ok){ toast('Error'); return; }
+    if(!d.mesas.length){ toast('No hay mesas libres'); return; }
+    $('pick-tit').textContent='Juntar a esta cuenta';
+    var box=$('pick-body'); box.innerHTML='';
+    d.mesas.forEach(function(m){ var b=document.createElement('button'); b.className='btn'; b.style.marginBottom='8px'; b.textContent='Mesa '+m.numero; b.onclick=function(){ doJuntar(m.id); }; box.appendChild(b); });
+    openModal('m-pick');
+  });
+}
+function doJuntar(mesaId){ geo().then(function(){ post('juntar_mesa', withGeo({cuenta_id:st.cuenta.id, mesa_id:mesaId})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} closeModal('m-pick'); toast('Mesa juntada'); openMesaInfo(st.cuenta.mesa_id); }); }); }
+function openSeparar(){
+  var sec=(st.cuenta.mesas||[]).filter(function(m){return !m.principal;});
+  if(!sec.length){ toast('No hay mesas para separar'); return; }
+  $('pick-tit').textContent='Separar del grupo';
+  var box=$('pick-body'); box.innerHTML='';
+  sec.forEach(function(m){ var b=document.createElement('button'); b.className='btn'; b.style.marginBottom='8px'; b.textContent='Mesa '+m.numero; b.onclick=function(){ doSeparar(m.id); }; box.appendChild(b); });
+  openModal('m-pick');
+}
+function doSeparar(mesaId){ geo().then(function(){ post('separar_mesa', withGeo({cuenta_id:st.cuenta.id, mesa_id:mesaId})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} closeModal('m-pick'); toast('Mesa separada'); openMesaInfo(st.cuenta.mesa_id); }); }); }
 function mesaNum(id){ var n='?'; st.pisos.forEach(function(p){ (p.mesas||[]).forEach(function(m){ if(m.id==id) n=m.numero; }); }); return n; }
 function comStep(d){ st.comN=Math.max(0, st.comN+d); $('com-n').textContent=st.comN; }
 function confirmAbrir(){ closeModal('m-com'); abrirYver(st.comMesa, st.comN); }
