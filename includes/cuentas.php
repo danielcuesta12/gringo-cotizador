@@ -199,15 +199,17 @@ function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motiv
     return ['ok' => true];
 }
 
-/** Estados de mesa de un local. ocupada · precuenta (rosa) · por_cobrar (parcial). */
+/** Estados de mesa de un local. ocupada · precuenta (rosa) · por_cobrar (parcial).
+ *  Tolerante a la migración 58 pendiente: si no está, no referencia precuenta_at/cuenta_pagos
+ *  (el plano de Sub-build B sigue funcionando, solo sin los estados nuevos). */
 function mesaEstados(int $ubicacionId): array {
     $estados = []; $montos = []; $minutos = [];
-    $hasPagos = cuentaPagosListo();
-    $sel = $hasPagos
+    $hasCobro = cuentaPagosListo(); // migración 58 = cuenta_pagos + cuentas.precuenta_at (se crean juntas)
+    $sel = $hasCobro
         ? "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
                   COALESCE((SELECT SUM(monto) FROM cuenta_pagos WHERE cuenta_id = cu.id),0) AS pagado
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'"
-        : "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
+        : "SELECT cu.mesa_id, cu.total, NULL AS precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
                   0 AS pagado
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'";
     foreach (Database::fetchAll($sel, [$ubicacionId]) as $r) {

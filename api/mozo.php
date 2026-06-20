@@ -170,7 +170,11 @@ switch ($action) {
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
         $d = cuentaDetalle($cid, $ubi);
         if (!$d || $d['estado'] !== 'abierta') mout(['ok' => false, 'error' => 'cuenta no abierta']);
-        Database::execute("UPDATE cuentas SET precuenta_at = NOW() WHERE id = ? AND ubicacion_id = ?", [$cid, $ubi]);
+        // Marcar la mesa como "precuenta" (rosa) solo si la migración 58 está aplicada;
+        // la impresión funciona igual sin ella.
+        if (cuentaPagosListo()) {
+            Database::execute("UPDATE cuentas SET precuenta_at = NOW() WHERE id = ? AND ubicacion_id = ?", [$cid, $ubi]);
+        }
         mout(['ok' => true, 'b64' => base64_encode(escposPrecuentaBytes($d))]);
     }
 
