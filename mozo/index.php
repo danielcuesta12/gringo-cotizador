@@ -420,7 +420,17 @@ function abrirYver(mesaId, n){
 }
 
 // ---- Cuenta ----
-function loadCuenta(cid){ get('cuenta&cuenta_id='+cid).then(function(d){ if(!d.ok){toast('Error');return;} st.cuenta=d.cuenta; renderCuenta(); showView('v-cuenta'); }); }
+var _cuentaPoll=false;
+function startCuentaPoll(){ if(_cuentaPoll) return; _cuentaPoll=true; tickCuenta(); }
+function tickCuenta(){
+  if(!$('v-cuenta').classList.contains('on') || !st.cuenta){ _cuentaPoll=false; return; }
+  var cid=st.cuenta.id;
+  get('cuenta&cuenta_id='+cid).then(function(d){
+    if(d.ok && d.cuenta && $('v-cuenta').classList.contains('on') && st.cuenta && +st.cuenta.id===+d.cuenta.id){ st.cuenta=d.cuenta; renderCuenta(); }
+  }, function(){ /* red: ignorar */ })
+  .then(function(){ if($('v-cuenta').classList.contains('on') && st.cuenta){ setTimeout(tickCuenta, 5000); } else { _cuentaPoll=false; } });
+}
+function loadCuenta(cid){ get('cuenta&cuenta_id='+cid).then(function(d){ if(!d.ok){toast('Error');return;} st.cuenta=d.cuenta; renderCuenta(); showView('v-cuenta'); startCuentaPoll(); }); }
 function renderCuenta(){
   var c=st.cuenta; $('cta-mesa').textContent=c.mesa_numero||''; $('cta-com').textContent=c.num_comensales; $('cta-total').textContent='S/ '+c.total.toFixed(0); $('cat-mesa').textContent=c.mesa_numero||'';
   var b=$('cta-body'); b.innerHTML='';
