@@ -302,6 +302,14 @@ function ding(){
 }
 function get(a){ return fetch(API+'?action='+a).then(function(r){return r.json();}); }
 function post(a, body){ var fd=new FormData(); fd.append('action',a); Object.keys(body||{}).forEach(function(k){fd.append(k,body[k]);}); return fetch(API+'?action='+a,{method:'POST',headers:{'X-CSRF-Token':CSRF},body:fd}).then(function(r){return r.json();}); }
+// Reintenta solo si la promesa de red se RECHAZA (sin respuesta). Un {ok:false} de negocio NO se reintenta.
+function postRetry(a, body, tries){
+  tries = tries || 3;
+  return post(a, body).catch(function(err){
+    if(tries<=1) return Promise.reject(err);
+    return new Promise(function(res){ setTimeout(res, 800); }).then(function(){ return postRetry(a, body, tries-1); });
+  });
+}
 
 var avisados={}; var avisosSeed=false; var _avisoTO=null;
 function procesarListos(listos){
@@ -558,7 +566,7 @@ function openBorrador(){
 function quitarBorr(i){ st.borrador.splice(i,1); updBorr(); if(st.borrador.length) openBorrador(); else closeModal('m-borr'); }
 function borrQty(i,d){ var it=st.borrador[i]; if(!it)return; if(d<0 && it.qty<=1){ quitarBorr(i); return; } it.qty=Math.max(1,(it.qty||1)+d); updBorr(); openBorrador(); }
 function borrNota(i,v){ if(st.borrador[i]) st.borrador[i].nota=v; }
-function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
+function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ postRetry('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }, function(){ toast('Sin señal · toca Enviar para reintentar'); }); }); }
 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
 
