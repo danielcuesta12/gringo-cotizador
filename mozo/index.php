@@ -134,6 +134,13 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)}
 .anul{text-decoration:line-through;color:var(--faint)}
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.snd-tgl{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:10px;min-height:40px;padding:0 12px;font-weight:800;font-size:12px;cursor:pointer}
+#aviso-listo{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:60;background:var(--ng);color:#fff;border-radius:14px;padding:13px 15px;box-shadow:0 10px 30px rgba(0,0,0,.28);display:flex;align-items:center;gap:11px;transform:translateY(-140%);transition:transform .3s var(--ease);cursor:pointer}
+#aviso-listo.on{transform:translateY(0)}
+#aviso-listo .dot{width:11px;height:11px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 30%, transparent)}
+#aviso-listo .txt{flex:1;min-width:0;font-size:14px;font-weight:700;line-height:1.25}
+#aviso-listo .txt b{font-weight:900}
+@media (prefers-reduced-motion: reduce){#aviso-listo{transition:none}}
 @media (prefers-reduced-motion: reduce){
   .sheet,.modal,.btn,.qbtn,.plus,.chip,.row,.opt,.top button,.pindots span{transition:none}
   .sheet{transform:none}
@@ -142,6 +149,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 <?= brandHead() ?>
 </head>
 <body>
+<div id="aviso-listo" onclick="cerrarAviso()"><span class="dot"></span><span class="txt"></span></div>
 <?php if (!$ready): ?>
 <div class="view on"><div class="body" style="display:flex;align-items:center;justify-content:center;padding:24px;text-align:center">
   <p>La app del mozo necesita su migración. Aplica <code>install/57_cuentas.sql</code> en phpMyAdmin.</p>
@@ -169,7 +177,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 
 <!-- PLANO -->
 <div class="view" id="v-plano">
-  <div class="top"><span>Mesas · <span class="y" id="plano-piso">Piso 1</span></span><span id="plano-mozo"></span></div>
+  <div class="top"><span>Mesas · <span class="y" id="plano-piso">Piso 1</span></span><span style="display:flex;align-items:center;gap:8px"><button type="button" class="snd-tgl" id="snd-tgl" onclick="toggleSonido()"></button><span id="plano-mozo"></span></span></div>
   <div id="plano-tabs" style="display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#efece4"></div>
   <div class="body"><div id="plano-board" style="padding:8px"></div></div>
 </div>
@@ -190,6 +198,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 <!-- CATÁLOGO (modal de pantalla completa) -->
 <div class="view" id="v-cat">
   <div class="top"><button onclick="showView('v-cuenta')">‹</button><span>Agregar a Mesa <span class="y" id="cat-mesa"></span></span><span></span></div>
+  <div style="padding:8px 10px 0"><input id="cat-search" type="text" inputmode="search" placeholder="Buscar producto…" oninput="drawCat()" style="width:100%;min-height:var(--tap);padding:0 14px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;background:var(--surface)"></div>
   <div id="cat-tabs" style="display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#efece4"></div>
   <div class="body" id="cat-list"></div>
   <div class="foot" id="cat-foot" style="background:#FFEFBC;border-top-color:#e7d99a;display:none">
@@ -272,9 +281,58 @@ function $(id){ return document.getElementById(id); }
 function showView(v){ document.querySelectorAll('.view').forEach(function(x){x.classList.remove('on');}); $(v).classList.add('on'); }
 function openModal(id){ $(id).classList.add('on'); } function closeModal(id){ $(id).classList.remove('on'); }
 function toast(t){ var n=$('toast'); n.textContent=t; n.style.display='block'; setTimeout(function(){n.style.display='none';},2200); }
+function sonidoOn(){ return localStorage.getItem('mozo_sonido') !== '0'; }
+function pintarSndTgl(){ var b=$('snd-tgl'); if(b) b.textContent = sonidoOn() ? 'Son. on' : 'Son. off'; }
+function toggleSonido(){ localStorage.setItem('mozo_sonido', sonidoOn() ? '0' : '1'); pintarSndTgl(); if(sonidoOn()) ding(); }
+var _ac=null;
+function ding(){
+  if(!sonidoOn()) return;
+  try{
+    _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==='suspended') _ac.resume();
+    [0,160].forEach(function(off){
+      var o=_ac.createOscillator(), g=_ac.createGain();
+      o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(_ac.destination);
+      var t=_ac.currentTime+off/1000;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
+      o.start(t); o.stop(t+0.16);
+    });
+  }catch(e){}
+}
 function get(a){ return fetch(API+'?action='+a).then(function(r){return r.json();}); }
 function post(a, body){ var fd=new FormData(); fd.append('action',a); Object.keys(body||{}).forEach(function(k){fd.append(k,body[k]);}); return fetch(API+'?action='+a,{method:'POST',headers:{'X-CSRF-Token':CSRF},body:fd}).then(function(r){return r.json();}); }
+// Reintenta solo si la promesa de red se RECHAZA (sin respuesta). Un {ok:false} de negocio NO se reintenta.
+function postRetry(a, body, tries){
+  tries = tries || 3;
+  return post(a, body).catch(function(err){
+    if(tries<=1) return Promise.reject(err);
+    return new Promise(function(res){ setTimeout(res, 800); }).then(function(){ return postRetry(a, body, tries-1); });
+  });
+}
 
+var avisados={}; var avisosSeed=false; var _avisoTO=null;
+function procesarListos(listos){
+  listos = listos || [];
+  var actuales={}; listos.forEach(function(L){ actuales[L.pedido_id]=L; });
+  if(!avisosSeed){ Object.keys(actuales).forEach(function(id){ avisados[id]=1; }); avisosSeed=true; }
+  else {
+    var nuevos=[];
+    listos.forEach(function(L){ if(!avisados[L.pedido_id]){ avisados[L.pedido_id]=1; nuevos.push(L); } });
+    if(nuevos.length){ notificarListos(nuevos); }
+  }
+  Object.keys(avisados).forEach(function(id){ if(!actuales[id]) delete avisados[id]; });
+}
+function notificarListos(nuevos){
+  var txt;
+  if(nuevos.length===1){ var L=nuevos[0]; txt='<b>Mesa '+esc(L.mesa)+'</b> · '+esc(L.resumen)+' — Listo'; }
+  else { txt='<b>'+nuevos.length+' pedidos listos</b> · '+nuevos.map(function(L){return 'Mesa '+esc(L.mesa);}).join(', '); }
+  var el=$('aviso-listo'); el.querySelector('.txt').innerHTML=txt; el.classList.add('on');
+  if(_avisoTO) clearTimeout(_avisoTO);
+  _avisoTO=setTimeout(cerrarAviso, 6000);
+  ding();
+}
+function cerrarAviso(){ var el=$('aviso-listo'); if(el) el.classList.remove('on'); }
 // geo: cachear última posición; refrescar antes de escribir
 function geo(){ return new Promise(function(res){ if(!navigator.geolocation){res(null);return;} navigator.geolocation.getCurrentPosition(function(p){ st.lastGeo={lat:p.coords.latitude,lng:p.coords.longitude}; res(st.lastGeo); }, function(){ res(st.lastGeo); }, {enableHighAccuracy:true,timeout:6000,maximumAge:30000}); }); }
 function withGeo(body){ body=body||{}; if(st.lastGeo){ body.lat=st.lastGeo.lat; body.lng=st.lastGeo.lng; } return body; }
@@ -305,7 +363,7 @@ function doLogin(){
 }
 
 // ---- App ----
-function enterApp(){ loadPlano(); showView('v-plano'); pollEstados(); navPush(); }
+function enterApp(){ pintarSndTgl(); loadPlano(); showView('v-plano'); pollEstados(); navPush(); }
 function navPush(){ try{ history.pushState(null,''); }catch(e){} }
 function loadPlano(){ get('plano').then(function(d){ st.pisos=d.pisos||[]; st.pi=0; drawPlano(); }); }
 function drawPlano(){
@@ -325,7 +383,7 @@ function refreshEstados(){
 }
 function pollEstados(){
   get('plano_estados').then(function(d){
-    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{},minutos:d.minutos||{},uN:d.umbral_naranja||20,uR:d.umbral_rojo||30}; if($('v-plano').classList.contains('on')) refreshEstados(); }
+    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{},minutos:d.minutos||{},uN:d.umbral_naranja||20,uR:d.umbral_rojo||30}; procesarListos(d.listos); if($('v-plano').classList.contains('on')) refreshEstados(); }
   }, function(){ /* error de red: ignorar, igual reprogramamos */ })
   .then(function(){ setTimeout(pollEstados, 5000); });
 }
@@ -371,7 +429,17 @@ function abrirYver(mesaId, n){
 }
 
 // ---- Cuenta ----
-function loadCuenta(cid){ get('cuenta&cuenta_id='+cid).then(function(d){ if(!d.ok){toast('Error');return;} st.cuenta=d.cuenta; renderCuenta(); showView('v-cuenta'); }); }
+var _cuentaPoll=false;
+function startCuentaPoll(){ if(_cuentaPoll) return; _cuentaPoll=true; tickCuenta(); }
+function tickCuenta(){
+  if(!$('v-cuenta').classList.contains('on') || !st.cuenta){ _cuentaPoll=false; return; }
+  var cid=st.cuenta.id;
+  get('cuenta&cuenta_id='+cid).then(function(d){
+    if(d.ok && d.cuenta && $('v-cuenta').classList.contains('on') && st.cuenta && +st.cuenta.id===+d.cuenta.id){ st.cuenta=d.cuenta; renderCuenta(); }
+  }, function(){ /* red: ignorar */ })
+  .then(function(){ if($('v-cuenta').classList.contains('on') && st.cuenta){ setTimeout(tickCuenta, 5000); } else { _cuentaPoll=false; } });
+}
+function loadCuenta(cid){ get('cuenta&cuenta_id='+cid).then(function(d){ if(!d.ok){toast('Error');return;} st.cuenta=d.cuenta; renderCuenta(); showView('v-cuenta'); startCuentaPoll(); }); }
 function renderCuenta(){
   var c=st.cuenta; $('cta-mesa').textContent=c.mesa_numero||''; $('cta-com').textContent=c.num_comensales; $('cta-total').textContent='S/ '+c.total.toFixed(0); $('cat-mesa').textContent=c.mesa_numero||'';
   var b=$('cta-body'); b.innerHTML='';
@@ -410,15 +478,23 @@ function openAnular(pedidoId, idx, label){ st.anul={pedido_id:pedidoId, item_idx
 function doAnular(motivo){ closeModal('m-anul'); geo().then(function(){ post('anular', withGeo({cuenta_id:st.cuenta.id, pedido_id:st.anul.pedido_id, item_idx:st.anul.item_idx, motivo:motivo})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} loadCuenta(st.cuenta.id); }); }); }
 
 // ---- Catálogo + borrador ----
-function openCatalogo(){ st.borrador=[]; updBorr(); if(!st.catProd.length){ get('menu').then(function(d){ st.catProd=d.productos||[]; st.catCat=(d.categorias||[])[0]||null; drawCat(); showView('v-cat'); }); } else { drawCat(); showView('v-cat'); } }
+function openCatalogo(){ st.borrador=[]; updBorr(); var cs=$('cat-search'); if(cs) cs.value=''; if(!st.catProd.length){ get('menu').then(function(d){ st.catProd=d.productos||[]; st.catCat=(d.categorias||[])[0]||null; drawCat(); showView('v-cat'); }); } else { drawCat(); showView('v-cat'); } }
+function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 function drawCat(){
-  var cats=[]; st.catProd.forEach(function(p){ if(cats.indexOf(p.categoria)<0) cats.push(p.categoria); });
-  var tabs=$('cat-tabs'); tabs.innerHTML='';
-  cats.forEach(function(c){ var t=document.createElement('span'); t.className='chip'+(c===st.catCat?' on':''); t.textContent=c; t.onclick=function(){ st.catCat=c; drawCat(); }; tabs.appendChild(t); });
+  var q=norm(($('cat-search')||{}).value||'');
+  var tabs=$('cat-tabs'); tabs.innerHTML=''; tabs.style.display=q?'none':'flex';
+  if(!q){
+    var cats=[]; st.catProd.forEach(function(p){ if(cats.indexOf(p.categoria)<0) cats.push(p.categoria); });
+    cats.forEach(function(c){ var t=document.createElement('span'); t.className='chip'+(c===st.catCat?' on':''); t.textContent=c; t.onclick=function(){ st.catCat=c; drawCat(); }; tabs.appendChild(t); });
+  }
   var list=$('cat-list'); list.innerHTML='';
-  st.catProd.filter(function(p){return p.categoria===st.catCat;}).forEach(function(p){
-    var r=document.createElement('div'); r.className='row'; r.innerHTML='<div>'+esc(p.nombre)+(p.grupos&&p.grupos.length?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px"><b>S/ '+Number(p.precio).toFixed(0)+'</b><span class="plus">+</span></div>';
-    r.onclick=function(){ openProd(p); };
+  var prods = q ? st.catProd.filter(function(p){ return norm(p.nombre).indexOf(q)>=0; })
+                : st.catProd.filter(function(p){ return p.categoria===st.catCat; });
+  if(!prods.length){ list.innerHTML='<p style="padding:24px;text-align:center;color:#999">Sin resultados</p>'; return; }
+  prods.forEach(function(p){
+    var mods=p.grupos&&p.grupos.length;
+    var r=document.createElement('div'); r.className='row'; r.innerHTML='<div>'+esc(p.nombre)+(mods?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px"><b>S/ '+Number(p.precio).toFixed(0)+'</b><span class="plus">+</span></div>';
+    r.onclick = mods ? function(){ openProd(p); } : function(){ pushBorr(p,1,[],''); toast('+1 '+p.nombre); };
     list.appendChild(r);
   });
 }
@@ -447,10 +523,11 @@ function toggleOpt(el){ var g=el.getAttribute('data-g'), o=el.getAttribute('data
 }
 function prodQty(d){ st.prodSel.qty=Math.max(1, st.prodSel.qty+d); renderProd(); }
 function prodTotal(){ var s=st.prodSel; var base=parseFloat(s.p.precio); var mods=0; Object.keys(s.sel).forEach(function(g){ Object.keys(s.sel[g]).forEach(function(o){ mods+=s.sel[g][o].precio; }); }); return (base+mods)*s.qty; }
+function pushBorr(p, qty, mods, nota){ st.borrador.push({product_id:p.id, nombre:p.nombre, precio:parseFloat(p.precio), qty:qty, modificadores:mods||[], nota:nota||''}); updBorr(); }
 function addBorr(){ var s=st.prodSel; var mods=[]; Object.keys(s.sel).forEach(function(g){ Object.keys(s.sel[g]).forEach(function(o){ mods.push({nombre:s.sel[g][o].nombre, precio:s.sel[g][o].precio}); }); });
   var nota=($('prod-nota')||{}).value||'';
-  st.borrador.push({product_id:s.p.id, nombre:s.p.nombre, precio:parseFloat(s.p.precio), qty:s.qty, modificadores:mods, nota:nota});
-  closeModal('m-prod'); updBorr();
+  pushBorr(s.p, s.qty, mods, nota);
+  closeModal('m-prod');
 }
 function borrTotal(){ return st.borrador.reduce(function(s,it){ var m=it.modificadores.reduce(function(a,x){return a+x.precio;},0); return s+(it.precio+m)*it.qty; },0); }
 function updBorr(){ var n=st.borrador.length;
@@ -489,7 +566,7 @@ function openBorrador(){
 function quitarBorr(i){ st.borrador.splice(i,1); updBorr(); if(st.borrador.length) openBorrador(); else closeModal('m-borr'); }
 function borrQty(i,d){ var it=st.borrador[i]; if(!it)return; if(d<0 && it.qty<=1){ quitarBorr(i); return; } it.qty=Math.max(1,(it.qty||1)+d); updBorr(); openBorrador(); }
 function borrNota(i,v){ if(st.borrador[i]) st.borrador[i].nota=v; }
-function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
+function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ postRetry('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }, function(){ toast('Sin señal · toca Enviar para reintentar'); }); }); }
 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
 
