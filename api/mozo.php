@@ -14,7 +14,7 @@ function mozoEmp(): int { return (int)($_SESSION['mozo_emp'] ?? 0); }
 function mozoUbi(): int { return (int)($_SESSION['mozo_ubi'] ?? 0); }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar'];
+$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar', 'juntar_mesa', 'separar_mesa'];
 if (in_array($action, $writes, true) && $action !== 'login_pin') verifyCsrf();
 
 // --- acciones públicas (sin sesión de mozo) ---
@@ -131,7 +131,8 @@ switch ($action) {
 
     case 'mesa_info': {
         $mesaId = cleanInt($_GET['mesa_id'] ?? 0);
-        $cu = Database::fetch("SELECT id FROM cuentas WHERE mesa_id = ? AND ubicacion_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1", [$mesaId, $ubi]);
+        // Resuelve por mesa principal O secundaria (mesa juntada) → tocar cualquiera del grupo abre la cuenta.
+        $cu = cuentaAbiertaDeMesa($mesaId);
         if (!$cu) mout(['ok' => false, 'error' => 'sin cuenta abierta']);
         $d = cuentaDetalle((int)$cu['id'], $ubi);
         mout($d ? ['ok' => true, 'cuenta' => $d] : ['ok' => false, 'error' => 'no encontrada']);
@@ -155,7 +156,8 @@ switch ($action) {
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
         $n = (int)(Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE cuenta_id = ? AND estado <> 'cancelado'", [$cid])['n'] ?? 0);
         if ($n > 0) mout(['ok' => false, 'error' => 'la cuenta tiene comandas']);
-        Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
+        $upd = Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
+        if ($upd > 0 && cuentaMesasListo()) Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ?", [$cid]);
         mout(['ok' => true]);
 
     case 'metodos':
@@ -185,6 +187,17 @@ switch ($action) {
         $payload = json_decode($_POST['payload'] ?? '{}', true) ?: [];
         mout(cuentaCobrar($cid, $ubi, mozoEmp(), $payload));
     }
+
+    case 'mesas_libres':
+        mout(['ok' => true, 'mesas' => mesasLibres($ubi)]);
+
+    case 'juntar_mesa':
+        geoGate($ubi);
+        mout(cuentaJuntarMesaLibre(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
+
+    case 'separar_mesa':
+        geoGate($ubi);
+        mout(cuentaSepararMesa(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
 
     default:
         http_response_code(400);
