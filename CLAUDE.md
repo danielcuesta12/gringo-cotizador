@@ -282,6 +282,9 @@ El sidebar tiene **grupos colapsables** (persistidos en localStorage), gateados 
 
 **APIs:** `requireLogin()` + JSON + switch `$action` + `verifyCsrf()` en escrituras (token por header `X-CSRF-Token`). El monitor (`pos.php?action=monitor`) es admin-only.
 
+### Sin emojis — usar símbolos (IMPORTANTE)
+**NUNCA usar emojis pictográficos** (🛒 👤 👥 🍳 🗑 🚀 ✅ ❌ …) en UI, copy, botones, tickets, correos ni ninguna superficie del producto. Usar **símbolos tipográficos** o texto: `✕` (cerrar/quitar), `−`/`×` (cantidad), `·` `→` `‹ ›` `✓`, o directamente la palabra. **Por qué:** los emojis se **corrompen en impresión térmica ESC/POS** y en WhatsApp (ver tabla de bugs), y la marca es limpia/tipográfica. El estado se comunica con **color + texto** (ej. los badges del KDS/cobro), no con emojis.
+
 ---
 
 ## Seguridad — no negociable

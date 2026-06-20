@@ -193,7 +193,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
   <div id="cat-tabs" style="display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#efece4"></div>
   <div class="body" id="cat-list"></div>
   <div class="foot" id="cat-foot" style="background:#FFEFBC;border-top-color:#e7d99a;display:none">
-    <button class="btn dark" id="cat-borr-btn" onclick="openBorrador()">🛒 Ver borrador</button>
+    <button class="btn dark" id="cat-borr-btn" onclick="openBorrador()">Ver borrador</button>
   </div>
 </div>
 
@@ -299,7 +299,7 @@ document.addEventListener('click', function(e){ var k=e.target.getAttribute && e
 });
 function doLogin(){
   post('login_pin', {ubicacion_id:UBI, empleado_id:st.emp, pin:st.pin}).then(function(d){
-    if(d.ok){ $('plano-mozo').textContent=d.nombre+' 👤'; geo(); enterApp(); }
+    if(d.ok){ $('plano-mozo').textContent=d.nombre; geo(); enterApp(); }
     else { $('pin-err').textContent=d.error||'PIN incorrecto'; st.pin=''; renderDots(); }
   });
 }
@@ -347,7 +347,7 @@ function openMesaInfo(mesaId){
     $('m-mesa-in').innerHTML=
       '<div style="padding:15px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start">'+
         '<div><div style="font-weight:900;font-size:19px">Mesa '+esc(c.mesa_numero||'')+'</div>'+
-          '<div style="font-size:12px;color:#888;margin-top:2px">👥 '+c.num_comensales+(c.mozo_nombre?(' · '+esc(c.mozo_nombre)):'')+'</div></div>'+
+          '<div style="font-size:12px;color:#888;margin-top:2px">'+c.num_comensales+' comensales'+(c.mozo_nombre?(' · '+esc(c.mozo_nombre)):'')+'</div></div>'+
         '<div style="font-weight:900;font-size:21px">S/ '+Number(c.total).toFixed(0)+'</div></div>'+
       '<div style="padding:0 16px;font-size:11px;color:#888">⏱ Abierta '+mins+' min · '+rondas+' ronda'+(rondas===1?'':'s')+'</div>'+
       (resumen?('<div style="margin:9px 16px 0;padding-top:8px;border-top:1px solid #eee;font-size:12px;color:#555;line-height:1.5">'+esc(resumen)+'</div>'):'')+
@@ -455,14 +455,14 @@ function addBorr(){ var s=st.prodSel; var mods=[]; Object.keys(s.sel).forEach(fu
 function borrTotal(){ return st.borrador.reduce(function(s,it){ var m=it.modificadores.reduce(function(a,x){return a+x.precio;},0); return s+(it.precio+m)*it.qty; },0); }
 function updBorr(){ var n=st.borrador.length;
   $('cat-foot').style.display=n?'block':'none';
-  var b=$('cat-borr-btn'); if(b) b.textContent='🛒 Ver borrador · '+n+' ítem'+(n===1?'':'s')+' · S/ '+borrTotal().toFixed(0); }
+  var b=$('cat-borr-btn'); if(b) b.textContent='Ver borrador · '+n+' ítem'+(n===1?'':'s')+' · S/ '+borrTotal().toFixed(0); }
 function openBorrador(){
   if(!st.borrador.length){ toast('El borrador está vacío'); return; }
   var rows=st.borrador.map(function(it,i){
     var msum=it.modificadores.reduce(function(a,x){return a+x.precio;},0);
     var lt=(it.precio+msum)*it.qty;
     var mods=it.modificadores.map(function(m){return m.nombre;}).join(' · ');
-    var minus = it.qty<=1 ? '🗑' : '−';
+    var minus = it.qty<=1 ? '×' : '−';
     return '<div style="padding:11px 14px;border-bottom:1px solid #e7e3da;background:#fff">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+
         '<div style="min-width:0"><b>'+esc(it.nombre)+'</b>'+(mods?'<br><small style="color:#999">'+esc(mods)+'</small>':'')+'</div>'+
@@ -481,7 +481,7 @@ function openBorrador(){
     '<div style="max-height:50dvh;overflow:auto">'+rows+'</div>'+
     '<div style="padding:12px 16px;border-top:1px solid #eee">'+
       '<div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-bottom:10px"><span>Total</span><span>S/ '+borrTotal().toFixed(0)+'</span></div>'+
-      '<button class="btn dark" onclick="enviarComanda()">🍳 Enviar a cocina</button>'+
+      '<button class="btn dark" onclick="enviarComanda()">Enviar a cocina</button>'+
       '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-borr\')">Seguir agregando</button>'+
     '</div>';
   openModal('m-borr');
@@ -1037,7 +1037,7 @@ window.addEventListener('popstate', function(){
 // Cerrar cualquier modal tocando fuera de la hoja.
 document.querySelectorAll('.modal').forEach(function(m){ m.addEventListener('click', function(e){ if(e.target===m) closeModal(m.id); }); });
 
-get('sesion').then(function(d){ if(d.ok&&d.mozo){ st.emp=d.mozo.emp; $('plano-mozo').textContent=d.mozo.nombre+' 👤'; geo(); enterApp(); } else { $('pin-ubi').textContent=''; loadMozos(); } });
+get('sesion').then(function(d){ if(d.ok&&d.mozo){ st.emp=d.mozo.emp; $('plano-mozo').textContent=d.mozo.nombre; geo(); enterApp(); } else { $('pin-ubi').textContent=''; loadMozos(); } });
 </script>
 <?php endif; ?>
 </body>
