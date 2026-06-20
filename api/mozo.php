@@ -14,7 +14,7 @@ function mozoEmp(): int { return (int)($_SESSION['mozo_emp'] ?? 0); }
 function mozoUbi(): int { return (int)($_SESSION['mozo_ubi'] ?? 0); }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar'];
+$writes = ['login_pin', 'logout', 'abrir_cuenta', 'enviar_comanda', 'anular', 'cerrar_cuenta_vacia', 'precuenta', 'cobrar', 'juntar_mesa', 'separar_mesa'];
 if (in_array($action, $writes, true) && $action !== 'login_pin') verifyCsrf();
 
 // --- acciones públicas (sin sesión de mozo) ---
@@ -185,6 +185,17 @@ switch ($action) {
         $payload = json_decode($_POST['payload'] ?? '{}', true) ?: [];
         mout(cuentaCobrar($cid, $ubi, mozoEmp(), $payload));
     }
+
+    case 'mesas_libres':
+        mout(['ok' => true, 'mesas' => mesasLibres($ubi)]);
+
+    case 'juntar_mesa':
+        geoGate($ubi);
+        mout(cuentaJuntarMesaLibre(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
+
+    case 'separar_mesa':
+        geoGate($ubi);
+        mout(cuentaSepararMesa(cleanInt($_POST['cuenta_id'] ?? 0), cleanInt($_POST['mesa_id'] ?? 0), $ubi));
 
     default:
         http_response_code(400);
