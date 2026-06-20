@@ -85,6 +85,7 @@ switch ($action) {
             'ok' => true,
             'umbral_naranja' => (int)(getSetting('mesa_umbral_naranja', '20') ?: 20),
             'umbral_rojo'    => (int)(getSetting('mesa_umbral_rojo', '30') ?: 30),
+            'listos'         => comandasListas($ubi, mozoEmp()),
         ], mesaEstados($ubi)));
 
     case 'menu': {

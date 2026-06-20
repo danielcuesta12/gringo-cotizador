@@ -449,3 +449,29 @@ function cuentaCobrar(int $cuentaId, int $ubicacionId, ?int $empleadoId, array $
         'comprobantes' => $comprobantes,
     ];
 }
+
+/** Comandas (origen='mesa') en estado 'listo' de las cuentas abiertas de un mozo. Para el aviso de "Listo". */
+function comandasListas(int $ubicacionId, int $empleadoId): array {
+    if ($empleadoId <= 0) return [];
+    $out = [];
+    foreach (Database::fetchAll(
+        "SELECT p.id AS pedido_id, m.numero AS mesa, p.items_json
+         FROM pedidos p
+         JOIN cuentas c ON c.id = p.cuenta_id
+         LEFT JOIN mesas m ON m.id = p.mesa_id
+         WHERE c.ubicacion_id = ? AND c.empleado_id = ? AND c.estado = 'abierta'
+           AND p.origen = 'mesa' AND p.estado = 'listo'
+         ORDER BY p.id", [$ubicacionId, $empleadoId]) as $r) {
+        $items = json_decode($r['items_json'] ?? '[]', true) ?: [];
+        $nombres = []; $total = 0;
+        foreach ($items as $it) {
+            if (!empty($it['anulado'])) continue;
+            $total++;
+            if (count($nombres) < 3) $nombres[] = (int)($it['qty'] ?? 1) . '× ' . (string)($it['nombre'] ?? 'Ítem');
+        }
+        $resumen = implode(' · ', $nombres);
+        if ($total > count($nombres)) $resumen .= ' …';
+        $out[] = ['pedido_id' => (int)$r['pedido_id'], 'mesa' => (string)($r['mesa'] ?? ''), 'resumen' => $resumen];
+    }
+    return $out;
+}
