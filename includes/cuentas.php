@@ -205,17 +205,21 @@ function cuentaAnular(int $cuentaId, int $pedidoId, ?int $itemIdx, string $motiv
 function mesaEstados(int $ubicacionId): array {
     $estados = []; $montos = []; $minutos = [];
     $hasCobro = cuentaPagosListo(); // migración 58 = cuenta_pagos + cuentas.precuenta_at (se crean juntas)
+    // ncom = comandas no canceladas: una cuenta abierta SIN contenido no pinta la mesa (se ve libre).
+    $ncomSub = "(SELECT COUNT(*) FROM pedidos WHERE cuenta_id = cu.id AND estado <> 'cancelado')";
     $sel = $hasCobro
         ? "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
-                  COALESCE((SELECT SUM(monto) FROM cuenta_pagos WHERE cuenta_id = cu.id),0) AS pagado
+                  COALESCE((SELECT SUM(monto) FROM cuenta_pagos WHERE cuenta_id = cu.id),0) AS pagado, $ncomSub AS ncom
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'"
         : "SELECT cu.mesa_id, cu.total, NULL AS precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
-                  0 AS pagado
+                  0 AS pagado, $ncomSub AS ncom
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'";
     foreach (Database::fetchAll($sel, [$ubicacionId]) as $r) {
         $mid = (int)$r['mesa_id'];
         $pagado = (float)$r['pagado'];
-        if ($pagado > 0.001)               $estado = 'por_cobrar';
+        $ncom   = (int)$r['ncom'];
+        if ($ncom === 0 && $pagado <= 0.001) continue; // cuenta abierta vacía → no pintar la mesa
+        if ($pagado > 0.001)                $estado = 'por_cobrar';
         elseif (!empty($r['precuenta_at'])) $estado = 'precuenta';
         else                                $estado = 'ocupada';
         $estados[$mid] = $estado;

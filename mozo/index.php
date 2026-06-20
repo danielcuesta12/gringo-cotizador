@@ -331,8 +331,8 @@ function pollEstados(){
 }
 
 function onMesaTap(mesaId){
-  // ocupada → ficha de info ; libre → pedir comensales y abrir
-  if(EST.estados[mesaId]==='ocupada'){ openMesaInfo(mesaId); }
+  // con cuenta (ocupada/precuenta/por_cobrar) → ficha de info ; libre → pedir comensales y abrir
+  if(EST.estados[mesaId]){ openMesaInfo(mesaId); }
   else { st.comMesa=mesaId; st.comN=2; $('com-mesa').textContent=mesaNum(mesaId); $('com-n').textContent='2'; openModal('m-com'); }
 }
 function minDesde(at){ try{ var t=new Date(String(at).replace(' ','T')); return Math.max(0,Math.round((Date.now()-t.getTime())/60000)); }catch(e){ return 0; } }
