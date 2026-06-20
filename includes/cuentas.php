@@ -518,3 +518,51 @@ function comandasListas(int $ubicacionId, int $empleadoId): array {
     }
     return $out;
 }
+
+/** ¿La cuenta ya tiene pagos registrados? */
+function cuentaTieneCobro(int $cuentaId): bool {
+    if (!cuentaPagosListo()) return false;
+    return (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE cuenta_id = ?", [$cuentaId])['s'] ?? 0) > 0.001;
+}
+
+/** Mesas libres del local: activas y no usadas (principal ni secundaria) por ninguna cuenta abierta. */
+function mesasLibres(int $ubicacionId): array {
+    $ocup = [];
+    foreach (Database::fetchAll("SELECT mesa_id FROM cuentas WHERE ubicacion_id = ? AND estado = 'abierta'", [$ubicacionId]) as $r) $ocup[(int)$r['mesa_id']] = 1;
+    if (cuentaMesasListo()) {
+        foreach (Database::fetchAll(
+            "SELECT cm.mesa_id FROM cuenta_mesas cm JOIN cuentas cu ON cu.id = cm.cuenta_id
+             WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'", [$ubicacionId]) as $r) $ocup[(int)$r['mesa_id']] = 1;
+    }
+    $out = [];
+    foreach (Database::fetchAll("SELECT id, numero FROM mesas WHERE ubicacion_id = ? AND activa = 1 ORDER BY numero+0, numero", [$ubicacionId]) as $m) {
+        if (!isset($ocup[(int)$m['id']])) $out[] = ['id' => (int)$m['id'], 'numero' => (string)$m['numero']];
+    }
+    return $out;
+}
+
+/** Junta una mesa LIBRE a una cuenta abierta (grupo grande). Antes de cobrar. */
+function cuentaJuntarMesaLibre(int $cuentaId, int $mesaId, int $ubicacionId): array {
+    if (!cuentaMesasListo()) return ['ok' => false, 'error' => 'función no disponible'];
+    $c = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
+    if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    if (cuentaTieneCobro($cuentaId)) return ['ok' => false, 'error' => 'la cuenta ya tiene pagos'];
+    if ($mesaId === (int)$c['mesa_id']) return ['ok' => false, 'error' => 'ya es la mesa principal'];
+    $m = Database::fetch("SELECT id FROM mesas WHERE id = ? AND ubicacion_id = ? AND activa = 1", [$mesaId, (int)$c['ubicacion_id']]);
+    if (!$m) return ['ok' => false, 'error' => 'mesa inválida'];
+    if (cuentaAbiertaDeMesa($mesaId)) return ['ok' => false, 'error' => 'la mesa no está libre'];
+    Database::execute("INSERT IGNORE INTO cuenta_mesas (cuenta_id, mesa_id) VALUES (?, ?)", [$cuentaId, $mesaId]);
+    return ['ok' => true, 'mesas' => cuentaMesasLista($cuentaId)];
+}
+
+/** Separa una mesa SECUNDARIA del grupo → vuelve a libre. La principal no se separa. */
+function cuentaSepararMesa(int $cuentaId, int $mesaId, int $ubicacionId): array {
+    if (!cuentaMesasListo()) return ['ok' => false, 'error' => 'función no disponible'];
+    $c = Database::fetch("SELECT * FROM cuentas WHERE id = ? AND estado = 'abierta' AND (? = 0 OR ubicacion_id = ?)", [$cuentaId, $ubicacionId, $ubicacionId]);
+    if (!$c) return ['ok' => false, 'error' => 'cuenta no abierta'];
+    if (cuentaTieneCobro($cuentaId)) return ['ok' => false, 'error' => 'la cuenta ya tiene pagos'];
+    if ($mesaId === (int)$c['mesa_id']) return ['ok' => false, 'error' => 'no se puede separar la mesa principal'];
+    $n = Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ? AND mesa_id = ?", [$cuentaId, $mesaId]);
+    if ($n <= 0) return ['ok' => false, 'error' => 'la mesa no está en este grupo'];
+    return ['ok' => true, 'mesas' => cuentaMesasLista($cuentaId)];
+}
