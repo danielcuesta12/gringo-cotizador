@@ -539,7 +539,7 @@ function setModo(modo) {
   if (modo === 'todo') {
     cfg.innerHTML = renderDescuento();
     bindDescuento();
-    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : '', monto: falta }], comp: null }];
+    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
     partes.innerHTML = renderPartes();
     bindPartes();
   } else if (modo === 'iguales') {
@@ -561,7 +561,7 @@ function setModo(modo) {
     cfg.innerHTML = '<div class="cobro-config">' + renderDescuento() + '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span>' +
       '<button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div></div>';
     bindDescuento();
-    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : '', monto: falta }], comp: null }];
+    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
     partes.innerHTML = renderPartes();
     bindPartes();
   }
@@ -572,7 +572,7 @@ function buildPartesIguales() {
   var falta = faltaActual();
   var montos = repartoCentavos(falta, cobro.nIguales);
   cobro.partes = montos.map(function(m) {
-    return { monto: m, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : '', monto: m }], comp: null };
+    return { monto: m, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: m }], comp: null };
   });
 }
 
@@ -712,7 +712,6 @@ function recalcItemsPartes() {
   });
   // Re-render solo las partes (no el grid de ítems para no perder foco)
   var partesDiv = $('cobro-partes');
-  var grid = partesDiv.querySelector('.items-grid') ? partesDiv.innerHTML.slice(partesDiv.innerHTML.indexOf('<div style="margin-top:10px')) : '';
   partesDiv.innerHTML = renderPartes() + renderItemsGrid();
   bindPartes(); bindItemsGrid();
   actualizarSaldo();
@@ -844,17 +843,27 @@ function calcDescMonto() {
 
 function actualizarSaldo() {
   var faltaBase = faltaActual();
-  var desc = 0;
-  if (cobro.modo !== 'items' && st.cuenta.pagado <= 0) desc = calcDescMonto();
-  var objetivo = Math.round((faltaBase - desc) * 100) / 100;
   var sumPagos = 0;
   cobro.partes.forEach(function(pt) {
     pt.pagos.forEach(function(pg) { sumPagos += pg.monto || 0; });
   });
   sumPagos = Math.round(sumPagos * 100) / 100;
+  var objetivo;
+  if (cobro.modo === 'items') {
+    // En modo ítems el objetivo es la suma de los montos asignados (cobro parcial válido)
+    objetivo = 0;
+    cobro.partes.forEach(function(pt) { objetivo += pt.monto || 0; });
+    objetivo = Math.round(objetivo * 100) / 100;
+  } else {
+    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
+    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+  }
   var saldoEl = $('cobro-saldo');
   var diff = Math.round((sumPagos - objetivo) * 100) / 100;
-  if (Math.abs(diff) < 0.02) {
+  if (objetivo === 0) {
+    saldoEl.textContent = 'Sin ítems asignados';
+    saldoEl.className = 'cobro-saldo err';
+  } else if (Math.abs(diff) < 0.02) {
     saldoEl.textContent = 'Cobro cuadrado · S/ ' + sumPagos.toFixed(2);
     saldoEl.className = 'cobro-saldo ok';
   } else if (diff > 0) {
@@ -885,32 +894,58 @@ function confirmarCobro(turnoId) {
     }
   });
 
-  var faltaBase = faltaActual();
-  var desc = (cobro.modo !== 'items' && st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
-  var objetivo = Math.round((faltaBase - desc) * 100) / 100;
-  var sumPagos = 0;
-  cobro.partes.forEach(function(pt) { pt.pagos.forEach(function(pg) { sumPagos += pg.monto || 0; }); });
-  sumPagos = Math.round(sumPagos * 100) / 100;
-  if (Math.abs(sumPagos - objetivo) > 0.02) { toast('Los pagos no cuadran con el total a cobrar'); return; }
+  // Construir partes activas (eliminar vacías antes de validar)
+  var partesEnvio;
   if (cobro.modo === 'items') {
-    var items = allItemsNoAnulados();
-    var sinAsignar = items.filter(function(it) { return !cobro.itemsAsign[it.key]; });
-    if (sinAsignar.length && !confirm('Hay ' + sinAsignar.length + ' ítem(s) sin asignar a ninguna parte. ¿Continuar?')) return;
+    // En modo ítems: calcular item_keys por parte y descartar las que no tienen ítems asignados
+    partesEnvio = cobro.partes.map(function(pt, pi) {
+      var keys = Object.keys(cobro.itemsAsign).filter(function(k) { return cobro.itemsAsign[k] === pi + 1; });
+      return { pt: pt, item_keys: keys };
+    }).filter(function(x) { return x.item_keys.length > 0; });
+  } else {
+    partesEnvio = cobro.partes.filter(function(pt) { return pt.pagos.length > 0 && pt.monto > 0; });
   }
+
+  if (!partesEnvio.length) { toast('Nada que cobrar'); return; }
+
+  // Validación de totales
+  var sumPagos = 0;
+  partesEnvio.forEach(function(x) {
+    var pagos = cobro.modo === 'items' ? x.pt.pagos : x.pagos;
+    pagos.forEach(function(pg) { sumPagos += pg.monto || 0; });
+  });
+  sumPagos = Math.round(sumPagos * 100) / 100;
+
+  var objetivo;
+  if (cobro.modo === 'items') {
+    // Objetivo = suma de montos de partes con ítems asignados (cobro parcial válido)
+    objetivo = 0;
+    partesEnvio.forEach(function(x) { objetivo += x.pt.monto || 0; });
+    objetivo = Math.round(objetivo * 100) / 100;
+    // Solo bloquear si excede lo que falta (no se puede cobrar de más)
+    if (sumPagos > Math.round((faltaActual() + 0.02) * 100) / 100) { toast('Los pagos exceden el saldo pendiente'); return; }
+  } else {
+    var faltaBase = faltaActual();
+    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
+    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+  }
+
+  if (Math.abs(sumPagos - objetivo) > 0.02) { toast('Los pagos no cuadran con el total a cobrar'); return; }
 
   var payload = {
     modo: cobro.modo,
     descuento: cobro.descTipo ? { tipo: cobro.descTipo, valor: cobro.descValor } : null,
-    partes: cobro.partes.map(function(pt) {
-      var p = { pagos: pt.pagos.map(function(pg) { return { metodo: pg.metodo, monto: pg.monto }; }) };
-      if (cobro.modo === 'items') {
-        p.item_keys = Object.keys(cobro.itemsAsign).filter(function(k) { var n = cobro.itemsAsign[k]; return n && cobro.partes.indexOf(pt) === n - 1; });
-      } else {
-        p.monto = pt.monto;
-      }
-      if (pt.comp) p.comprobante = pt.comp;
-      return p;
-    })
+    partes: cobro.modo === 'items'
+      ? partesEnvio.map(function(x) {
+          var p = { pagos: x.pt.pagos.map(function(pg) { return { metodo: pg.metodo, monto: pg.monto }; }), item_keys: x.item_keys };
+          if (x.pt.comp) p.comprobante = x.pt.comp;
+          return p;
+        })
+      : partesEnvio.map(function(pt) {
+          var p = { monto: pt.monto, pagos: pt.pagos.map(function(pg) { return { metodo: pg.metodo, monto: pg.monto }; }) };
+          if (pt.comp) p.comprobante = pt.comp;
+          return p;
+        })
   };
   if (turnoId) payload.turno_id = turnoId;
 
