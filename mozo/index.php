@@ -134,6 +134,13 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)}
 .anul{text-decoration:line-through;color:var(--faint)}
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.snd-tgl{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:10px;min-height:40px;padding:0 12px;font-weight:800;font-size:12px;cursor:pointer}
+#aviso-listo{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:60;background:var(--ng);color:#fff;border-radius:14px;padding:13px 15px;box-shadow:0 10px 30px rgba(0,0,0,.28);display:flex;align-items:center;gap:11px;transform:translateY(-140%);transition:transform .3s var(--ease);cursor:pointer}
+#aviso-listo.on{transform:translateY(0)}
+#aviso-listo .dot{width:11px;height:11px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 30%, transparent)}
+#aviso-listo .txt{flex:1;min-width:0;font-size:14px;font-weight:700;line-height:1.25}
+#aviso-listo .txt b{font-weight:900}
+@media (prefers-reduced-motion: reduce){#aviso-listo{transition:none}}
 @media (prefers-reduced-motion: reduce){
   .sheet,.modal,.btn,.qbtn,.plus,.chip,.row,.opt,.top button,.pindots span{transition:none}
   .sheet{transform:none}
@@ -142,6 +149,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 <?= brandHead() ?>
 </head>
 <body>
+<div id="aviso-listo" onclick="cerrarAviso()"><span class="dot"></span><span class="txt"></span></div>
 <?php if (!$ready): ?>
 <div class="view on"><div class="body" style="display:flex;align-items:center;justify-content:center;padding:24px;text-align:center">
   <p>La app del mozo necesita su migración. Aplica <code>install/57_cuentas.sql</code> en phpMyAdmin.</p>
@@ -169,7 +177,7 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
 
 <!-- PLANO -->
 <div class="view" id="v-plano">
-  <div class="top"><span>Mesas · <span class="y" id="plano-piso">Piso 1</span></span><span id="plano-mozo"></span></div>
+  <div class="top"><span>Mesas · <span class="y" id="plano-piso">Piso 1</span></span><span style="display:flex;align-items:center;gap:8px"><button type="button" class="snd-tgl" id="snd-tgl" onclick="toggleSonido()"></button><span id="plano-mozo"></span></span></div>
   <div id="plano-tabs" style="display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#efece4"></div>
   <div class="body"><div id="plano-board" style="padding:8px"></div></div>
 </div>
@@ -272,9 +280,50 @@ function $(id){ return document.getElementById(id); }
 function showView(v){ document.querySelectorAll('.view').forEach(function(x){x.classList.remove('on');}); $(v).classList.add('on'); }
 function openModal(id){ $(id).classList.add('on'); } function closeModal(id){ $(id).classList.remove('on'); }
 function toast(t){ var n=$('toast'); n.textContent=t; n.style.display='block'; setTimeout(function(){n.style.display='none';},2200); }
+function sonidoOn(){ return localStorage.getItem('mozo_sonido') !== '0'; }
+function pintarSndTgl(){ var b=$('snd-tgl'); if(b) b.textContent = sonidoOn() ? 'Son. on' : 'Son. off'; }
+function toggleSonido(){ localStorage.setItem('mozo_sonido', sonidoOn() ? '0' : '1'); pintarSndTgl(); if(sonidoOn()) ding(); }
+var _ac=null;
+function ding(){
+  if(!sonidoOn()) return;
+  try{
+    _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==='suspended') _ac.resume();
+    [0,160].forEach(function(off){
+      var o=_ac.createOscillator(), g=_ac.createGain();
+      o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(_ac.destination);
+      var t=_ac.currentTime+off/1000;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
+      o.start(t); o.stop(t+0.16);
+    });
+  }catch(e){}
+}
 function get(a){ return fetch(API+'?action='+a).then(function(r){return r.json();}); }
 function post(a, body){ var fd=new FormData(); fd.append('action',a); Object.keys(body||{}).forEach(function(k){fd.append(k,body[k]);}); return fetch(API+'?action='+a,{method:'POST',headers:{'X-CSRF-Token':CSRF},body:fd}).then(function(r){return r.json();}); }
 
+var avisados={}; var avisosSeed=false; var _avisoTO=null;
+function procesarListos(listos){
+  listos = listos || [];
+  var actuales={}; listos.forEach(function(L){ actuales[L.pedido_id]=L; });
+  if(!avisosSeed){ Object.keys(actuales).forEach(function(id){ avisados[id]=1; }); avisosSeed=true; }
+  else {
+    var nuevos=[];
+    listos.forEach(function(L){ if(!avisados[L.pedido_id]){ avisados[L.pedido_id]=1; nuevos.push(L); } });
+    if(nuevos.length){ notificarListos(nuevos); }
+  }
+  Object.keys(avisados).forEach(function(id){ if(!actuales[id]) delete avisados[id]; });
+}
+function notificarListos(nuevos){
+  var txt;
+  if(nuevos.length===1){ var L=nuevos[0]; txt='<b>Mesa '+esc(L.mesa)+'</b> · '+esc(L.resumen)+' — Listo'; }
+  else { txt='<b>'+nuevos.length+' pedidos listos</b> · '+nuevos.map(function(L){return 'Mesa '+esc(L.mesa);}).join(', '); }
+  var el=$('aviso-listo'); el.querySelector('.txt').innerHTML=txt; el.classList.add('on');
+  if(_avisoTO) clearTimeout(_avisoTO);
+  _avisoTO=setTimeout(cerrarAviso, 6000);
+  ding();
+}
+function cerrarAviso(){ var el=$('aviso-listo'); if(el) el.classList.remove('on'); }
 // geo: cachear última posición; refrescar antes de escribir
 function geo(){ return new Promise(function(res){ if(!navigator.geolocation){res(null);return;} navigator.geolocation.getCurrentPosition(function(p){ st.lastGeo={lat:p.coords.latitude,lng:p.coords.longitude}; res(st.lastGeo); }, function(){ res(st.lastGeo); }, {enableHighAccuracy:true,timeout:6000,maximumAge:30000}); }); }
 function withGeo(body){ body=body||{}; if(st.lastGeo){ body.lat=st.lastGeo.lat; body.lng=st.lastGeo.lng; } return body; }
@@ -305,7 +354,7 @@ function doLogin(){
 }
 
 // ---- App ----
-function enterApp(){ loadPlano(); showView('v-plano'); pollEstados(); navPush(); }
+function enterApp(){ pintarSndTgl(); loadPlano(); showView('v-plano'); pollEstados(); navPush(); }
 function navPush(){ try{ history.pushState(null,''); }catch(e){} }
 function loadPlano(){ get('plano').then(function(d){ st.pisos=d.pisos||[]; st.pi=0; drawPlano(); }); }
 function drawPlano(){
@@ -325,7 +374,7 @@ function refreshEstados(){
 }
 function pollEstados(){
   get('plano_estados').then(function(d){
-    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{},minutos:d.minutos||{},uN:d.umbral_naranja||20,uR:d.umbral_rojo||30}; if($('v-plano').classList.contains('on')) refreshEstados(); }
+    if(d.ok){ EST={estados:d.estados||{},montos:d.montos||{},minutos:d.minutos||{},uN:d.umbral_naranja||20,uR:d.umbral_rojo||30}; procesarListos(d.listos); if($('v-plano').classList.contains('on')) refreshEstados(); }
   }, function(){ /* error de red: ignorar, igual reprogramamos */ })
   .then(function(){ setTimeout(pollEstados, 5000); });
 }
