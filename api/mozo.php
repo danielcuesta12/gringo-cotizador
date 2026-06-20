@@ -156,8 +156,8 @@ switch ($action) {
         $cid = cleanInt($_POST['cuenta_id'] ?? 0);
         $n = (int)(Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE cuenta_id = ? AND estado <> 'cancelado'", [$cid])['n'] ?? 0);
         if ($n > 0) mout(['ok' => false, 'error' => 'la cuenta tiene comandas']);
-        Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
-        if (cuentaMesasListo()) Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ?", [$cid]);
+        $upd = Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
+        if ($upd > 0 && cuentaMesasListo()) Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ?", [$cid]);
         mout(['ok' => true]);
 
     case 'metodos':
