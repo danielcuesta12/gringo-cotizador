@@ -464,6 +464,8 @@ function cuentaCobrar(int $cuentaId, int $ubicacionId, ?int $empleadoId, array $
             Database::execute("UPDATE cuentas SET estado = 'cerrada', cobrada_at = NOW(), cerrada_at = NOW() WHERE id = ?", [$cuentaId]);
             // Trazabilidad: asignar turno a las comandas (NO entran al arqueo por el guard origen='mesa').
             Database::execute("UPDATE pedidos SET turno_id = ? WHERE cuenta_id = ? AND origen = 'mesa' AND estado <> 'cancelado' AND turno_id IS NULL", [$turnoId, $cuentaId]);
+            // Liberar las mesas secundarias del grupo (evita filas huérfanas en cuenta_mesas).
+            if (cuentaMesasListo()) Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ?", [$cuentaId]);
         }
 
         $pdo->commit();

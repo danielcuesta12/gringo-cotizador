@@ -131,7 +131,8 @@ switch ($action) {
 
     case 'mesa_info': {
         $mesaId = cleanInt($_GET['mesa_id'] ?? 0);
-        $cu = Database::fetch("SELECT id FROM cuentas WHERE mesa_id = ? AND ubicacion_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1", [$mesaId, $ubi]);
+        // Resuelve por mesa principal O secundaria (mesa juntada) → tocar cualquiera del grupo abre la cuenta.
+        $cu = cuentaAbiertaDeMesa($mesaId);
         if (!$cu) mout(['ok' => false, 'error' => 'sin cuenta abierta']);
         $d = cuentaDetalle((int)$cu['id'], $ubi);
         mout($d ? ['ok' => true, 'cuenta' => $d] : ['ok' => false, 'error' => 'no encontrada']);
@@ -156,6 +157,7 @@ switch ($action) {
         $n = (int)(Database::fetch("SELECT COUNT(*) n FROM pedidos WHERE cuenta_id = ? AND estado <> 'cancelado'", [$cid])['n'] ?? 0);
         if ($n > 0) mout(['ok' => false, 'error' => 'la cuenta tiene comandas']);
         Database::execute("UPDATE cuentas SET estado = 'cancelada', cerrada_at = NOW() WHERE id = ? AND ubicacion_id = ? AND estado = 'abierta'", [$cid, $ubi]);
+        if (cuentaMesasListo()) Database::execute("DELETE FROM cuenta_mesas WHERE cuenta_id = ?", [$cid]);
         mout(['ok' => true]);
 
     case 'metodos':
