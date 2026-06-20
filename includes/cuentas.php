@@ -245,6 +245,7 @@ function cuentaPagosArqueo(int $turnoId): array {
                 COALESCE(SUM(CASE WHEN tipo NOT IN ('efectivo','tarjeta','qr') THEN monto ELSE 0 END),0) ot,
                 COALESCE(SUM(monto),0) tot, COUNT(*) n
          FROM cuenta_pagos WHERE turno_id = ?", [$turnoId]);
+    if (!$r) return $z;
     return [
         'efectivo'=>(float)$r['ef'], 'tarjeta'=>(float)$r['ta'], 'qr'=>(float)$r['qr'],
         'otros'=>(float)$r['ot'], 'total'=>(float)$r['tot'], 'n'=>(int)$r['n'],
