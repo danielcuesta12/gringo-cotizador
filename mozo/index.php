@@ -24,6 +24,9 @@ $csrf = csrfToken();
   --ng:var(--black,#1E1E1E); --am:var(--c-brand,#FFDF00); --rosa:var(--pink,#FFBBC8); --crema:#FFEFBC;
   --bg:#f4f1ea; --surface:#fff; --ink:var(--black,#1E1E1E); --muted:#6f6a60; --faint:#9a948a;
   --line:#e7e2d8; --danger:#dc2626; --ok:#16a34a;
+  --panel:#f6f2ea;                                  /* superficie secundaria (resumen, cabeceras) */
+  --ring:0 0 0 3px color-mix(in srgb, var(--am) 38%, transparent); /* foco: sigue la marca */
+  --tap:44px;                                       /* objetivo táctil mínimo */
   --r-card:16px; --r-btn:12px; --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -68,32 +71,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .chip.on{background:var(--ng);color:var(--am)}
 input[type=text],input[type=tel],input[type=email],input[type=number]{font-family:inherit;color:var(--ink)}
 /* --- Cobro sheet --- */
-.seg{display:flex;gap:6px;padding:4px 0;flex-wrap:nowrap;overflow:auto}
-.seg button{flex:none;min-height:40px;padding:0 14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-btn);font-size:13px;font-weight:800;cursor:pointer;transition:background .12s,color .12s,border-color .12s;white-space:nowrap}
+.seg{display:flex;gap:6px;padding:4px 0;flex-wrap:nowrap;overflow:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none;min-height:var(--tap);padding:0 16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-btn);font-size:13px;font-weight:800;cursor:pointer;transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease);white-space:nowrap}
 .seg button.on{background:var(--ng);color:var(--am);border-color:var(--ng)}
-.seg button:active{filter:brightness(.92)}
-.cobro-resumen{background:#f9f6ef;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
-.cobro-resumen .cr-row{display:flex;justify-content:space-between;align-items:baseline}
-.cobro-resumen .cr-total{font-size:19px;font-weight:900}
-.cobro-resumen .cr-falta{color:var(--ok);font-weight:800}
-.cobro-resumen .cr-pagado{color:var(--muted);font-size:12px}
+.seg button:active{transform:scale(.96)}
+.cobro-resumen{background:var(--panel);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.cobro-resumen .cr-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cobro-resumen .cr-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.cobro-resumen .cr-hero{font-size:27px;font-weight:900;color:var(--ng);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.cobro-resumen .cr-sub{display:flex;gap:14px;margin-top:7px;font-size:12px;color:var(--muted);font-weight:700}
+.cobro-resumen .cr-sub b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
 .cobro-config{padding:10px 0}
 .cobro-config label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px}
 .cobro-config input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-weight:700;background:var(--surface)}
-.cobro-config input:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
+.cobro-config input:focus{border-color:var(--am);outline:none;box-shadow:var(--ring)}
 .cobro-config .desc-row{display:flex;gap:8px;margin-top:8px}
 .cobro-config .desc-tipo{display:flex;gap:6px}
-.cobro-config .desc-tipo button{flex:1;min-height:40px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:background .12s}
+.cobro-config .desc-tipo button{flex:1;min-height:var(--tap);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s var(--ease)}
 .cobro-config .desc-tipo button.on{background:var(--ng);color:var(--am);border-color:var(--ng)}
+.cobro-config .desc-tipo button:active{transform:scale(.97)}
 .parte{border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
-.parte-head{background:#f2ede4;padding:9px 13px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
-.parte-body{padding:10px 13px;display:flex;flex-direction:column;gap:8px}
+.parte-head{background:var(--panel);padding:10px 14px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;display:flex;justify-content:space-between;align-items:center}
+.parte-body{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
 .pago-row{display:flex;gap:7px;align-items:center}
-.pago-row select{flex:1;min-width:0;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-weight:700;background:var(--surface);color:var(--ink);-webkit-appearance:none;appearance:none}
-.pago-row select:focus{border-color:var(--am);outline:none}
-.pago-row input{width:88px;flex:none;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-weight:800;text-align:right;background:var(--surface)}
-.pago-row input:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
-.pago-row .rm{width:34px;height:34px;border:none;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;flex:none}
+.pago-row select{flex:1;min-width:0;min-height:var(--tap);padding:0 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-weight:700;background:var(--surface);color:var(--ink);-webkit-appearance:none;appearance:none}
+.pago-row select:focus{border-color:var(--am);outline:none;box-shadow:var(--ring)}
+.pago-row input{width:92px;flex:none;min-height:var(--tap);padding:0 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-weight:800;text-align:right;background:var(--surface)}
+.pago-row input:focus{border-color:var(--am);outline:none;box-shadow:var(--ring)}
+.pago-row .rm{width:40px;height:40px;border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;flex:none;border-radius:9px}
 .pago-row .rm:active{color:var(--danger)}
 .btn-addpago{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;width:100%;justify-content:center;min-height:40px}
 .btn-addpago:active{background:#f0ece3}
@@ -102,8 +108,8 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 .comp-toggle span{font-size:13px;font-weight:700;color:var(--muted)}
 .comp-fields{display:none;flex-direction:column;gap:7px;padding:6px 0 0}
 .comp-fields.on{display:flex}
-.comp-fields input,.comp-fields select{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--surface);-webkit-appearance:none;appearance:none}
-.comp-fields input:focus,.comp-fields select:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
+.comp-fields input,.comp-fields select{width:100%;min-height:var(--tap);padding:0 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);-webkit-appearance:none;appearance:none}
+.comp-fields input:focus,.comp-fields select:focus{border-color:var(--am);outline:none;box-shadow:var(--ring)}
 .comp-fields label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
 .cobro-foot{border-top:1px solid var(--line);padding:12px 16px;background:var(--surface);position:sticky;bottom:0}
 .cobro-saldo{font-size:13px;font-weight:800;text-align:center;margin-bottom:8px;min-height:18px}
@@ -113,8 +119,19 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 .items-grid .ig-row:last-child{border-bottom:none}
 .items-grid .ig-assign{min-width:0;flex:1}
 .items-grid .ig-monto{font-weight:800;white-space:nowrap;font-size:12px;color:var(--muted)}
-.items-grid .ig-sel select{padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;font-size:12px;background:var(--surface);-webkit-appearance:none;appearance:none}
-input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px rgba(255,223,0,.4)}
+.items-grid .ig-sel select{min-height:38px;padding:0 10px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-weight:700;background:var(--surface);-webkit-appearance:none;appearance:none}
+.items-grid .ig-sel select:focus{border-color:var(--am);outline:none;box-shadow:var(--ring)}
+/* Cabecera de comanda (ronda + estado de cocina) */
+.cmd-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 13px;background:var(--panel)}
+.cmd-head .cmd-ronda{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.9}
+.pill.st-espera{background:#eae5db;color:#574f42}
+.pill.st-prep{background:#fff1dc;color:#b45309}
+.pill.st-listo{background:#e4f5e8;color:#15803d}
+.pill.st-entregado{background:#eef2ee;color:#4b6b50}
+.pill.st-cancelado{background:#fbe7e7;color:#b91c1c}
+input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)}
 .anul{text-decoration:line-through;color:var(--faint)}
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 @media (prefers-reduced-motion: reduce){
@@ -361,7 +378,8 @@ function renderCuenta(){
   if(!c.comandas.length){ b.innerHTML='<p style="padding:24px;text-align:center;color:#888">Cuenta vacía. Agrega el primer pedido.</p>'; return; }
   c.comandas.forEach(function(co){
     var h=document.createElement('div');
-    h.innerHTML='<div style="padding:7px 13px;font-size:9px;font-weight:800;color:#999;text-transform:uppercase;background:#efece4">Ronda '+co.ronda+' · '+esc(co.estado)+'</div>';
+    var em=estadoMeta(co.estado);
+    h.innerHTML='<div class="cmd-head"><span class="cmd-ronda">Ronda '+co.ronda+'</span><span class="pill '+em.cls+'">'+em.lbl+'</span></div>';
     b.appendChild(h);
     co.items.forEach(function(it, idx){
       var anul=!!it.anulado;
@@ -376,6 +394,15 @@ function renderCuenta(){
   });
 }
 function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function estadoMeta(e){
+  switch(e){
+    case 'en_preparacion': return {cls:'st-prep', lbl:'En preparación'};
+    case 'listo':          return {cls:'st-listo', lbl:'Listo'};
+    case 'entregado':      return {cls:'st-entregado', lbl:'Entregado'};
+    case 'cancelado':      return {cls:'st-cancelado', lbl:'Cancelado'};
+    default:               return {cls:'st-espera', lbl:'En espera'};
+  }
+}
 
 // ---- Anular ----
 function openAnular(pedidoId, idx, label){ st.anul={pedido_id:pedidoId, item_idx:idx}; $('anul-tit').textContent='Anular «'+label+'»';
@@ -519,9 +546,10 @@ function openCobro() {
 function pintarResumen() {
   var c = st.cuenta;
   var falta = c.falta != null ? c.falta : c.monto_cobrar;
-  var html = '<div class="cr-row"><span>Total cuenta</span><span class="cr-total">S/ ' + Number(c.monto_cobrar).toFixed(2) + '</span></div>';
-  if (c.pagado > 0) html += '<div class="cr-row"><span class="cr-pagado">Ya pagado</span><span class="cr-pagado">S/ ' + Number(c.pagado).toFixed(2) + '</span></div>';
-  html += '<div class="cr-row"><b>Por cobrar</b><b class="cr-falta">S/ ' + Number(falta).toFixed(2) + '</b></div>';
+  var html = '<div class="cr-head"><span class="cr-label">Por cobrar</span><span class="cr-hero">S/ ' + Number(falta).toFixed(2) + '</span></div>';
+  var sub = '<span>Total <b>S/ ' + Number(c.monto_cobrar).toFixed(2) + '</b></span>';
+  if (c.pagado > 0) sub += '<span>Pagado <b>S/ ' + Number(c.pagado).toFixed(2) + '</b></span>';
+  html += '<div class="cr-sub">' + sub + '</div>';
   $('cobro-resumen').innerHTML = html;
 }
 
