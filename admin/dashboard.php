@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/cuentas.php';
 
 requirePermission('dashboard');
 
@@ -138,6 +139,16 @@ try {
     $opNote = 'Módulo de operación no disponible en esta instalación.';
 }
 
+// Mesas cobradas (cuenta_pagos) → se suman al canal POS.
+$mesaHoy = 0.0; $mesaMes = 0.0;
+if (function_exists('cuentaPagosListo') && cuentaPagosListo()) {
+    $mesaHoy = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE DATE(created_at)=CURDATE()")['s'] ?? 0);
+    $mesaMes = (float)(Database::fetch("SELECT COALESCE(SUM(monto),0) s FROM cuenta_pagos WHERE DATE_FORMAT(created_at,'%Y-%m')=?", [$mes])['s'] ?? 0);
+    $ventasHoyTotal = (float)$ventasHoyTotal + $mesaHoy;
+    $ventasMes      = (float)$ventasMes + $mesaMes;
+    $canalPos       = (float)$canalPos + $mesaMes;
+}
+
 // ============================================================
 // EVENTOS LIBRES / VENTA MANUAL (agenda + liquidación sin POS) — del mes, por fecha del evento. Tolerante.
 // ============================================================
@@ -149,6 +160,16 @@ try { foreach (Database::fetchAll("SELECT nombre, fecha_inicio AS fecha, venta_m
 // POS del mes por tienda (para el filtro). Tolerante.
 $posPorTienda = [];
 try { $posPorTienda = Database::fetchAll("SELECT p.ubicacion_id, COALESCE(u.nombre,'(sin tienda)') nombre, COALESCE(SUM(p.total),0) t FROM pedidos p LEFT JOIN ubicaciones u ON u.id=p.ubicacion_id WHERE p.estado<>'cancelado' AND p.origen<>'mesa' AND DATE_FORMAT(p.created_at,'%Y-%m')=? GROUP BY p.ubicacion_id, u.nombre ORDER BY t DESC", [$mes]); } catch (\Throwable $e) {}
+
+if (function_exists('cuentaPagosListo') && cuentaPagosListo()) {
+    try {
+        $mp = Database::fetchAll("SELECT ubicacion_id, COALESCE(SUM(monto),0) t FROM cuenta_pagos WHERE DATE_FORMAT(created_at,'%Y-%m')=? GROUP BY ubicacion_id", [$mes]);
+        $mpById = [];
+        foreach ($mp as $r) $mpById[(int)$r['ubicacion_id']] = (float)$r['t'];
+        foreach ($posPorTienda as &$row) { $row['t'] = (float)$row['t'] + ($mpById[(int)$row['ubicacion_id']] ?? 0); }
+        unset($row);
+    } catch (\Throwable $e) {}
+}
 
 // ── Gastos del mes (tipo empresa) + utilidad ──
 $gastosMes = 0.0; $gastosPorCat = []; $utilidadMes = 0.0;
