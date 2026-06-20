@@ -20,6 +20,14 @@ function cuentaPagosListo(): bool {
     } catch (\Throwable $e) { return false; }
 }
 
+/** ¿Existe la tabla de mesas secundarias? (Sub-build E1) */
+function cuentaMesasListo(): bool {
+    try {
+        return (bool) Database::fetch(
+            "SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='cuenta_mesas'");
+    } catch (\Throwable $e) { return false; }
+}
+
 /** Total de una línea de ítem (0 si anulado): (precio + suma de modificadores) * qty. */
 function itemLineTotal(array $it): float {
     if (!empty($it['anulado'])) return 0.0;
