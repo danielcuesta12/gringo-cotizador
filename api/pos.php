@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/nubefact.php';
 require_once __DIR__ . '/../includes/gastos.php';
+require_once __DIR__ . '/../includes/cuentas.php';
 
 requireLogin();
 header('Content-Type: application/json; charset=utf-8');
@@ -182,8 +183,16 @@ case 'cerrar_turno':
                 COALESCE(SUM(CASE WHEN m.tipo='qr'       THEN p.total ELSE 0 END),0) qr,
                 COALESCE(SUM(CASE WHEN m.tipo NOT IN ('efectivo','tarjeta','qr') OR m.tipo IS NULL THEN p.total ELSE 0 END),0) ot
          FROM pedidos p LEFT JOIN pos_metodos_pago m ON m.nombre = p.metodo_pago
-         WHERE p.turno_id = ? AND p.estado <> 'cancelado'", [$tid]);
-    $cajaEsperada = (float)$t['monto_inicial'] + $ingreso + (float)$ag['ef'] - $gastosTot;
+         WHERE p.turno_id = ? AND p.estado <> 'cancelado' AND p.origen <> 'mesa'", [$tid]);
+    // Sumar lo cobrado en mesas (cuenta_pagos) a los buckets del arqueo.
+    $cp = cuentaPagosArqueo($tid);
+    $totEf = (float)$ag['ef'] + $cp['efectivo'];
+    $totTa = (float)$ag['ta'] + $cp['tarjeta'];
+    $totQr = (float)$ag['qr'] + $cp['qr'];
+    $totOt = (float)$ag['ot'] + $cp['otros'];
+    $totVentas = (float)$ag['tot'] + $cp['total'];
+    $totPedidos = (int)$ag['n'] + $cp['n'];
+    $cajaEsperada = (float)$t['monto_inicial'] + $ingreso + $totEf - $gastosTot;
     $diferencia   = $cajaEsperada - $cajaReal;
     Database::execute(
         "UPDATE pos_turnos SET estado='cerrado', cerrado_en=NOW(),
@@ -192,7 +201,7 @@ case 'cerrar_turno':
             total_pedidos=?, total_ventas=?, total_efectivo=?, total_tarjeta=?, total_qr=?, total_otros=? WHERE id=?",
         [$ingreso, $gastosTot, ($gastos ? json_encode($gastos, JSON_UNESCAPED_UNICODE) : null),
          $cajaReal, $cajaEsperada, $cajaReal, $diferencia,
-         (int)$ag['n'], $ag['tot'], $ag['ef'], $ag['ta'], $ag['qr'], $ag['ot'], $tid]);
+         $totPedidos, $totVentas, $totEf, $totTa, $totQr, $totOt, $tid]);
     // Absorber los gastos del turno al registro global (origen='pos'). No cambia el arqueo.
     if (gastosListo()) {
         $ubiTurno = (int)($t['ubicacion_id'] ?? 0) ?: null;

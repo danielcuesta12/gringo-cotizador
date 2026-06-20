@@ -66,7 +66,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .chip{display:inline-block;font-size:13px;font-weight:800;padding:8px 14px;border-radius:999px;background:#ebe6da;color:#5a5448;white-space:nowrap;cursor:pointer;transition:background .12s,color .12s}
 .chip:active{background:#dfd9cc}
 .chip.on{background:var(--ng);color:var(--am)}
-input[type=text],input[type=tel]{font-family:inherit;color:var(--ink)}
+input[type=text],input[type=tel],input[type=email],input[type=number]{font-family:inherit;color:var(--ink)}
+/* --- Cobro sheet --- */
+.seg{display:flex;gap:6px;padding:4px 0;flex-wrap:nowrap;overflow:auto}
+.seg button{flex:none;min-height:40px;padding:0 14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-btn);font-size:13px;font-weight:800;cursor:pointer;transition:background .12s,color .12s,border-color .12s;white-space:nowrap}
+.seg button.on{background:var(--ng);color:var(--am);border-color:var(--ng)}
+.seg button:active{filter:brightness(.92)}
+.cobro-resumen{background:#f9f6ef;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.cobro-resumen .cr-row{display:flex;justify-content:space-between;align-items:baseline}
+.cobro-resumen .cr-total{font-size:19px;font-weight:900}
+.cobro-resumen .cr-falta{color:var(--ok);font-weight:800}
+.cobro-resumen .cr-pagado{color:var(--muted);font-size:12px}
+.cobro-config{padding:10px 0}
+.cobro-config label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px}
+.cobro-config input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-weight:700;background:var(--surface)}
+.cobro-config input:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
+.cobro-config .desc-row{display:flex;gap:8px;margin-top:8px}
+.cobro-config .desc-tipo{display:flex;gap:6px}
+.cobro-config .desc-tipo button{flex:1;min-height:40px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:background .12s}
+.cobro-config .desc-tipo button.on{background:var(--ng);color:var(--am);border-color:var(--ng)}
+.parte{border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.parte-head{background:#f2ede4;padding:9px 13px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.parte-body{padding:10px 13px;display:flex;flex-direction:column;gap:8px}
+.pago-row{display:flex;gap:7px;align-items:center}
+.pago-row select{flex:1;min-width:0;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-weight:700;background:var(--surface);color:var(--ink);-webkit-appearance:none;appearance:none}
+.pago-row select:focus{border-color:var(--am);outline:none}
+.pago-row input{width:88px;flex:none;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-weight:800;text-align:right;background:var(--surface)}
+.pago-row input:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
+.pago-row .rm{width:34px;height:34px;border:none;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;flex:none}
+.pago-row .rm:active{color:var(--danger)}
+.btn-addpago{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;width:100%;justify-content:center;min-height:40px}
+.btn-addpago:active{background:#f0ece3}
+.comp-toggle{display:flex;align-items:center;gap:9px;padding:6px 0;cursor:pointer}
+.comp-toggle .mark{flex:none}
+.comp-toggle span{font-size:13px;font-weight:700;color:var(--muted)}
+.comp-fields{display:none;flex-direction:column;gap:7px;padding:6px 0 0}
+.comp-fields.on{display:flex}
+.comp-fields input,.comp-fields select{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--surface);-webkit-appearance:none;appearance:none}
+.comp-fields input:focus,.comp-fields select:focus{border-color:var(--am);outline:none;box-shadow:0 0 0 3px rgba(255,223,0,.35)}
+.comp-fields label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.cobro-foot{border-top:1px solid var(--line);padding:12px 16px;background:var(--surface);position:sticky;bottom:0}
+.cobro-saldo{font-size:13px;font-weight:800;text-align:center;margin-bottom:8px;min-height:18px}
+.cobro-saldo.ok{color:var(--ok)}.cobro-saldo.err{color:var(--danger)}
+.items-grid{display:flex;flex-direction:column;gap:0}
+.items-grid .ig-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.items-grid .ig-row:last-child{border-bottom:none}
+.items-grid .ig-assign{min-width:0;flex:1}
+.items-grid .ig-monto{font-weight:800;white-space:nowrap;font-size:12px;color:var(--muted)}
+.items-grid .ig-sel select{padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;font-size:12px;background:var(--surface);-webkit-appearance:none;appearance:none}
 input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px rgba(255,223,0,.4)}
 .anul{text-decoration:line-through;color:var(--faint)}
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
@@ -116,7 +163,10 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px r
   <div class="body" id="cta-body"></div>
   <div class="foot">
     <button class="btn" onclick="openCatalogo()">+ Agregar a la cuenta</button>
-    <div style="text-align:center;font-size:10px;color:#999;margin-top:8px;font-weight:700">Precuenta y cobro → Sub-build C</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" id="btn-precuenta" type="button" style="background:var(--crema);color:var(--ng);flex:1">Precuenta</button>
+      <button class="btn dark" id="btn-cobrar" type="button" style="flex:2">Cobrar</button>
+    </div>
   </div>
 </div>
 
@@ -152,6 +202,44 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:0 0 0 3px r
 <div class="modal" id="m-borr"><div class="sheet" id="m-borr-in"></div></div>
 <!-- ficha de mesa (info al tocar) -->
 <div class="modal" id="m-mesa"><div class="sheet" id="m-mesa-in"></div></div>
+<!-- COBRO -->
+<div class="modal" id="m-cobro" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div style="padding:14px 16px 0;display:flex;justify-content:space-between;align-items:center">
+      <b style="font-size:16px;font-weight:900">Cobrar mesa</b>
+      <button type="button" style="background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:4px;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center" onclick="closeModal('m-cobro')">✕</button>
+    </div>
+    <div style="padding:12px 16px 0">
+      <div class="cobro-resumen" id="cobro-resumen"></div>
+      <!-- Modo -->
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Modo de cobro</div>
+      <div class="seg" id="cobro-modo">
+        <button type="button" data-modo="todo" class="on" onclick="setModo('todo')">Todo junto</button>
+        <button type="button" data-modo="iguales" onclick="setModo('iguales')">Iguales</button>
+        <button type="button" data-modo="items" onclick="setModo('items')">Por ítems</button>
+        <button type="button" data-modo="montos" onclick="setModo('montos')">Montos libres</button>
+      </div>
+      <!-- Config por modo -->
+      <div class="cobro-config" id="cobro-config"></div>
+      <!-- Partes -->
+      <div id="cobro-partes"></div>
+    </div>
+    <!-- Pie fijo -->
+    <div class="cobro-foot">
+      <div class="cobro-saldo" id="cobro-saldo"></div>
+      <button class="btn dark" id="cobro-confirmar" type="button" onclick="confirmarCobro()">Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+<!-- SELECTOR DE CAJA (multi_caja) -->
+<div class="modal" id="m-turno" aria-hidden="true">
+  <div class="sheet" style="padding:18px" role="dialog" aria-modal="true">
+    <div style="font-weight:900;font-size:15px;margin-bottom:4px">¿Cuál caja?</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">Hay varias cajas abiertas. Elige la que corresponde.</div>
+    <div id="m-turno-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+    <button class="btn" style="background:#eee;color:#555" onclick="closeModal('m-turno')">Cancelar</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -248,7 +336,7 @@ function openMesaInfo(mesaId){
       (resumen?('<div style="margin:9px 16px 0;padding-top:8px;border-top:1px solid #eee;font-size:12px;color:#555;line-height:1.5">'+esc(resumen)+'</div>'):'')+
       '<div style="padding:13px 16px">'+
         '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>'+
-        '<button class="btn" style="background:#1E1E1E;color:#FFDF00;margin-top:8px" onclick="toast(\'El cobro llega en la próxima entrega (Sub-build C)\')">Cobrar</button>'+
+        '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>'+
         '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>'+
       '</div>';
     openModal('m-mesa');
@@ -377,6 +465,537 @@ function borrNota(i,v){ if(st.borrador[i]) st.borrador[i].nota=v; }
 function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ post('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }); }); }
 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
+
+// ============================================================
+// PRECUENTA
+// ============================================================
+document.getElementById('btn-precuenta').addEventListener('click', function() {
+  if (!st.cuenta) return;
+  post('precuenta', {cuenta_id: st.cuenta.id}).then(function(d) {
+    if (!d.ok) { toast(d.error || 'No se pudo generar la precuenta'); return; }
+    window.location.href = 'rawbt:base64,' + d.b64;
+    // Refrescar el plano (la mesa pasará a estado "precuenta" = rosa)
+    setTimeout(refreshEstados, 1200);
+  }).catch(function() { toast('Error de red'); });
+});
+
+document.getElementById('btn-cobrar').addEventListener('click', function() {
+  if (!st.cuenta) return;
+  // Refrescar la cuenta desde el servidor para obtener monto_cobrar/pagado/falta actualizados
+  get('cuenta&cuenta_id=' + st.cuenta.id).then(function(d) {
+    if (!d.ok) { toast('Error al cargar cuenta'); return; }
+    st.cuenta = d.cuenta;
+    openCobro();
+  });
+});
+
+// ============================================================
+// COBRO
+// ============================================================
+var cobro = { modo: 'todo', metodos: [], partes: [], descTipo: null, descValor: 0, nIguales: 2, itemsAsign: {} };
+var _cobMetCargados = false;
+
+function repartoCentavos(total, n) {
+  n = Math.max(1, n | 0);
+  var cent = Math.round(total * 100), base = Math.floor(cent / n), resto = cent - base * n, out = [];
+  for (var i = 0; i < n; i++) out.push(Math.round((base + (i === n - 1 ? resto : 0)) / 100 * 100) / 100);
+  return out;
+}
+
+function openCobro() {
+  cobro.modo = 'todo'; cobro.descTipo = null; cobro.descValor = 0; cobro.nIguales = 2; cobro.itemsAsign = {};
+  // Seleccionar botón de modo "todo"
+  document.querySelectorAll('#cobro-modo button').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-modo') === 'todo'); });
+  pintarResumen();
+  function doOpen() { setModo('todo'); openModal('m-cobro'); }
+  if (_cobMetCargados) { doOpen(); return; }
+  get('metodos').then(function(d) {
+    cobro.metodos = d.metodos || [];
+    _cobMetCargados = true;
+    doOpen();
+  });
+}
+
+function pintarResumen() {
+  var c = st.cuenta;
+  var falta = c.falta != null ? c.falta : c.monto_cobrar;
+  var html = '<div class="cr-row"><span>Total cuenta</span><span class="cr-total">S/ ' + Number(c.monto_cobrar).toFixed(2) + '</span></div>';
+  if (c.pagado > 0) html += '<div class="cr-row"><span class="cr-pagado">Ya pagado</span><span class="cr-pagado">S/ ' + Number(c.pagado).toFixed(2) + '</span></div>';
+  html += '<div class="cr-row"><b>Por cobrar</b><b class="cr-falta">S/ ' + Number(falta).toFixed(2) + '</b></div>';
+  $('cobro-resumen').innerHTML = html;
+}
+
+function faltaActual() {
+  var c = st.cuenta;
+  return c.falta != null ? Number(c.falta) : Number(c.monto_cobrar);
+}
+
+function setModo(modo) {
+  cobro.modo = modo;
+  document.querySelectorAll('#cobro-modo button').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-modo') === modo); });
+  var cfg = $('cobro-config'); var partes = $('cobro-partes');
+  var falta = faltaActual();
+
+  if (modo === 'todo') {
+    cfg.innerHTML = renderDescuento();
+    bindDescuento();
+    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
+    partes.innerHTML = renderPartes();
+    bindPartes();
+  } else if (modo === 'iguales') {
+    cfg.innerHTML = '<div class="cobro-config">' + renderDescuento() + '<label style="margin-top:10px">Número de partes iguales</label>' +
+      '<div style="display:flex;align-items:center;gap:14px;margin-top:4px">' +
+      '<button class="qbtn" type="button" onclick="cambiarNIguales(-1)">−</button>' +
+      '<b id="ig-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nIguales + '</b>' +
+      '<button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div></div>';
+    bindDescuento();
+    buildPartesIguales();
+    partes.innerHTML = renderPartes();
+    bindPartes();
+  } else if (modo === 'items') {
+    cfg.innerHTML = ''; // sin descuento en modo ítems
+    buildPartesItems(1);
+    partes.innerHTML = renderPartes() + renderItemsGrid();
+    bindPartes(); bindItemsGrid();
+  } else if (modo === 'montos') {
+    cfg.innerHTML = '<div class="cobro-config">' + renderDescuento() + '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span>' +
+      '<button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div></div>';
+    bindDescuento();
+    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
+    partes.innerHTML = renderPartes();
+    bindPartes();
+  }
+  actualizarSaldo();
+}
+
+function buildPartesIguales() {
+  var falta = faltaActual();
+  var montos = repartoCentavos(falta, cobro.nIguales);
+  cobro.partes = montos.map(function(m) {
+    return { monto: m, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: m }], comp: null };
+  });
+}
+
+function buildPartesItems(n) {
+  // Construye n partes vacías con pagos vacíos; los ítems se asignan por el grid
+  cobro.partes = [];
+  for (var i = 0; i < n; i++) cobro.partes.push({ monto: 0, pagos: [], comp: null });
+  cobro.itemsAsign = {};
+}
+
+function cambiarNIguales(d) {
+  cobro.nIguales = Math.max(1, cobro.nIguales + d);
+  var el = $('ig-n'); if (el) el.textContent = cobro.nIguales;
+  buildPartesIguales();
+  $('cobro-partes').innerHTML = renderPartes();
+  bindPartes();
+  actualizarSaldo();
+}
+
+function addParteMontos() {
+  cobro.partes.push({ monto: 0, pagos: [], comp: null });
+  $('cobro-partes').innerHTML = renderPartes();
+  bindPartes();
+  actualizarSaldo();
+}
+
+// ---- Render de partes ----
+function renderPartes() {
+  if (!cobro.partes.length) return '';
+  return cobro.partes.map(function(pt, pi) {
+    var html = '<div class="parte" data-pi="' + pi + '">';
+    html += '<div class="parte-head"><span>Parte ' + (pi + 1) + (cobro.partes.length > 1 ? ' · S/ ' + Number(pt.monto).toFixed(2) : '') + '</span>';
+    if (cobro.modo === 'montos' && cobro.partes.length > 1) html += '<button type="button" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:800;cursor:pointer" onclick="eliminarParte(' + pi + ')">Quitar</button>';
+    html += '</div>';
+    html += '<div class="parte-body">';
+    // Monto editable en modo montos
+    if (cobro.modo === 'montos') {
+      html += '<div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase">Monto</label>' +
+        '<input type="number" inputmode="decimal" min="0" step="0.01" class="pago-monto-parte" data-pi="' + pi + '" value="' + pt.monto.toFixed(2) + '" style="width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:15px;font-weight:800;text-align:right;background:var(--surface);margin-top:3px"></div>';
+    }
+    // Líneas de pago
+    pt.pagos.forEach(function(pg, gi) {
+      html += '<div class="pago-row" data-pi="' + pi + '" data-gi="' + gi + '">' +
+        '<select class="sel-met" data-pi="' + pi + '" data-gi="' + gi + '">' +
+        cobro.metodos.map(function(m) { return '<option value="' + esc(m.nombre) + '"' + (m.nombre === pg.metodo ? ' selected' : '') + '>' + esc(m.nombre) + '</option>'; }).join('') +
+        (cobro.metodos.length === 0 ? '<option value="Efectivo" selected>Efectivo</option>' : '') +
+        '</select>' +
+        '<input type="number" inputmode="decimal" min="0" step="0.01" class="inp-monto" data-pi="' + pi + '" data-gi="' + gi + '" value="' + Number(pg.monto).toFixed(2) + '">' +
+        (pt.pagos.length > 1 ? '<button type="button" class="rm" data-pi="' + pi + '" data-gi="' + gi + '" onclick="quitarPago(' + pi + ',' + gi + ')">✕</button>' : '') +
+      '</div>';
+    });
+    html += '<button type="button" class="btn-addpago" onclick="addPago(' + pi + ')">+ Medio de pago</button>';
+    // Comprobante
+    html += '<div class="comp-toggle" onclick="toggleComp(' + pi + ')">' +
+      '<span class="mark rad" id="cmark-' + pi + '"></span>' +
+      '<span>¿Emitir comprobante?</span></div>';
+    html += '<div class="comp-fields" id="cfields-' + pi + '">' +
+      '<label>Tipo</label><select class="comp-tipo" data-pi="' + pi + '">' +
+      ['ticket','boleta','factura'].map(function(t) { return '<option value="' + t + '"' + ((pt.comp && pt.comp.tipo === t) ? ' selected' : '') + '>' + t.charAt(0).toUpperCase() + t.slice(1) + '</option>'; }).join('') +
+      '</select>' +
+      '<label>Nombre / Razón social</label><input type="text" class="comp-nombre" data-pi="' + pi + '" placeholder="Nombre del cliente" value="' + esc((pt.comp && pt.comp.cliente_nombre) || '') + '">' +
+      '<label>DNI / RUC</label><input type="text" inputmode="numeric" maxlength="11" class="comp-doc" data-pi="' + pi + '" placeholder="00000000" value="' + esc((pt.comp && pt.comp.cliente_documento) || '') + '">' +
+      '<label>Correo (opcional)</label><input type="email" class="comp-email" data-pi="' + pi + '" placeholder="correo@ejemplo.com" value="' + esc((pt.comp && pt.comp.cliente_email) || '') + '">' +
+      '<div style="font-size:10px;color:var(--muted);margin-top:2px">Autocompletado DNI/RUC no disponible en la app del mozo — ingresá los datos manualmente.</div>' +
+    '</div>';
+    html += '</div></div>';
+    return html;
+  }).join('');
+}
+
+// ---- Items grid (modo items) ----
+function allItemsNoAnulados() {
+  var items = [];
+  (st.cuenta.comandas || []).forEach(function(co) {
+    (co.items || []).forEach(function(it, idx) {
+      if (!it.anulado) items.push({ key: co.pedido_id + ':' + idx, nombre: it.nombre, qty: it.qty, precio: it.precio, mods: it.modificadores || [] });
+    });
+  });
+  return items;
+}
+
+function renderItemsGrid() {
+  var items = allItemsNoAnulados();
+  if (!items.length) return '';
+  var nPartes = cobro.partes.length;
+  var html = '<div style="margin-top:10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Asignar ítems</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Partes: ' + nPartes + '</span>' +
+    '<button type="button" class="btn-addpago" style="width:auto;padding:5px 12px;font-size:12px" onclick="addParteItems()">+ Parte</button></div>';
+  html += '<div class="items-grid">';
+  items.forEach(function(it) {
+    var msum = it.mods.reduce(function(s, m) { return s + (m.precio || 0); }, 0);
+    var lt = (it.precio + msum) * it.qty;
+    var cur = cobro.itemsAsign[it.key] != null ? cobro.itemsAsign[it.key] : 0;
+    html += '<div class="ig-row">' +
+      '<div class="ig-assign">' + esc(it.qty + '× ' + it.nombre) + '</div>' +
+      '<div class="ig-monto">S/ ' + lt.toFixed(0) + '</div>' +
+      '<div class="ig-sel"><select data-ikey="' + esc(it.key) + '">' +
+      '<option value="0">—</option>' +
+      cobro.partes.map(function(_, pi) { return '<option value="' + (pi + 1) + '"' + (cur === pi + 1 ? ' selected' : '') + '>P' + (pi + 1) + '</option>'; }).join('') +
+      '</select></div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function addParteItems() {
+  cobro.partes.push({ monto: 0, pagos: [], comp: null });
+  $('cobro-partes').innerHTML = renderPartes() + renderItemsGrid();
+  bindPartes(); bindItemsGrid();
+  actualizarSaldo();
+}
+
+function bindItemsGrid() {
+  document.querySelectorAll('#cobro-partes .ig-sel select').forEach(function(sel) {
+    sel.onchange = function() {
+      var k = this.getAttribute('data-ikey');
+      cobro.itemsAsign[k] = parseInt(this.value, 10) || 0;
+      recalcItemsPartes();
+    };
+  });
+}
+
+function recalcItemsPartes() {
+  var items = allItemsNoAnulados();
+  cobro.partes.forEach(function(pt, pi) { pt.monto = 0; pt.pagos = []; });
+  items.forEach(function(it) {
+    var pn = cobro.itemsAsign[it.key];
+    if (!pn) return;
+    var pi = pn - 1;
+    if (!cobro.partes[pi]) return;
+    var msum = it.mods.reduce(function(s, m) { return s + (m.precio || 0); }, 0);
+    cobro.partes[pi].monto = Math.round((cobro.partes[pi].monto + (it.precio + msum) * it.qty) * 100) / 100;
+  });
+  cobro.partes.forEach(function(pt) {
+    if (pt.monto > 0 && !pt.pagos.length) pt.pagos = [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: pt.monto }];
+    else if (pt.monto > 0) pt.pagos[0].monto = pt.monto;
+  });
+  // Re-render solo las partes (no el grid de ítems para no perder foco)
+  var partesDiv = $('cobro-partes');
+  partesDiv.innerHTML = renderPartes() + renderItemsGrid();
+  bindPartes(); bindItemsGrid();
+  actualizarSaldo();
+}
+
+// ---- Descuento ----
+function renderDescuento() {
+  return '<div style="margin-top:4px"><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Descuento (opcional)</div>' +
+    '<div class="desc-row"><div class="desc-tipo">' +
+    '<button type="button" data-dt="porcentaje" class="' + (cobro.descTipo === 'porcentaje' ? 'on' : '') + '" onclick="setDescTipo(\'porcentaje\')">%</button>' +
+    '<button type="button" data-dt="monto" class="' + (cobro.descTipo === 'monto' ? 'on' : '') + '" onclick="setDescTipo(\'monto\')">S/</button>' +
+    '<button type="button" data-dt="" class="' + (!cobro.descTipo ? 'on' : '') + '" onclick="setDescTipo(\'\')">Sin desc.</button>' +
+    '</div>' +
+    '<input type="number" inputmode="decimal" min="0" id="inp-desc" placeholder="0" value="' + (cobro.descTipo ? cobro.descValor : '') + '" ' + (cobro.descTipo ? '' : 'disabled') + ' style="width:80px;flex:none;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-weight:800;text-align:right;background:var(--surface)">' +
+    '</div></div>';
+}
+
+function setDescTipo(dt) {
+  cobro.descTipo = dt || null; cobro.descValor = 0;
+  // Re-render solo el bloque de config (preserva modo)
+  $('cobro-config').innerHTML = cobro.modo === 'iguales'
+    ? renderDescuento() + '<label style="margin-top:10px">Número de partes iguales</label>' +
+      '<div style="display:flex;align-items:center;gap:14px;margin-top:4px"><button class="qbtn" type="button" onclick="cambiarNIguales(-1)">−</button><b id="ig-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nIguales + '</b><button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div>'
+    : renderDescuento() + (cobro.modo === 'montos' ? '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span><button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div>' : '');
+  bindDescuento();
+}
+
+function bindDescuento() {
+  var inp = $('inp-desc'); if (!inp) return;
+  inp.oninput = function() { cobro.descValor = parseFloat(this.value) || 0; actualizarSaldo(); };
+}
+
+// ---- Bind de partes ----
+function bindPartes() {
+  // Métodos de pago
+  document.querySelectorAll('#cobro-partes .sel-met').forEach(function(sel) {
+    sel.onchange = function() {
+      var pi = +this.getAttribute('data-pi'), gi = +this.getAttribute('data-gi');
+      cobro.partes[pi].pagos[gi].metodo = this.value;
+    };
+  });
+  // Montos de pago
+  document.querySelectorAll('#cobro-partes .inp-monto').forEach(function(inp) {
+    inp.oninput = function() {
+      var pi = +this.getAttribute('data-pi'), gi = +this.getAttribute('data-gi');
+      cobro.partes[pi].pagos[gi].monto = parseFloat(this.value) || 0;
+      actualizarSaldo();
+    };
+  });
+  // Monto de parte (modo montos)
+  document.querySelectorAll('#cobro-partes .pago-monto-parte').forEach(function(inp) {
+    inp.oninput = function() {
+      var pi = +this.getAttribute('data-pi');
+      cobro.partes[pi].monto = parseFloat(this.value) || 0;
+      // Actualizar el único pago de la parte para que coincida
+      if (cobro.partes[pi].pagos.length === 1) cobro.partes[pi].pagos[0].monto = cobro.partes[pi].monto;
+      actualizarSaldo();
+    };
+  });
+  // Comprobante toggle: ya tiene onclick="toggleComp(N)" inline en el HTML generado.
+  // Comprobante fields
+  document.querySelectorAll('#cobro-partes .comp-tipo').forEach(function(sel) {
+    sel.onchange = function() {
+      var pi = +this.getAttribute('data-pi');
+      if (cobro.partes[pi].comp) cobro.partes[pi].comp.tipo = this.value;
+    };
+  });
+  document.querySelectorAll('#cobro-partes .comp-nombre').forEach(function(inp) {
+    inp.oninput = function() {
+      var pi = +this.getAttribute('data-pi');
+      if (cobro.partes[pi].comp) cobro.partes[pi].comp.cliente_nombre = this.value;
+    };
+  });
+  document.querySelectorAll('#cobro-partes .comp-doc').forEach(function(inp) {
+    inp.oninput = function() {
+      var pi = +this.getAttribute('data-pi');
+      if (cobro.partes[pi].comp) cobro.partes[pi].comp.cliente_documento = this.value;
+    };
+  });
+  document.querySelectorAll('#cobro-partes .comp-email').forEach(function(inp) {
+    inp.oninput = function() {
+      var pi = +this.getAttribute('data-pi');
+      if (cobro.partes[pi].comp) cobro.partes[pi].comp.cliente_email = this.value;
+    };
+  });
+}
+
+function toggleComp(pi) {
+  var mark = $('cmark-' + pi); var fields = $('cfields-' + pi);
+  if (!mark || !fields) return;
+  var on = !mark.classList.contains('on');
+  mark.classList.toggle('on', on);
+  fields.classList.toggle('on', on);
+  if (on) {
+    cobro.partes[pi].comp = cobro.partes[pi].comp || { tipo: 'ticket', cliente_nombre: '', cliente_documento: '', cliente_email: '' };
+  } else {
+    cobro.partes[pi].comp = null;
+  }
+}
+
+function addPago(pi) {
+  cobro.partes[pi].pagos.push({ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: 0 });
+  $('cobro-partes').innerHTML = cobro.modo === 'items' ? renderPartes() + renderItemsGrid() : renderPartes();
+  bindPartes(); if (cobro.modo === 'items') bindItemsGrid();
+  actualizarSaldo();
+}
+
+function quitarPago(pi, gi) {
+  cobro.partes[pi].pagos.splice(gi, 1);
+  $('cobro-partes').innerHTML = cobro.modo === 'items' ? renderPartes() + renderItemsGrid() : renderPartes();
+  bindPartes(); if (cobro.modo === 'items') bindItemsGrid();
+  actualizarSaldo();
+}
+
+function eliminarParte(pi) {
+  cobro.partes.splice(pi, 1);
+  $('cobro-partes').innerHTML = renderPartes();
+  bindPartes();
+  actualizarSaldo();
+}
+
+// ---- Saldo / validación visual ----
+function calcDescMonto() {
+  if (!cobro.descTipo) return 0;
+  var v = cobro.descValor;
+  if (cobro.descTipo === 'porcentaje') return Number(st.cuenta.monto_cobrar) * Math.min(100, Math.max(0, v)) / 100;
+  return Math.min(Number(st.cuenta.monto_cobrar), Math.max(0, v));
+}
+
+function actualizarSaldo() {
+  var faltaBase = faltaActual();
+  var sumPagos = 0;
+  cobro.partes.forEach(function(pt) {
+    pt.pagos.forEach(function(pg) { sumPagos += pg.monto || 0; });
+  });
+  sumPagos = Math.round(sumPagos * 100) / 100;
+  var objetivo;
+  if (cobro.modo === 'items') {
+    // En modo ítems el objetivo es la suma de los montos asignados (cobro parcial válido)
+    objetivo = 0;
+    cobro.partes.forEach(function(pt) { objetivo += pt.monto || 0; });
+    objetivo = Math.round(objetivo * 100) / 100;
+  } else {
+    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
+    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+  }
+  var saldoEl = $('cobro-saldo');
+  var diff = Math.round((sumPagos - objetivo) * 100) / 100;
+  if (objetivo === 0) {
+    saldoEl.textContent = 'Sin ítems asignados';
+    saldoEl.className = 'cobro-saldo err';
+  } else if (Math.abs(diff) < 0.02) {
+    saldoEl.textContent = 'Cobro cuadrado · S/ ' + sumPagos.toFixed(2);
+    saldoEl.className = 'cobro-saldo ok';
+  } else if (diff > 0) {
+    saldoEl.textContent = 'Excede en S/ ' + diff.toFixed(2);
+    saldoEl.className = 'cobro-saldo err';
+  } else {
+    saldoEl.textContent = 'Faltan S/ ' + Math.abs(diff).toFixed(2) + ' por asignar';
+    saldoEl.className = 'cobro-saldo err';
+  }
+}
+
+// ---- Confirmar cobro ----
+var _cobTurnoId = null;
+
+function confirmarCobro(turnoId) {
+  if (!st.cuenta) return;
+  // Leer datos de comprobante del DOM (por si el usuario escribió y no disparó oninput)
+  cobro.partes.forEach(function(pt, pi) {
+    var nm = document.querySelector('.comp-nombre[data-pi="' + pi + '"]');
+    var dc = document.querySelector('.comp-doc[data-pi="' + pi + '"]');
+    var em = document.querySelector('.comp-email[data-pi="' + pi + '"]');
+    var tp = document.querySelector('.comp-tipo[data-pi="' + pi + '"]');
+    if (pt.comp) {
+      if (nm) pt.comp.cliente_nombre = nm.value;
+      if (dc) pt.comp.cliente_documento = dc.value;
+      if (em) pt.comp.cliente_email = em.value;
+      if (tp) pt.comp.tipo = tp.value;
+    }
+  });
+
+  // Construir partes activas (eliminar vacías antes de validar)
+  var partesEnvio;
+  if (cobro.modo === 'items') {
+    // En modo ítems: calcular item_keys por parte y descartar las que no tienen ítems asignados
+    partesEnvio = cobro.partes.map(function(pt, pi) {
+      var keys = Object.keys(cobro.itemsAsign).filter(function(k) { return cobro.itemsAsign[k] === pi + 1; });
+      return { pt: pt, item_keys: keys };
+    }).filter(function(x) { return x.item_keys.length > 0; });
+  } else {
+    partesEnvio = cobro.partes.filter(function(pt) { return pt.pagos.length > 0 && pt.monto > 0; });
+  }
+
+  if (!partesEnvio.length) { toast('Nada que cobrar'); return; }
+
+  // Validación de totales
+  var sumPagos = 0;
+  partesEnvio.forEach(function(x) {
+    var pagos = cobro.modo === 'items' ? x.pt.pagos : x.pagos;
+    pagos.forEach(function(pg) { sumPagos += pg.monto || 0; });
+  });
+  sumPagos = Math.round(sumPagos * 100) / 100;
+
+  var objetivo;
+  if (cobro.modo === 'items') {
+    // Objetivo = suma de montos de partes con ítems asignados (cobro parcial válido)
+    objetivo = 0;
+    partesEnvio.forEach(function(x) { objetivo += x.pt.monto || 0; });
+    objetivo = Math.round(objetivo * 100) / 100;
+    // Solo bloquear si excede lo que falta (no se puede cobrar de más)
+    if (sumPagos > Math.round((faltaActual() + 0.02) * 100) / 100) { toast('Los pagos exceden el saldo pendiente'); return; }
+  } else {
+    var faltaBase = faltaActual();
+    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
+    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+  }
+
+  if (Math.abs(sumPagos - objetivo) > 0.02) { toast('Los pagos no cuadran con el total a cobrar'); return; }
+
+  var payload = {
+    modo: cobro.modo,
+    descuento: cobro.descTipo ? { tipo: cobro.descTipo, valor: cobro.descValor } : null,
+    partes: cobro.modo === 'items'
+      ? partesEnvio.map(function(x) {
+          var p = { pagos: x.pt.pagos.map(function(pg) { return { metodo: pg.metodo, monto: pg.monto }; }), item_keys: x.item_keys };
+          if (x.pt.comp) p.comprobante = x.pt.comp;
+          return p;
+        })
+      : partesEnvio.map(function(pt) {
+          var p = { monto: pt.monto, pagos: pt.pagos.map(function(pg) { return { metodo: pg.metodo, monto: pg.monto }; }) };
+          if (pt.comp) p.comprobante = pt.comp;
+          return p;
+        })
+  };
+  if (turnoId) payload.turno_id = turnoId;
+
+  var btn = $('cobro-confirmar'); btn.disabled = true; btn.textContent = 'Procesando…';
+
+  geo().then(function() {
+    var fd = new FormData(); fd.append('action', 'cobrar'); fd.append('cuenta_id', st.cuenta.id); fd.append('payload', JSON.stringify(payload));
+    if (st.lastGeo) { fd.append('lat', st.lastGeo.lat); fd.append('lng', st.lastGeo.lng); }
+    return fetch(API + '?action=cobrar', { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd, credentials: 'same-origin' }).then(function(r) { return r.json(); });
+  }).then(function(d) {
+    btn.disabled = false; btn.textContent = 'Confirmar cobro';
+    if (d.sin_caja) {
+      toast('No hay caja abierta en el local');
+      return;
+    }
+    if (d.multi_caja) {
+      // Mostrar selector de caja
+      var list = $('m-turno-list'); list.innerHTML = '';
+      (d.turnos || []).forEach(function(t) {
+        var b = document.createElement('button'); b.className = 'btn'; b.style.background = '#fff'; b.style.border = '1.5px solid var(--line)';
+        b.textContent = 'Caja abierta ' + (t.usuario || '') + ' · ' + (t.abierto_en || '');
+        b.onclick = function() { closeModal('m-turno'); confirmarCobro(t.id); };
+        list.appendChild(b);
+      });
+      openModal('m-turno');
+      return;
+    }
+    if (!d.ok) { toast(d.error || 'No se pudo cobrar'); return; }
+    // Avisar si hay comprobantes con error
+    var pendientes = (d.comprobantes || []).filter(function(c) { return c.estado === 'error' || c.estado === 'pendiente'; });
+    if (pendientes.length) toast('Cobrado · ' + pendientes.length + ' comprobante(s) pendiente(s) de emisión');
+    if (d.cerrada) {
+      closeModal('m-cobro');
+      refreshEstados();
+      showView('v-plano');
+      setTimeout(function() { toast('Mesa cobrada'); }, 300);
+    } else {
+      // Pago parcial: refrescar cuenta y quedar en cobro
+      get('cuenta&cuenta_id=' + st.cuenta.id).then(function(dcu) {
+        if (dcu.ok) st.cuenta = dcu.cuenta;
+        pintarResumen();
+        toast('Pago parcial registrado · falta S/ ' + (d.falta || 0).toFixed(2));
+        actualizarSaldo();
+      });
+    }
+  }).catch(function() {
+    btn.disabled = false; btn.textContent = 'Confirmar cobro';
+    toast('Error de red');
+  });
+}
 
 // arranque: ¿ya hay sesión?
 // Botón atrás del navegador → retrocede dentro de la app (cierra modal / vuelve de vista).
