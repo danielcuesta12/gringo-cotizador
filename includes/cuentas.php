@@ -73,7 +73,14 @@ function dentroGeocerca(int $ubicacionId, ?float $lat, ?float $lng): bool {
 
 /** La cuenta abierta de una mesa, o null. */
 function cuentaAbiertaDeMesa(int $mesaId): ?array {
-    return Database::fetch("SELECT * FROM cuentas WHERE mesa_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1", [$mesaId]);
+    $c = Database::fetch("SELECT * FROM cuentas WHERE mesa_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1", [$mesaId]);
+    if ($c) return $c;
+    if (cuentaMesasListo()) {
+        return Database::fetch(
+            "SELECT cu.* FROM cuentas cu JOIN cuenta_mesas cm ON cm.cuenta_id = cu.id
+             WHERE cm.mesa_id = ? AND cu.estado = 'abierta' ORDER BY cu.id DESC LIMIT 1", [$mesaId]);
+    }
+    return null;
 }
 
 /** Abre (o reusa) la cuenta abierta de una mesa. Devuelve el id. */
@@ -102,6 +109,19 @@ function cuentaTotalRecalc(int $cuentaId): float {
     $total = round($total, 2);
     Database::execute("UPDATE cuentas SET total = ? WHERE id = ?", [$total, $cuentaId]);
     return $total;
+}
+
+/** Mesas de una cuenta: principal (de cuentas.mesa_id) + secundarias (cuenta_mesas). Principal primero. */
+function cuentaMesasLista(int $cuentaId): array {
+    $out = [];
+    $c = Database::fetch("SELECT cu.mesa_id, m.numero FROM cuentas cu LEFT JOIN mesas m ON m.id = cu.mesa_id WHERE cu.id = ?", [$cuentaId]);
+    if ($c && $c['mesa_id'] !== null) $out[] = ['id' => (int)$c['mesa_id'], 'numero' => (string)($c['numero'] ?? ''), 'principal' => true];
+    if (cuentaMesasListo()) {
+        foreach (Database::fetchAll("SELECT m.id, m.numero FROM cuenta_mesas cm JOIN mesas m ON m.id = cm.mesa_id WHERE cm.cuenta_id = ? ORDER BY cm.id", [$cuentaId]) as $r) {
+            $out[] = ['id' => (int)$r['id'], 'numero' => (string)$r['numero'], 'principal' => false];
+        }
+    }
+    return $out;
 }
 
 /** Detalle de la cuenta con sus comandas (rondas) e ítems. */
@@ -134,6 +154,7 @@ function cuentaDetalle(int $cuentaId, int $ubicacionId = 0): ?array {
     }
     return [
         'id' => (int)$c['id'], 'mesa_id' => (int)$c['mesa_id'], 'mesa_numero' => $c['mesa_numero'],
+        'mesas' => cuentaMesasLista($cuentaId),
         'num_comensales' => (int)$c['num_comensales'], 'estado' => $c['estado'],
         'total' => $total, 'mozo_nombre' => $c['mozo_nombre'], 'abierta_at' => $c['abierta_at'],
         'precuenta_at' => $c['precuenta_at'] ?? null,
@@ -216,23 +237,37 @@ function mesaEstados(int $ubicacionId): array {
     // ncom = comandas no canceladas: una cuenta abierta SIN contenido no pinta la mesa (se ve libre).
     $ncomSub = "(SELECT COUNT(*) FROM pedidos WHERE cuenta_id = cu.id AND estado <> 'cancelado')";
     $sel = $hasCobro
-        ? "SELECT cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
+        ? "SELECT cu.id, cu.mesa_id, cu.total, cu.precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
                   COALESCE((SELECT SUM(monto) FROM cuenta_pagos WHERE cuenta_id = cu.id),0) AS pagado, $ncomSub AS ncom
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'"
-        : "SELECT cu.mesa_id, cu.total, NULL AS precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
+        : "SELECT cu.id, cu.mesa_id, cu.total, NULL AS precuenta_at, TIMESTAMPDIFF(MINUTE, cu.abierta_at, NOW()) AS mins,
                   0 AS pagado, $ncomSub AS ncom
            FROM cuentas cu WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'";
+    $porCuenta = []; // cuentas pintadas (con contenido) → su estado/total/mins, para pintar sus secundarias
     foreach (Database::fetchAll($sel, [$ubicacionId]) as $r) {
-        $mid = (int)$r['mesa_id'];
         $pagado = (float)$r['pagado'];
         $ncom   = (int)$r['ncom'];
         if ($ncom === 0 && $pagado <= 0.001) continue; // cuenta abierta vacía → no pintar la mesa
         if ($pagado > 0.001)                $estado = 'por_cobrar';
         elseif (!empty($r['precuenta_at'])) $estado = 'precuenta';
         else                                $estado = 'ocupada';
-        $estados[$mid] = $estado;
-        $montos[$mid]  = (float)$r['total'];
-        $minutos[$mid] = max(0, (int)$r['mins']);
+        $mid = (int)$r['mesa_id']; $tot = (float)$r['total']; $min = max(0, (int)$r['mins']);
+        $estados[$mid] = $estado; $montos[$mid] = $tot; $minutos[$mid] = $min;
+        $porCuenta[(int)$r['id']] = ['estado' => $estado, 'total' => $tot, 'mins' => $min];
+    }
+    // Mesas secundarias (juntadas) → mismo estado que su cuenta (solo cuentas con contenido).
+    if ($porCuenta && cuentaMesasListo()) {
+        foreach (Database::fetchAll(
+            "SELECT cm.cuenta_id, cm.mesa_id FROM cuenta_mesas cm
+             JOIN cuentas cu ON cu.id = cm.cuenta_id
+             WHERE cu.ubicacion_id = ? AND cu.estado = 'abierta'", [$ubicacionId]) as $cm) {
+            $cid = (int)$cm['cuenta_id'];
+            if (!isset($porCuenta[$cid])) continue;
+            $mid = (int)$cm['mesa_id'];
+            $estados[$mid] = $porCuenta[$cid]['estado'];
+            $montos[$mid]  = $porCuenta[$cid]['total'];
+            $minutos[$mid] = $porCuenta[$cid]['mins'];
+        }
     }
     return ['estados' => $estados, 'montos' => $montos, 'minutos' => $minutos];
 }
