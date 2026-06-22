@@ -38,4 +38,5 @@ SELECT m.migracion, IF(m.existe > 0, '✅ aplicada', '❌ FALTA') AS estado FROM
   UNION ALL SELECT '57 cuentas                 (tabla cuentas)',           COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='cuentas'
   UNION ALL SELECT '58 cobro_mesas             (tabla cuenta_pagos)',      COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='cuenta_pagos'
   UNION ALL SELECT '59 cuenta_mesas             (tabla cuenta_mesas)',      COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='cuenta_mesas'
+  UNION ALL SELECT '60 costeo_recetas          (tabla subrecetas)',         COUNT(*) FROM information_schema.tables  WHERE table_schema=DATABASE() AND table_name='subrecetas'
 ) m;
