@@ -58,9 +58,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready && $ubiF) {
                 flashMessage('error', "No hay stock suficiente en $faltan insumo(s). No se despachó nada — corrige las cantidades.");
                 _back($ubiF, 'salidas');
             }
-            if (!$items) { flashMessage('error', 'No ingresaste cantidades.'); _back($ubiF, 'salidas'); }
-            $ref = invTransferir($ubiF, $destino, $items, 'Despacho');
-            flashMessage($ref ? 'success' : 'error', $ref ? 'Despacho realizado: ' . count($items) . ' insumo(s) transferido(s).' : 'No se pudo completar el despacho.');
+            // Subrecetas a despachar (si la capa existe)
+            $subItems = [];
+            if (subrecetaStockListo()) {
+                $cantSub = is_array($_POST['cant_sub'] ?? null) ? $_POST['cant_sub'] : [];
+                $subStock = [];
+                foreach (Database::fetchAll("SELECT subreceta_id, stock FROM subreceta_stock WHERE ubicacion_id=?", [$ubiF]) as $ss) {
+                    $subStock[(int)$ss['subreceta_id']] = (float)$ss['stock'];
+                }
+                foreach ($cantSub as $sid => $v) {
+                    $sid = (int)$sid; $v = cleanFloat($v);
+                    if ($sid <= 0 || $v <= 0) continue;
+                    if ($v > ($subStock[$sid] ?? 0) + 0.0001) { $faltan++; continue; }
+                    $subItems[$sid] = $v;
+                }
+                if ($faltan) {
+                    flashMessage('error', "No hay stock suficiente en $faltan ítem(s). No se despachó nada — corrige las cantidades.");
+                    _back($ubiF, 'salidas');
+                }
+            }
+            if (!$items && !$subItems) { flashMessage('error', 'No ingresaste cantidades.'); _back($ubiF, 'salidas'); }
+            $refI = $items    ? invTransferir($ubiF, $destino, $items, 'Despacho')    : '';
+            $refS = $subItems ? subTransferir($ubiF, $destino, $subItems, 'Despacho') : '';
+            $okI = !$items || $refI; $okS = !$subItems || $refS;
+            flashMessage(($okI && $okS) ? 'success' : 'error',
+                ($okI && $okS)
+                    ? 'Despacho realizado: ' . count($items) . ' insumo(s) y ' . count($subItems) . ' subreceta(s).'
+                    : 'No se pudo completar parte del despacho.');
             _back($ubiF, 'salidas');
         } else {
             $n = 0; $faltan = 0;
@@ -206,6 +230,28 @@ include __DIR__ . '/../layout-top.php';
     </div>
     <?php endif; ?>
   </div>
+
+  <?php if ($modo === 'salidas' && $esAlmacen && subrecetaStockListo()):
+      $subDisp = Database::fetchAll(
+          "SELECT s.id, s.nombre, s.unidad, COALESCE(ss.stock,0) stock
+             FROM subrecetas s JOIN subreceta_stock ss ON ss.subreceta_id=s.id AND ss.ubicacion_id=?
+            WHERE s.activo=1 AND s.lleva_stock=1 AND ss.stock > 0 ORDER BY s.nombre", [$ubiF]);
+      if ($subDisp): ?>
+  <div class="card" style="margin-top:16px"><div class="card-header"><span class="card-title">Subrecetas a despachar</span></div>
+    <div class="table-wrap" style="border:none;border-radius:0"><table class="data-table">
+      <thead><tr><th>Subreceta</th><th>Disponible</th><th style="width:160px">Cantidad a despachar</th></tr></thead>
+      <tbody>
+        <?php foreach ($subDisp as $s): ?>
+        <tr>
+          <td><strong><?= clean($s['nombre']) ?></strong></td>
+          <td><?= nf($s['stock']) ?> <span style="color:var(--text-muted);font-size:12px"><?= clean($s['unidad']) ?></span></td>
+          <td><input type="text" inputmode="decimal" name="cant_sub[<?= (int)$s['id'] ?>]" placeholder="0" style="width:120px"></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table></div>
+  </div>
+  <?php endif; endif; ?>
 </form>
 
 <script>
