@@ -284,6 +284,13 @@ try {
         </a>
         <?php endif; ?>
 
+        <?php if (can('inv_recetas')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/subrecetas.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-subrecetas'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M5 11v11M11 2v20M15 2c-1.5 0-3 1.5-3 4s1.5 4 3 4v12"/></svg></span> Subrecetas
+        </a>
+        <?php endif; ?>
+
         <?php if (can('inv_movimientos')): ?>
         <a href="<?php echo APP_URL; ?>/admin/inventory/movimientos.php"
            class="nav-link <?php echo ($activePage??'')==='inv-movimientos'?'active':''; ?>">
