@@ -111,7 +111,7 @@ gringo-cotizador/
 │   ├── facturacion/ (config NubeFact + IGV + consulta DNI/RUC)
 │   ├── landing/   (botones del landing por tipo + editor de apariencia + qr)
 │   ├── analytics/ · settings/ · users/
-└── install/  (~33 migraciones .sql — ver "Migraciones / despliegue")
+└── install/  (~59 migraciones .sql — ver "Migraciones / despliegue")
 ```
 
 ---
@@ -362,11 +362,18 @@ Cada instancia: su propio `.env` (DB_NAME, APP_URL/PATH, UPLOAD_URL/PATH). El c�
 
 **Web comercial (marketing) — EN VIVO.** Carpeta `~/Documents/Proyectos/yupipos-web/` (repo GitHub `yupipos-web`): **Next.js 16 + React 19 + Tailwind 4 + TS**. Landing **publicada en Vercel** (URL provisional `saas-restaurante-phi.vercel.app`; falta apuntar `yupipos.com`), tema **claro + acento ámbar**, marca **YupiPOS** (logo "Y"); `landing-preview.html` = archivo autónomo para compartir.
 
-**App del producto — INICIADA.** Carpeta `~/Documents/Proyectos/yupipos-app/`: **Laravel 13 + PHP 8.5**, con **Filament 5** + **stancl/tenancy 3.10** + **spatie/permission 8** instalados. BD MariaDB local `yupipos_central` (usuario `yupipos`). Siguiente: configurar tenancy multi-DB → Filament paneles → roles → white-label → test de aislamiento (Cimientos).
+**App del producto — CIMIENTOS COMPLETOS.** Carpeta `~/Documents/Proyectos/yupipos-app/` (repo GitHub `yupipos-app`): **Laravel 13 + PHP 8.5 + Filament 5.6 + stancl/tenancy 3.10 (multi-DB) + spatie/permission 8**. BD MariaDB local `yupipos_central` (usuario `yupipos`). Hecho y commiteado:
+- **Multi-tenancy DB-por-cliente** (modelo `App\Models\Tenant` HasDatabase+HasDomains; al crear tenant nace su BD).
+- **Panel super-admin** (`/admin`, central, ámbar) con Resource de Restaurantes (alta → crea BD + dominio + roles). Login: daniel@yupipos.com / yupipos123.
+- **Panel del cliente** (`/app`) por subdominio (`{id}.localhost`; prod `{id}.yupipos.com`), bloqueado en dominios centrales. Demo: admin@donjose.com / yupipos123.
+- **White-label**: nombre/logo/color por tenant (en `tenants.data`), default NEUTRO Slate; color vía renderHook que inyecta `--primary-*` oklch (`Color::hex`); logo en disco `brand` (central, sin suffix). Página self-service `Ajustes → Marca`.
+- **Roles** spatie por tenant (admin/cajero/cocina/mozo/inventario), tablas en tenant **y** central (sino el panel central da 500 por `HasRoles`); seed automático en alta.
+- **Test de aislamiento** (`tests/Feature/TenantIsolationTest.php`) PASA contra MariaDB.
+- Gotchas resueltos: sesiones y caché a `file` (chocaban con tenancy); `asset_helper_tenancy=false` (rompía assets de Filament en subdominio).
 
 **Planes:** Básico / Pro / Catering+Foodtrucks. Mapa de **gating por plan** en `docs/superpowers/specs/2026-06-17-planes-gating-design.md` (precios ejemplo S/79 / 159 / 269). **Infra app:** VPS (DigitalOcean/Vultr Miami) + dominio comodín `*.{dominio}` + SSL comodín.
 
-**Orden al retomar (REGLA):** primero **assessment del esqueleto + spec de arquitectura del SaaS** (tenancy, mapa de módulos a portar, orden de rebanadas, qué se hereda) → **recién ahí** escribir el Plan 1 atado a SUNAT/Izipay/DB-per-tenant. **No escribir Laravel sin ese assessment previo.**
+**Siguiente = FASE 1 (assessment).** Los Cimientos NO necesitaron el assessment y ya están hechos. Antes de **portar módulos** reales (catálogo, carta, POS, SUNAT, mesas/mozo…) toca el **assessment del esqueleto El Gringo + spec de arquitectura**, con entregable: tabla **módulo → Filament / a medida / reutiliza JS** + esfuerzo y riesgos. **Regla: no portar módulos sin ese assessment previo.**
 
 ---
 
