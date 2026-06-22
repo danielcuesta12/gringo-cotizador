@@ -222,12 +222,14 @@ function recBuscar(q){
 function recAgregar(tipo, id, nombre, unidad, costo){
   tipo = tipo === 'subreceta' ? 'subreceta' : 'insumo';
   costo = parseFloat(costo)||0;
-  if (document.querySelector('input[name="comp_ref[]"][value="'+id+'"]')) {
-    const exist = document.querySelector('input[name="comp_ref[]"][value="'+id+'"]');
-    if (exist && exist.previousElementSibling && exist.previousElementSibling.value === tipo) {
-      document.getElementById('rec-drop').style.display='none'; document.getElementById('rec-add').value=''; return;
-    }
-  }
+  // Evitar duplicar el mismo componente (mismo tipo + mismo ref)
+  let dup = false;
+  document.querySelectorAll('#rec-rows .rec-row').forEach(function(row){
+    const t = row.querySelector('input[name="comp_tipo[]"]');
+    const r = row.querySelector('input[name="comp_ref[]"]');
+    if (t && r && t.value === tipo && String(r.value) === String(id)) dup = true;
+  });
+  if (dup) { document.getElementById('rec-drop').style.display='none'; document.getElementById('rec-add').value=''; return; }
   const tag = tipo==='subreceta' ? 'Sub' : 'Insumo';
   const cls = tipo==='subreceta' ? 'rec-tag sub' : 'rec-tag';
   const row = document.createElement('div'); row.className='rec-row';
