@@ -49,7 +49,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .qbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid #d8d2c6;background:var(--surface);font-size:24px;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;cursor:pointer;flex:none;transition:transform .1s var(--ease),background .12s}
 .qbtn:active{transform:scale(.9);background:#f1ede4}
 .qbtn.danger{color:var(--danger);border-color:#f0bcbc}
-.plus{width:40px;height:40px;border-radius:50%;background:var(--am);color:var(--ng);font-weight:900;font-size:24px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none;transition:transform .1s var(--ease)}
+.plus{width:40px;height:40px;border-radius:50%;background:var(--am);color:var(--ng);font-weight:900;font-size:24px;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none;transition:transform .1s var(--ease);cursor:pointer}
+.plus:active{transform:scale(.9)}
+.qstep{display:inline-flex;align-items:center;gap:8px}
+.qstep button{width:40px;height:40px;border-radius:50%;border:1.5px solid #d8d2c6;background:var(--surface);font-size:22px;font-weight:800;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex:none;cursor:pointer}
+.qstep button:active{transform:scale(.9)}
+.qstep .qpls{background:var(--am);color:var(--ng);border-color:var(--am)}
+.qstep .qn{min-width:18px;text-align:center;font-weight:900;font-size:17px}
+.qbadge{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:var(--am);color:var(--ng);font-weight:900;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
 .plus:active{transform:scale(.9)}
 .pindots{display:flex;gap:12px;justify-content:center;margin:16px 0}
 .pindots span{width:14px;height:14px;border-radius:50%;border:2px solid #cfc8bb;transition:.15s var(--ease)}
@@ -308,13 +315,13 @@ function ding(){
   try{
     _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==='suspended') _ac.resume();
-    [0,160].forEach(function(off){
+    [0,190,380].forEach(function(off){
       var o=_ac.createOscillator(), g=_ac.createGain();
-      o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(_ac.destination);
+      o.type='square'; o.frequency.value=880; o.connect(g); g.connect(_ac.destination);
       var t=_ac.currentTime+off/1000;
-      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
-      o.start(t); o.stop(t+0.16);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+      o.start(t); o.stop(t+0.18);
     });
   }catch(e){}
 }
@@ -556,11 +563,29 @@ function drawCat(){
   if(!prods.length){ list.innerHTML='<p style="padding:24px;text-align:center;color:#999">Sin resultados</p>'; return; }
   prods.forEach(function(p){
     var mods=p.grupos&&p.grupos.length;
-    var r=document.createElement('div'); r.className='row'; r.innerHTML='<div>'+esc(p.nombre)+(mods?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px"><b>S/ '+Number(p.precio).toFixed(0)+'</b><span class="plus">+</span></div>';
-    r.onclick = mods ? function(){ openProd(p); } : function(){ pushBorr(p,1,[],''); toast('+1 '+p.nombre); };
+    var n = mods ? borrTotalQty(p.id) : (function(){ var e=borrNoModEntry(p.id); return e?e.qty:0; })();
+    var precio='<b>S/ '+Number(p.precio).toFixed(0)+'</b>';
+    var ctrl;
+    if(mods){ ctrl = precio + (n>0?'<span class="qbadge">'+n+'</span>':'') + '<span class="plus" data-act="prod">+</span>'; }
+    else if(n>0){ ctrl = precio + '<span class="qstep"><button class="qmin" data-act="dec">−</button><b class="qn">'+n+'</b><button class="qpls" data-act="inc">+</button></span>'; }
+    else { ctrl = precio + '<span class="plus" data-act="inc">+</span>'; }
+    var r=document.createElement('div'); r.className='row';
+    r.innerHTML='<div class="rl" style="min-width:0">'+esc(p.nombre)+(mods?'<br><small style="color:#999">toca para modificar</small>':'')+'</div><div style="display:flex;align-items:center;gap:9px;flex:none">'+ctrl+'</div>';
+    if(mods){
+      r.querySelector('.rl').onclick=function(){ openProd(p); };
+      var bp=r.querySelector('[data-act="prod"]'); if(bp) bp.onclick=function(){ openProd(p); };
+    } else {
+      var inc=r.querySelector('[data-act="inc"]'); if(inc) inc.onclick=function(){ qaInc(p.id); };
+      var dec=r.querySelector('[data-act="dec"]'); if(dec) dec.onclick=function(){ qaDec(p.id); };
+    }
     list.appendChild(r);
   });
 }
+function findProd(pid){ for(var i=0;i<st.catProd.length;i++){ if(+st.catProd[i].id===+pid) return st.catProd[i]; } return null; }
+function borrNoModEntry(pid){ for(var i=0;i<st.borrador.length;i++){ var b=st.borrador[i]; if(+b.product_id===+pid && (!b.modificadores||!b.modificadores.length) && !b.nota) return b; } return null; }
+function borrTotalQty(pid){ var n=0; st.borrador.forEach(function(b){ if(+b.product_id===+pid) n+=(b.qty||0); }); return n; }
+function qaInc(pid){ var e=borrNoModEntry(pid); if(e){ e.qty++; } else { var p=findProd(pid); if(!p)return; st.borrador.push({product_id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),qty:1,modificadores:[],nota:''}); } updBorr(); drawCat(); }
+function qaDec(pid){ var e=borrNoModEntry(pid); if(!e)return; e.qty--; if(e.qty<=0){ var i=st.borrador.indexOf(e); if(i>=0) st.borrador.splice(i,1); } updBorr(); drawCat(); }
 function openProd(p){ st.prodSel={p:p, qty:1, sel:{}, nota:''}; renderProd(); openModal('m-prod'); }
 function renderProd(){
   var s=st.prodSel, p=s.p;
