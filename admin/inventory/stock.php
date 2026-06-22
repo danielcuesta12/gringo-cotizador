@@ -10,7 +10,7 @@ $ready = inventarioListo();
 $ubicaciones = $ready ? ubicacionesConInventario() : [];
 $ubiF = cleanInt($_GET['ubi'] ?? 0) ?: ($ubicaciones[0]['id'] ?? 0);
 
-$rows = []; $valorTotal = 0; $nAlertas = 0;
+$rows = []; $subRows = []; $valorTotal = 0; $nAlertas = 0;
 if ($ready && $ubiF) {
     $rows = Database::fetchAll(
         "SELECT i.id, i.nombre, i.unidad, i.costo_unitario,
@@ -22,6 +22,19 @@ if ($ready && $ubiF) {
         [$ubiF]
     );
     foreach ($rows as $r) { $valorTotal += $r['stock'] * $r['costo_unitario']; if ($r['stock'] <= $r['stock_min']) $nAlertas++; }
+
+    $subRows = [];
+    if (subrecetaStockListo()) {
+        $subRows = Database::fetchAll(
+            "SELECT s.id, s.nombre, s.unidad,
+                    COALESCE(ss.stock,0) stock, COALESCE(ss.stock_min,0) stock_min
+             FROM subrecetas s
+             LEFT JOIN subreceta_stock ss ON ss.subreceta_id = s.id AND ss.ubicacion_id = ?
+             WHERE s.activo = 1 AND s.lleva_stock = 1
+             ORDER BY (COALESCE(ss.stock,0) <= COALESCE(ss.stock_min,0)) DESC, s.nombre",
+            [$ubiF]
+        );
+    }
 }
 function nf($n) { return rtrim(rtrim(number_format((float)$n, 3, '.', ''), '0'), '.'); }
 
@@ -86,6 +99,31 @@ include __DIR__ . '/../layout-top.php';
   </div>
   <?php endif; ?>
 </div>
+
+<?php if (!empty($subRows)): ?>
+<div class="card" style="margin-top:18px">
+  <div class="card-header"><span class="card-title">Subrecetas (stock propio)</span></div>
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data-table">
+      <thead><tr><th>Subreceta</th><th>Stock</th><th>Mínimo</th></tr></thead>
+      <tbody>
+        <?php foreach ($subRows as $r): $low = $r['stock'] <= $r['stock_min']; $neg = $r['stock'] < 0; ?>
+        <tr<?= $low ? ' style="background:rgba(220,38,38,.05)"' : '' ?>>
+          <td>
+            <strong><?= clean($r['nombre']) ?></strong>
+            <?php if ($neg): ?><span class="badge badge-danger" style="margin-left:6px;font-size:10px">Negativo</span>
+            <?php elseif ($low): ?><span class="badge badge-danger" style="margin-left:6px;font-size:10px">Bajo mínimo</span><?php endif; ?>
+          </td>
+          <td><strong style="<?= $low?'color:#dc2626':'' ?>"><?= nf($r['stock']) ?></strong> <span style="color:var(--text-muted);font-size:12px"><?= clean($r['unidad']) ?></span></td>
+          <td style="color:var(--text-secondary)"><?= nf($r['stock_min']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php endif; ?>
 
 <?php include __DIR__ . '/../layout-bottom.php'; ?>
