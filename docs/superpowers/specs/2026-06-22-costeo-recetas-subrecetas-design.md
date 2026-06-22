@@ -15,7 +15,7 @@ Se decidió **explotar subrecetas a insumos** para stock/salida (Opción A): la 
 1. **Migrar `recetas` → `receta_componentes`** (tipo `insumo|subreceta`), con backfill de lo existente como `insumo`.
 2. **Dashboard de Costeo** = **página nueva** en el grupo Inventario, con **permiso nuevo `inv_costeo`**.
 3. **De cero** con las recetas actuales del usuario (NO importar el JSON del prototipo).
-4. **Food cost con precio jugable:** el precio en el editor es editable y recalcula food cost/margen en vivo; guardar es opcional (escribe el precio del producto). Además **precio sugerido por food cost objetivo**.
+4. **Food cost con precio jugable:** el precio en el editor es editable y recalcula food cost/margen en vivo. Es **solo simulación** — NO se guarda (products no tiene columna de precio única; el precio de venta vive en `location_products.price` por local). Además **precio sugerido por food cost objetivo**.
 5. **Subrecetas explotan a insumos** (sin stock propio); sirven en recetas Y en la salida masiva (futuro: sumarlas como ítems que explotan).
 6. **Búsqueda en vivo + crear al vuelo** (combobox `EGCombo`) en todo selector de insumo/subreceta. Sin anidar subrecetas dentro de subrecetas (v1).
 7. **Sin emojis** (íconos SVG de línea); `brandHead()`; permisos; multi-empresa.
@@ -91,12 +91,12 @@ Lista (nombre · nº ingredientes · costo total · **costo/UM** con badge) con 
 
 - Componentes: filas que eligen **insumo o subreceta** por combobox unificado (insumos + grupo "Subrecetas"), con **crear al vuelo** (insumo o subreceta nueva sin salir). Cantidad por fila; precio y costo de la fila en vivo.
 - **Ficha técnica:** porciones, procedimiento, montaje, notas (`receta_ficha`). Imprimible (`@media print`).
-- **Food cost en vivo + precio jugable:** campo de **precio de venta** editable (default = precio actual del producto) → recalcula **costo/porción · precio sin IGV · food cost % · margen** al instante (IGV de `getSetting('igv_pct')`). Guardar el precio es opcional (escribe el producto). **Precio sugerido:** input "food cost objetivo %" → muestra `precio sugerido = (costo/porción ÷ objetivo) × (1+IGV)` + botón "usar este precio".
+- **Food cost en vivo + precio jugable (solo simulación):** campo de **precio de venta** editable → recalcula **costo/porción · precio sin IGV · food cost % · margen** al instante (IGV de `getSetting('igv_pct')`). **No persiste** — es un simulador. **Precio sugerido:** input "food cost objetivo %" → muestra `precio sugerido = (costo/porción ÷ objetivo) × (1+IGV)` (informativo, sin botón de guardar).
 - Recálculo en JS vanilla; semáforo de color en el food cost.
 
 ## Dashboard de Costeo (Fase 2 — `admin/inventory/costeo.php`, `inv_costeo`)
 
-Solo lectura: KPIs (food cost promedio, nº platos, alertas con fc>35%), **ranking de platos por food cost** (menor = más rentable) con semáforo, usando el **precio guardado** del producto. Filtros por categoría/búsqueda.
+Solo lectura: KPIs (food cost promedio, nº platos, alertas con fc>35%), **ranking de platos por food cost** (menor = más rentable) con semáforo. Precio de venta = el de `location_products` del **local principal** (`es_principal`), fallback al primer local con precio; platos sin precio se marcan "sin precio". Filtros por categoría/búsqueda.
 
 ## API (`api/inventario.php` o extender el existente de recetas)
 
