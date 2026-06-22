@@ -134,7 +134,11 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)}
 .anul{text-decoration:line-through;color:var(--faint)}
 .toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.snd-tgl{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:10px;min-height:40px;padding:0 12px;font-weight:800;font-size:12px;cursor:pointer}
+.snd-tgl{border:none;color:#fff;border-radius:10px;min-height:40px;padding:0 13px;font-weight:800;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s var(--ease)}
+.snd-tgl::before{content:"";width:9px;height:9px;border-radius:50%;background:#fff;flex:none}
+.snd-tgl.on{background:var(--ok)}
+.snd-tgl.off{background:var(--danger)}
+.snd-tgl:active{filter:brightness(.92)}
 #aviso-listo{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:60;background:var(--ng);color:#fff;border-radius:14px;padding:13px 15px;box-shadow:0 10px 30px rgba(0,0,0,.28);display:flex;align-items:center;gap:11px;transform:translateY(-140%);transition:transform .3s var(--ease);cursor:pointer}
 #aviso-listo.on{transform:translateY(0)}
 #aviso-listo .dot{width:11px;height:11px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 30%, transparent)}
@@ -284,7 +288,7 @@ function showView(v){ document.querySelectorAll('.view').forEach(function(x){x.c
 function openModal(id){ $(id).classList.add('on'); } function closeModal(id){ $(id).classList.remove('on'); }
 function toast(t){ var n=$('toast'); n.textContent=t; n.style.display='block'; setTimeout(function(){n.style.display='none';},2200); }
 function sonidoOn(){ return localStorage.getItem('mozo_sonido') !== '0'; }
-function pintarSndTgl(){ var b=$('snd-tgl'); if(b) b.textContent = sonidoOn() ? 'Son. on' : 'Son. off'; }
+function pintarSndTgl(){ var b=$('snd-tgl'); if(!b) return; var on=sonidoOn(); b.textContent = on ? 'Sonido' : 'Silencio'; b.classList.toggle('on', on); b.classList.toggle('off', !on); }
 function toggleSonido(){ localStorage.setItem('mozo_sonido', sonidoOn() ? '0' : '1'); pintarSndTgl(); if(sonidoOn()) ding(); }
 var _ac=null;
 // Desbloquear el AudioContext con el PRIMER gesto (en móvil un contexto creado fuera de
