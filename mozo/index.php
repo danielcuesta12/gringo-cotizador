@@ -850,7 +850,7 @@ function renderPartes() {
         cobro.metodos.map(function(m) { return '<option value="' + esc(m.nombre) + '"' + (m.nombre === pg.metodo ? ' selected' : '') + '>' + esc(m.nombre) + '</option>'; }).join('') +
         (cobro.metodos.length === 0 ? '<option value="Efectivo" selected>Efectivo</option>' : '') +
         '</select>' +
-        '<input type="number" inputmode="decimal" min="0" step="0.01" class="inp-monto" data-pi="' + pi + '" data-gi="' + gi + '" value="' + Number(pg.monto).toFixed(2) + '">' +
+        '<input type="number" inputmode="decimal" min="0" step="0.01" class="inp-monto" data-pi="' + pi + '" data-gi="' + gi + '" value="' + Number(pg.monto).toFixed(2) + '"' + ((pt.pagos.length > 1 && gi === pt.pagos.length - 1) ? ' readonly title="Se ajusta solo" style="background:var(--panel);color:var(--muted)"' : '') + '>' +
         (pt.pagos.length > 1 ? '<button type="button" class="rm" data-pi="' + pi + '" data-gi="' + gi + '" onclick="quitarPago(' + pi + ',' + gi + ')">✕</button>' : '') +
       '</div>';
     });
@@ -975,21 +975,24 @@ function bindPartes() {
       cobro.partes[pi].pagos[gi].metodo = this.value;
     };
   });
-  // Montos de pago
+  // Montos de pago: al editar una línea que NO es la última, la última se ajusta sola (= total parte − resto).
   document.querySelectorAll('#cobro-partes .inp-monto').forEach(function(inp) {
+    if (inp.readOnly) return; // la última (balanceadora) no se edita a mano
     inp.oninput = function() {
       var pi = +this.getAttribute('data-pi'), gi = +this.getAttribute('data-gi');
       cobro.partes[pi].pagos[gi].monto = parseFloat(this.value) || 0;
+      var last = cobro.partes[pi].pagos.length - 1;
+      if (gi !== last) { balancearParte(pi); pintarUltimoPago(pi); }
       actualizarSaldo();
     };
   });
-  // Monto de parte (modo montos)
+  // Monto de parte (modo montos): re-balancea las líneas de pago de esa parte.
   document.querySelectorAll('#cobro-partes .pago-monto-parte').forEach(function(inp) {
     inp.oninput = function() {
       var pi = +this.getAttribute('data-pi');
       cobro.partes[pi].monto = parseFloat(this.value) || 0;
-      // Actualizar el único pago de la parte para que coincida
       if (cobro.partes[pi].pagos.length === 1) cobro.partes[pi].pagos[0].monto = cobro.partes[pi].monto;
+      else { balancearParte(pi); pintarUltimoPago(pi); }
       actualizarSaldo();
     };
   });
@@ -1034,8 +1037,23 @@ function toggleComp(pi) {
   }
 }
 
+// La última línea de pago de una parte absorbe el resto: monto = total parte − suma de las demás.
+function balancearParte(pi) {
+  var pt = cobro.partes[pi]; if (!pt || !pt.pagos.length) return;
+  var last = pt.pagos.length - 1, suma = 0;
+  for (var i = 0; i < last; i++) suma += pt.pagos[i].monto || 0;
+  pt.pagos[last].monto = Math.round(Math.max(0, (pt.monto || 0) - suma) * 100) / 100;
+}
+// Refleja en el DOM el monto recalculado de la última línea (sin re-render, para no perder foco).
+function pintarUltimoPago(pi) {
+  var last = cobro.partes[pi].pagos.length - 1;
+  var li = document.querySelector('#cobro-partes .inp-monto[data-pi="' + pi + '"][data-gi="' + last + '"]');
+  if (li) li.value = cobro.partes[pi].pagos[last].monto.toFixed(2);
+}
+
 function addPago(pi) {
   cobro.partes[pi].pagos.push({ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: 0 });
+  balancearParte(pi); // la nueva (última) arranca con lo que falta
   $('cobro-partes').innerHTML = cobro.modo === 'items' ? renderPartes() + renderItemsGrid() : renderPartes();
   bindPartes(); if (cobro.modo === 'items') bindItemsGrid();
   actualizarSaldo();
@@ -1043,6 +1061,7 @@ function addPago(pi) {
 
 function quitarPago(pi, gi) {
   cobro.partes[pi].pagos.splice(gi, 1);
+  balancearParte(pi); // la nueva última reabsorbe el resto
   $('cobro-partes').innerHTML = cobro.modo === 'items' ? renderPartes() + renderItemsGrid() : renderPartes();
   bindPartes(); if (cobro.modo === 'items') bindItemsGrid();
   actualizarSaldo();
