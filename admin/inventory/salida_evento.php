@@ -126,10 +126,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Datos para el explosionado en el navegador
 $products = Database::fetchAll("SELECT id,name FROM products WHERE active=1 ORDER BY name");
 $insumos  = Database::fetchAll("SELECT id,nombre,unidad,costo_unitario,tipo FROM insumos WHERE activo=1 ORDER BY nombre");
-$recetas  = Database::fetchAll("SELECT product_id,insumo_id,cantidad FROM recetas");
 
 $recByProd = [];
-foreach ($recetas as $r) { $recByProd[(int)$r['product_id']][] = ['insumo_id'=>(int)$r['insumo_id'],'cantidad'=>(float)$r['cantidad']]; }
+foreach ($products as $pr) {
+    foreach (recetaExplotaInsumos((int)$pr['id']) as $iid => $cant) {
+        $recByProd[(int)$pr['id']][] = ['insumo_id'=>(int)$iid, 'cantidad'=>(float)$cant];
+    }
+}
 $insMap = [];
 foreach ($insumos as $i) { $insMap[(int)$i['id']] = ['nombre'=>$i['nombre'],'unidad'=>$i['unidad'],'costo'=>(float)$i['costo_unitario'],'tipo'=>$i['tipo']]; }
 
