@@ -706,7 +706,7 @@ document.getElementById('btn-cobrar').addEventListener('click', function() {
 // ============================================================
 // COBRO
 // ============================================================
-var cobro = { modo: 'todo', metodos: [], partes: [], descTipo: null, descValor: 0, nIguales: 2, itemsAsign: {} };
+var cobro = { modo: 'todo', metodos: [], partes: [], descTipo: null, descValor: 0, nPartes: 2, itemsAsign: {} };
 var _cobMetCargados = false;
 
 function repartoCentavos(total, n) {
@@ -717,7 +717,7 @@ function repartoCentavos(total, n) {
 }
 
 function openCobro() {
-  cobro.modo = 'todo'; cobro.descTipo = null; cobro.descValor = 0; cobro.nIguales = 2; cobro.itemsAsign = {};
+  cobro.modo = 'todo'; cobro.descTipo = null; cobro.descValor = 0; cobro.nPartes = 2; cobro.itemsAsign = {};
   // Seleccionar botón de modo "todo"
   document.querySelectorAll('#cobro-modo button').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-modo') === 'todo'); });
   pintarResumen();
@@ -769,23 +769,18 @@ function setModo(modo) {
     partes.innerHTML = renderPartes();
     bindPartes();
   } else if (modo === 'iguales') {
-    cfg.innerHTML = '<label>Número de partes iguales</label>' +
-      '<div style="display:flex;align-items:center;gap:14px;margin-top:4px">' +
-      '<button class="qbtn" type="button" onclick="cambiarNIguales(-1)">−</button>' +
-      '<b id="ig-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nIguales + '</b>' +
-      '<button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div>';
+    cfg.innerHTML = renderPartesStepper();
     buildPartesIguales();
     partes.innerHTML = renderPartes();
     bindPartes();
   } else if (modo === 'items') {
-    cfg.innerHTML = '';
-    buildPartesItems(1);
+    cfg.innerHTML = renderPartesStepper();
+    buildPartesItems(cobro.nPartes);
     partes.innerHTML = renderPartes() + renderItemsGrid();
     bindPartes(); bindItemsGrid();
   } else if (modo === 'montos') {
-    cfg.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span>' +
-      '<button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div>';
-    cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
+    cfg.innerHTML = renderPartesStepper();
+    buildPartesIguales(); // arranca con un reparto igual; en este modo los montos son editables
     partes.innerHTML = renderPartes();
     bindPartes();
   }
@@ -796,7 +791,7 @@ function setModo(modo) {
 
 function buildPartesIguales() {
   var falta = faltaActual();
-  var montos = repartoCentavos(falta, cobro.nIguales);
+  var montos = repartoCentavos(falta, cobro.nPartes);
   cobro.partes = montos.map(function(m) {
     return { monto: m, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: m }], comp: null };
   });
@@ -809,17 +804,26 @@ function buildPartesItems(n) {
   cobro.itemsAsign = {};
 }
 
-function cambiarNIguales(d) {
-  cobro.nIguales = Math.max(1, cobro.nIguales + d);
-  var el = $('ig-n'); if (el) el.textContent = cobro.nIguales;
-  buildPartesIguales();
-  $('cobro-partes').innerHTML = renderPartes();
-  bindPartes();
-  actualizarSaldo();
+// Stepper compartido "¿En cuántas partes?" (iguales / ítems / montos).
+function renderPartesStepper() {
+  return '<label>¿En cuántas partes?</label>' +
+    '<div style="display:flex;align-items:center;gap:14px;margin-top:4px">' +
+    '<button class="qbtn" type="button" onclick="cambiarNPartes(-1)">−</button>' +
+    '<b id="np-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nPartes + '</b>' +
+    '<button class="qbtn" type="button" onclick="cambiarNPartes(1)">+</button></div>';
 }
-
-function addParteMontos() {
-  cobro.partes.push({ monto: 0, pagos: [], comp: null });
+function cambiarNPartes(d) {
+  cobro.nPartes = Math.max(1, cobro.nPartes + d);
+  var el = $('np-n'); if (el) el.textContent = cobro.nPartes;
+  if (cobro.modo === 'items') {
+    cobro.partes = [];
+    for (var i = 0; i < cobro.nPartes; i++) cobro.partes.push({ monto: 0, pagos: [], comp: null });
+    // limpiar asignaciones a partes que ya no existen
+    Object.keys(cobro.itemsAsign).forEach(function(k) { if (cobro.itemsAsign[k] > cobro.nPartes) cobro.itemsAsign[k] = 0; });
+    recalcItemsPartes(); // recomputa montos + re-render grid/partes + actualizarSaldo
+    return;
+  }
+  buildPartesIguales();
   $('cobro-partes').innerHTML = renderPartes();
   bindPartes();
   actualizarSaldo();
@@ -831,9 +835,7 @@ function renderPartes() {
   return cobro.partes.map(function(pt, pi) {
     var html = '<div class="parte" data-pi="' + pi + '">';
     if (cobro.partes.length > 1) {
-      html += '<div class="parte-head"><span>Parte ' + (pi + 1) + ' · S/ ' + Number(pt.monto).toFixed(2) + '</span>';
-      if (cobro.modo === 'montos') html += '<button type="button" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:800;cursor:pointer" onclick="eliminarParte(' + pi + ')">Quitar</button>';
-      html += '</div>';
+      html += '<div class="parte-head"><span>Parte ' + (pi + 1) + ' · S/ ' + Number(pt.monto).toFixed(2) + '</span></div>';
     }
     html += '<div class="parte-body">';
     // Monto editable en modo montos
@@ -885,10 +887,7 @@ function allItemsNoAnulados() {
 function renderItemsGrid() {
   var items = allItemsNoAnulados();
   if (!items.length) return '';
-  var nPartes = cobro.partes.length;
-  var html = '<div style="margin-top:10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Asignar ítems</div>' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;color:var(--muted)">Partes: ' + nPartes + '</span>' +
-    '<button type="button" class="btn-addpago" style="width:auto;padding:5px 12px;font-size:12px" onclick="addParteItems()">+ Parte</button></div>';
+  var html = '<div style="margin-top:10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Asignar ítems</div>';
   html += '<div class="items-grid">';
   items.forEach(function(it) {
     var msum = it.mods.reduce(function(s, m) { return s + (m.precio || 0); }, 0);
@@ -906,12 +905,6 @@ function renderItemsGrid() {
   return html;
 }
 
-function addParteItems() {
-  cobro.partes.push({ monto: 0, pagos: [], comp: null });
-  $('cobro-partes').innerHTML = renderPartes() + renderItemsGrid();
-  bindPartes(); bindItemsGrid();
-  actualizarSaldo();
-}
 
 function bindItemsGrid() {
   document.querySelectorAll('#cobro-partes .ig-sel select').forEach(function(sel) {
@@ -1052,13 +1045,6 @@ function quitarPago(pi, gi) {
   cobro.partes[pi].pagos.splice(gi, 1);
   $('cobro-partes').innerHTML = cobro.modo === 'items' ? renderPartes() + renderItemsGrid() : renderPartes();
   bindPartes(); if (cobro.modo === 'items') bindItemsGrid();
-  actualizarSaldo();
-}
-
-function eliminarParte(pi) {
-  cobro.partes.splice(pi, 1);
-  $('cobro-partes').innerHTML = renderPartes();
-  bindPartes();
   actualizarSaldo();
 }
 
