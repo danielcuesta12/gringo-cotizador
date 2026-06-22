@@ -164,13 +164,13 @@ include __DIR__ . '/../layout-top.php';
 <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
   <select class="op-ubi-select" onchange="location.href='?ubi='+this.value+'&modo=<?= $modo ?>'">
     <?php foreach ($ubicaciones as $u): ?>
-      <option value="<?= (int)$u['id'] ?>" <?= $ubiF==$u['id']?'selected':'' ?>><?= !empty($u['es_almacen']) ? '🏬 ' : '🍔 ' ?><?= clean($u['nombre']) ?></option>
+      <option value="<?= (int)$u['id'] ?>" <?= $ubiF==$u['id']?'selected':'' ?>><?= !empty($u['es_almacen']) ? 'Almacén · ' : '' ?><?= clean($u['nombre']) ?></option>
     <?php endforeach; ?>
   </select>
   <?php if ($esAlmacen): ?>
-    <span class="badge" style="background:var(--brand);color:#1e1e1e;padding:6px 12px;font-size:12px">🏬 Almacén central · no vende</span>
+    <span class="badge" style="background:var(--brand);color:#1e1e1e;padding:6px 12px;font-size:12px">Almacén central · no vende</span>
   <?php else: ?>
-    <span class="badge" style="background:#FFBBC8;color:#1e1e1e;padding:6px 12px;font-size:12px">🍔 Punto de venta</span>
+    <span class="badge" style="background:#FFBBC8;color:#1e1e1e;padding:6px 12px;font-size:12px">Punto de venta</span>
   <?php endif; ?>
 </div>
 
@@ -250,6 +250,11 @@ include __DIR__ . '/../layout-top.php';
         <?php endforeach; ?>
       </tbody>
     </table></div>
+    <?php if (empty($insumos)): // el botón normal no se renderizó (no hay insumos) → uno para despachar solo subrecetas ?>
+    <div style="display:flex;padding:14px 16px;border-top:1px solid var(--border)">
+      <button type="submit" class="btn btn-primary" style="margin-left:auto;background:<?= $MODOS[$modo][3] ?>;border-color:<?= $MODOS[$modo][3] ?>"><?= $MODOS[$modo][2] ?></button>
+    </div>
+    <?php endif; ?>
   </div>
   <?php endif; endif; ?>
 </form>
