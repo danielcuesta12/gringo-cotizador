@@ -140,6 +140,129 @@ function recetaExplotaInsumos(int $productId): array
     return $out;
 }
 
+/** ¿Existe ya la capa de stock de subrecetas (migración 61)? */
+function subrecetaStockListo(): bool
+{
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        $ok = (bool) Database::fetch("SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='subreceta_stock'");
+    } catch (Exception $e) { $ok = false; }
+    return $ok;
+}
+
+/** Movimiento de stock de subreceta (espejo de invMovimiento). Devuelve id del movimiento (0 si falla). */
+function subMovimiento(int $ubi, int $subId, string $tipo, float $cant, array $opts = []): int
+{
+    if (!$subId || !$ubi || $cant == 0 || !subrecetaStockListo()) return 0;
+    try {
+        $id = Database::insert(
+            "INSERT INTO subreceta_movimientos (ubicacion_id,subreceta_id,tipo,cantidad,costo_unitario,motivo,ref,pedido_id,user_id)
+             VALUES (?,?,?,?,?,?,?,?,?)",
+            [
+                $ubi, $subId, $tipo, $cant,
+                $opts['costo_unitario'] ?? null,
+                $opts['motivo'] ?? null,
+                $opts['ref'] ?? null,
+                $opts['pedido_id'] ?? null,
+                $opts['user_id'] ?? (currentUser()['id'] ?? null),
+            ]
+        );
+        Database::execute(
+            "INSERT INTO subreceta_stock (subreceta_id,ubicacion_id,stock) VALUES (?,?,?)
+             ON DUPLICATE KEY UPDATE stock = stock + VALUES(stock)",
+            [$subId, $ubi, $cant]
+        );
+        return $id;
+    } catch (Exception $e) { return 0; }
+}
+
+/**
+ * Produce N lotes de una subreceta en una ubicación: consume insumos y suma stock de subreceta.
+ * Transaccional. Permite que insumos queden negativos (no bloquea). @return array
+ */
+function subProducir(int $ubi, int $subId, float $lotes): array
+{
+    if ($ubi <= 0 || $subId <= 0 || $lotes <= 0) return ['ok'=>false,'error'=>'Datos inválidos','producido'=>0,'ref'=>''];
+    if (!subrecetaStockListo()) return ['ok'=>false,'error'=>'Falta aplicar la migración 61','producido'=>0,'ref'=>''];
+    $s = Database::fetch("SELECT nombre, lleva_stock, rendimiento FROM subrecetas WHERE id=?", [$subId]);
+    if (!$s || empty($s['lleva_stock'])) return ['ok'=>false,'error'=>'La subreceta no lleva stock','producido'=>0,'ref'=>''];
+    $rend = (float)$s['rendimiento'];
+    if ($rend <= 0) return ['ok'=>false,'error'=>'Rendimiento inválido','producido'=>0,'ref'=>''];
+    $items = Database::fetchAll("SELECT insumo_id, cantidad FROM subreceta_items WHERE subreceta_id=?", [$subId]);
+    if (!$items) return ['ok'=>false,'error'=>'La subreceta no tiene insumos','producido'=>0,'ref'=>''];
+
+    $pdo = Database::getInstance();
+    try {
+        $pdo->beginTransaction();
+        $ref = 'PRD-' . date('YmdHis') . '-' . $subId;
+        $lotesTxt = rtrim(rtrim(number_format($lotes, 3, '.', ''), '0'), '.');
+        foreach ($items as $it) {
+            $consumo = (float)$it['cantidad'] * $lotes;
+            $mid = invMovimiento($ubi, (int)$it['insumo_id'], 'ajuste', -$consumo,
+                ['motivo' => 'Producción: ' . $s['nombre'], 'ref' => $ref]);
+            if (!$mid) throw new \RuntimeException('Falló el consumo de un insumo');
+        }
+        $producido = $rend * $lotes;
+        $sid = subMovimiento($ubi, $subId, 'produccion', $producido,
+            ['motivo' => 'Producción · ' . $lotesTxt . ' lote(s)', 'ref' => $ref]);
+        if (!$sid) throw new \RuntimeException('Falló el alta de stock de subreceta');
+        $pdo->commit();
+        return ['ok'=>true, 'producido'=>$producido, 'ref'=>$ref, 'error'=>''];
+    } catch (\Throwable $e) {
+        $pdo->rollBack();
+        return ['ok'=>false, 'error'=>'No se pudo registrar la producción', 'producido'=>0, 'ref'=>''];
+    }
+}
+
+/** Despacha subrecetas entre locales (espejo de invTransferir). @param array $subs subreceta_id=>cantidad. */
+function subTransferir(int $origen, int $destino, array $subs, string $motivo = 'Despacho'): string
+{
+    if ($origen <= 0 || $destino <= 0 || $origen === $destino || !subrecetaStockListo()) return '';
+    $ref = 'TRF-' . date('YmdHis') . '-' . $origen . '-' . $destino;
+    $pdo = Database::getInstance();
+    try {
+        $pdo->beginTransaction();
+        $hubo = false;
+        foreach ($subs as $sid => $cant) {
+            $sid = (int)$sid; $cant = (float)$cant;
+            if ($sid <= 0 || $cant <= 0) continue;
+            $o = subMovimiento($origen,  $sid, 'transferencia', -$cant, ['motivo'=>$motivo, 'ref'=>$ref]);
+            $i = subMovimiento($destino, $sid, 'transferencia',  $cant, ['motivo'=>$motivo.' (recibido)', 'ref'=>$ref]);
+            if (!$o || !$i) throw new \RuntimeException('Falló una pata de la transferencia');
+            $hubo = true;
+        }
+        if (!$hubo) { $pdo->rollBack(); return ''; }
+        $pdo->commit();
+        return $ref;
+    } catch (\Throwable $e) { $pdo->rollBack(); return ''; }
+}
+
+/**
+ * Reparte el consumo de venta de un producto: insumos a descontar + subrecetas-con-stock a descontar.
+ * Las subrecetas sin stock se explotan a insumos. @return ['insumos'=>[id=>cant],'subrecetas'=>[id=>cant]]
+ */
+function recetaConsumo(int $productId): array
+{
+    $comps = recetaComponentes($productId);
+    return repartirConsumo($comps, function ($subId) {
+        try {
+            $s = Database::fetch("SELECT lleva_stock, rendimiento FROM subrecetas WHERE id=?", [$subId]);
+            if (!$s) return null;
+            $items = Database::fetchAll("SELECT insumo_id, cantidad FROM subreceta_items WHERE subreceta_id=?", [$subId]);
+            return ['lleva_stock' => !empty($s['lleva_stock']), 'rendimiento' => (float)$s['rendimiento'], 'items' => $items];
+        } catch (Exception $e) {
+            // Pre-migración (sin columna lleva_stock): tratar como sin stock -> explota (comportamiento Fase 1)
+            try {
+                $s = Database::fetch("SELECT rendimiento FROM subrecetas WHERE id=?", [$subId]);
+                if (!$s) return null;
+                $items = Database::fetchAll("SELECT insumo_id, cantidad FROM subreceta_items WHERE subreceta_id=?", [$subId]);
+                return ['lleva_stock' => false, 'rendimiento' => (float)$s['rendimiento'], 'items' => $items];
+            } catch (Exception $e2) { return null; }
+        }
+    });
+}
+
 /** Costo de la receta de un producto (insumos directos + subrecetas explotadas). */
 function recetaCosto(int $productId): float
 {
@@ -174,9 +297,15 @@ function descontarStockPedido(int $pedidoId): void
             $pid = (int)($it['product_id'] ?? 0);
             $qty = (float)($it['qty'] ?? 0);
             if ($pid <= 0 || $qty <= 0) continue;
-            foreach (recetaExplotaInsumos($pid) as $insumoId => $cant) {
+            $consumo = recetaConsumo($pid);
+            $motivo = 'Venta · pedido #' . str_pad((string)$pedidoId, 3, '0', STR_PAD_LEFT);
+            foreach ($consumo['insumos'] as $insumoId => $cant) {
                 invMovimiento($ubi, (int)$insumoId, 'venta', -((float)$cant * $qty),
-                    ['pedido_id' => $pedidoId, 'motivo' => 'Venta · pedido #' . str_pad((string)$pedidoId, 3, '0', STR_PAD_LEFT)]);
+                    ['pedido_id' => $pedidoId, 'motivo' => $motivo]);
+            }
+            foreach ($consumo['subrecetas'] as $subId => $cant) {
+                subMovimiento($ubi, (int)$subId, 'venta', -((float)$cant * $qty),
+                    ['pedido_id' => $pedidoId, 'motivo' => $motivo]);
             }
         }
         Database::execute("UPDATE pedidos SET stock_descontado = 1 WHERE id = ?", [$pedidoId]);
