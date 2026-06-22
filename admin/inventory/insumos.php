@@ -17,10 +17,13 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id']
 
 $insumos = [];
 if ($ready) {
+    $nRecetasSub = recetaComponentesListo()
+        ? "(SELECT COUNT(*) FROM receta_componentes rc WHERE rc.tipo='insumo' AND rc.ref_id = i.id)"
+        : "(SELECT COUNT(*) FROM recetas r WHERE r.insumo_id = i.id)";
     $insumos = Database::fetchAll(
         "SELECT i.*,
                 (SELECT COALESCE(SUM(s.stock),0) FROM insumo_stock s WHERE s.insumo_id = i.id) AS stock_total,
-                (SELECT COUNT(*) FROM recetas r WHERE r.insumo_id = i.id) AS n_recetas
+                $nRecetasSub AS n_recetas
          FROM insumos i ORDER BY i.activo DESC, i.nombre"
     );
 }

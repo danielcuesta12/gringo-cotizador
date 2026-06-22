@@ -1,5 +1,6 @@
 <?php
 // Helpers del módulo de inventario. Requiere config/database/helpers ya cargados.
+require_once __DIR__ . '/costeo.php';
 
 /**
  * Aplica un movimiento de stock y actualiza insumo_stock.
@@ -45,17 +46,114 @@ function invSetStockMin(int $ubicacionId, int $insumoId, float $min): void
     } catch (Exception $e) {}
 }
 
-/** Costo de la receta de un producto (suma de insumo×cantidad×costo). */
+/** ¿Existe la tabla receta_componentes? (para degradar a leer `recetas`). */
+function recetaComponentesListo(): bool
+{
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        $ok = (bool) Database::fetch("SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='receta_componentes'");
+    } catch (Exception $e) { $ok = false; }
+    return $ok;
+}
+
+/** ¿Existe la tabla subrecetas? */
+function subrecetasListo(): bool
+{
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        $ok = (bool) Database::fetch("SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='subrecetas'");
+    } catch (Exception $e) { $ok = false; }
+    return $ok;
+}
+
+/** Costo total de insumos de una subreceta (sin dividir por rendimiento). */
+function subrecetaCostoTotal(int $subrecetaId): float
+{
+    if ($subrecetaId <= 0 || !subrecetasListo()) return 0.0;
+    try {
+        $r = Database::fetch(
+            "SELECT COALESCE(SUM(si.cantidad * i.costo_unitario),0) c
+               FROM subreceta_items si JOIN insumos i ON i.id = si.insumo_id
+              WHERE si.subreceta_id = ?",
+            [$subrecetaId]
+        );
+        return (float)($r['c'] ?? 0);
+    } catch (Exception $e) { return 0.0; }
+}
+
+/** Costo por unidad de medida de una subreceta = costo total / rendimiento. */
+function subrecetaCostoUM(int $subrecetaId): float
+{
+    if ($subrecetaId <= 0 || !subrecetasListo()) return 0.0;
+    try {
+        $r = Database::fetch("SELECT rendimiento FROM subrecetas WHERE id = ?", [$subrecetaId]);
+        return subrecetaCostoUMCalc(subrecetaCostoTotal($subrecetaId), (float)($r['rendimiento'] ?? 0));
+    } catch (Exception $e) { return 0.0; }
+}
+
+/** Componentes de la receta de un producto. Lee receta_componentes; si no existe, degrada a `recetas` (todo insumo). */
+function recetaComponentes(int $productId): array
+{
+    if ($productId <= 0) return [];
+    try {
+        if (recetaComponentesListo()) {
+            return Database::fetchAll(
+                "SELECT tipo, ref_id, cantidad FROM receta_componentes WHERE product_id = ?",
+                [$productId]
+            );
+        }
+        $out = [];
+        foreach (Database::fetchAll("SELECT insumo_id, cantidad FROM recetas WHERE product_id = ?", [$productId]) as $r) {
+            $out[] = ['tipo' => 'insumo', 'ref_id' => (int)$r['insumo_id'], 'cantidad' => (float)$r['cantidad']];
+        }
+        return $out;
+    } catch (Exception $e) { return []; }
+}
+
+/**
+ * Explota la receta de un producto a insumos, sumando los insumos de cada subreceta
+ * en proporción a su rendimiento. @return array insumo_id => cantidad.
+ */
+function recetaExplotaInsumos(int $productId): array
+{
+    $out = [];
+    foreach (recetaComponentes($productId) as $c) {
+        $cant = (float)$c['cantidad'];
+        $ref  = (int)$c['ref_id'];
+        if ($cant <= 0 || $ref <= 0) continue;
+        if (($c['tipo'] ?? 'insumo') === 'subreceta') {
+            try {
+                $sr = Database::fetch("SELECT rendimiento FROM subrecetas WHERE id = ?", [$ref]);
+                $rend = (float)($sr['rendimiento'] ?? 0);
+                if ($rend <= 0) continue;
+                foreach (Database::fetchAll("SELECT insumo_id, cantidad FROM subreceta_items WHERE subreceta_id = ?", [$ref]) as $si) {
+                    $iid = (int)$si['insumo_id'];
+                    $out[$iid] = ($out[$iid] ?? 0) + ((float)$si['cantidad'] / $rend) * $cant;
+                }
+            } catch (Exception $e) { /* subrecetas no migrado: ignorar este componente */ }
+        } else {
+            $out[$ref] = ($out[$ref] ?? 0) + $cant;
+        }
+    }
+    return $out;
+}
+
+/** Costo de la receta de un producto (insumos directos + subrecetas explotadas). */
 function recetaCosto(int $productId): float
 {
     try {
-        $r = Database::fetch(
-            "SELECT COALESCE(SUM(r.cantidad * i.costo_unitario),0) c
-             FROM recetas r JOIN insumos i ON i.id = r.insumo_id
-             WHERE r.product_id = ?",
-            [$productId]
-        );
-        return (float)($r['c'] ?? 0);
+        $exp = recetaExplotaInsumos($productId);
+        if (!$exp) return 0.0;
+        $ids = implode(',', array_map('intval', array_keys($exp)));
+        $costos = [];
+        foreach (Database::fetchAll("SELECT id, costo_unitario FROM insumos WHERE id IN ($ids)") as $i) {
+            $costos[(int)$i['id']] = (float)$i['costo_unitario'];
+        }
+        $total = 0.0;
+        foreach ($exp as $iid => $cant) { $total += ($costos[$iid] ?? 0) * $cant; }
+        return $total;
     } catch (Exception $e) { return 0.0; }
 }
 
@@ -76,9 +174,8 @@ function descontarStockPedido(int $pedidoId): void
             $pid = (int)($it['product_id'] ?? 0);
             $qty = (float)($it['qty'] ?? 0);
             if ($pid <= 0 || $qty <= 0) continue;
-            $receta = Database::fetchAll("SELECT insumo_id, cantidad FROM recetas WHERE product_id = ?", [$pid]);
-            foreach ($receta as $r) {
-                invMovimiento($ubi, (int)$r['insumo_id'], 'venta', -((float)$r['cantidad'] * $qty),
+            foreach (recetaExplotaInsumos($pid) as $insumoId => $cant) {
+                invMovimiento($ubi, (int)$insumoId, 'venta', -((float)$cant * $qty),
                     ['pedido_id' => $pedidoId, 'motivo' => 'Venta · pedido #' . str_pad((string)$pedidoId, 3, '0', STR_PAD_LEFT)]);
             }
         }
@@ -155,8 +252,8 @@ if (!function_exists('eventoConsumoTeorico')) {
                     if ($qty <= 0) continue;
                     $pid = (int)($it['product_id'] ?? 0);
                     if ($pid > 0) {
-                        foreach (Database::fetchAll("SELECT insumo_id, cantidad FROM recetas WHERE product_id=?", [$pid]) as $r) {
-                            $out[(int)$r['insumo_id']] = ($out[(int)$r['insumo_id']] ?? 0) + (float)$r['cantidad'] * $qty;
+                        foreach (recetaExplotaInsumos($pid) as $iid => $cant) {
+                            $out[(int)$iid] = ($out[(int)$iid] ?? 0) + (float)$cant * $qty;
                         }
                     }
                     foreach (($it['modificadores'] ?? []) as $m) {

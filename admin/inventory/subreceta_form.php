@@ -1,0 +1,219 @@
+<?php
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/inventario.php';
+
+requirePermission('inv_recetas');
+if (!subrecetasListo()) { flashMessage('error', 'Aplica install/60_costeo_recetas.sql primero.'); redirect('/admin/inventory/recetas.php'); }
+
+$id = cleanInt($_GET['id'] ?? 0);
+$sub = $id ? Database::fetch("SELECT * FROM subrecetas WHERE id=?", [$id]) : null;
+if ($id && !$sub) { flashMessage('error', 'Subreceta no encontrada.'); redirect('/admin/inventory/subrecetas.php'); }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+    $nombre = clean($_POST['nombre'] ?? '');
+    $unidad = clean($_POST['unidad'] ?? 'unidad') ?: 'unidad';
+    $rend   = max(0.001, cleanFloat($_POST['rendimiento'] ?? 1));
+    if ($nombre === '') { flashMessage('error', 'Falta el nombre.'); redirect('/admin/inventory/subreceta_form.php' . ($id ? '?id='.$id : '')); }
+    if ($id) {
+        Database::execute("UPDATE subrecetas SET nombre=?, unidad=?, rendimiento=? WHERE id=?", [$nombre, $unidad, $rend, $id]);
+    } else {
+        $id = Database::insert("INSERT INTO subrecetas (nombre,unidad,rendimiento,activo) VALUES (?,?,?,1)", [$nombre, $unidad, $rend]);
+    }
+    $ins = $_POST['insumo_id'] ?? [];
+    $cant = $_POST['cantidad'] ?? [];
+    Database::execute("DELETE FROM subreceta_items WHERE subreceta_id=?", [$id]);
+    $seen = [];
+    foreach ($ins as $idx => $iid) {
+        $iid = (int)$iid; $c = (float)($cant[$idx] ?? 0);
+        if ($iid <= 0 || $c <= 0 || isset($seen[$iid])) continue;
+        $seen[$iid] = true;
+        Database::insert("INSERT INTO subreceta_items (subreceta_id,insumo_id,cantidad) VALUES (?,?,?)", [$id, $iid, $c]);
+    }
+    flashMessage('success', 'Subreceta guardada.');
+    redirect('/admin/inventory/subrecetas.php');
+}
+
+$items = $id ? Database::fetchAll(
+    "SELECT si.insumo_id, si.cantidad, i.nombre, i.unidad, i.costo_unitario
+       FROM subreceta_items si JOIN insumos i ON i.id=si.insumo_id
+      WHERE si.subreceta_id=? ORDER BY i.nombre", [$id]) : [];
+function nf($n) { return rtrim(rtrim(number_format((float)$n, 3, '.', ''), '0'), '.'); }
+
+$pageTitle  = $id ? 'Subreceta · ' . $sub['nombre'] : 'Nueva subreceta';
+$activePage = 'inv-subrecetas';
+$extraHead  = '<style>
+.rec-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.rec-nm{flex:1;font-weight:700;color:var(--black,#1E1E1E)}
+.rec-row .rec-q{width:120px}
+.rec-row .rec-u{width:48px;font-size:12px;color:var(--text-muted)}
+.rec-row .rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:6px;flex-shrink:0;font-size:16px}
+.rec-opt{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.rec-opt:hover{background:#fffbe9}
+.rec-create{color:#1f9d55;font-weight:800;border-top:1px dashed #eee}
+</style>';
+include __DIR__ . '/../layout-top.php';
+?>
+
+<div class="breadcrumb">
+  <a href="<?= APP_URL ?>/admin/inventory/subrecetas.php">Subrecetas</a>
+  <span class="breadcrumb-sep">›</span>
+  <span class="breadcrumb-current"><?= $id ? clean($sub['nombre']) : 'Nueva' ?></span>
+</div>
+
+<div class="page-header"><div class="page-header-left"><h1><?= $id ? 'Subreceta · '.clean($sub['nombre']) : 'Nueva subreceta' ?></h1>
+  <p>Una preparación base (salsa, masa, aderezo) que luego usás en varias recetas</p></div></div>
+
+<form method="post">
+  <?= csrfField() ?>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+    <div class="card"><div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 130px 90px;gap:12px;margin-bottom:16px">
+        <div class="form-group" style="margin:0"><label>Nombre</label>
+          <input type="text" name="nombre" value="<?= $id ? clean($sub['nombre']) : '' ?>" required></div>
+        <div class="form-group" style="margin:0"><label>Rendimiento</label>
+          <input type="text" inputmode="decimal" name="rendimiento" id="sr-rend" value="<?= $id ? nf($sub['rendimiento']) : '1' ?>" oninput="recalc()"></div>
+        <div class="form-group" style="margin:0"><label>Unidad</label>
+          <select name="unidad">
+            <?php foreach (['unidad','g','kg','ml','l','porcion','lonja'] as $u): ?>
+              <option value="<?= $u ?>"<?= ($id && $sub['unidad']===$u) ? ' selected' : '' ?>><?= $u ?></option>
+            <?php endforeach; ?>
+          </select></div>
+      </div>
+
+      <label style="font-size:13px;font-weight:700;color:var(--text-muted)">Insumos de la preparación</label>
+      <div id="rec-rows" style="margin-top:8px">
+        <?php foreach ($items as $r): ?>
+        <div class="rec-row">
+          <span class="rec-nm"><?= clean($r['nombre']) ?></span>
+          <input type="hidden" name="insumo_id[]" value="<?= (int)$r['insumo_id'] ?>" data-costo="<?= (float)$r['costo_unitario'] ?>">
+          <input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="<?= nf($r['cantidad']) ?>" oninput="recalc()">
+          <span class="rec-u"><?= clean($r['unidad']) ?></span>
+          <button type="button" class="rec-del" onclick="this.closest('.rec-row').remove();recalc()">✕</button>
+        </div>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="add-wrap" style="position:relative;margin-top:8px">
+        <input type="text" id="rec-add" autocomplete="off" placeholder="Agregar insumo (busca o crea)…"
+               oninput="recBuscar(this.value)" onfocus="recBuscar(this.value)"
+               style="width:100%;padding:11px 13px;border:1.5px dashed #c9c9d2;border-radius:10px">
+        <div id="rec-drop" style="display:none;position:absolute;left:0;right:0;top:48px;background:#fff;border:1px solid var(--border,#eee);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.14);z-index:30;overflow:hidden"></div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:18px">
+        <button type="submit" class="btn btn-primary">Guardar subreceta</button>
+        <a href="<?= APP_URL ?>/admin/inventory/subrecetas.php" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </div></div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card"><div class="card-body" style="text-align:center">
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Costo total</div>
+        <div id="costoTotal" style="font-size:26px;font-weight:800;margin-top:4px">S/ 0.00</div>
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:12px">Costo por unidad</div>
+        <div id="costoUM" style="font-size:26px;font-weight:800;color:var(--c-brand,#FFDF00);-webkit-text-stroke:.3px #1E1E1E;margin-top:4px">S/ 0.00</div>
+      </div></div>
+    </div>
+  </div>
+</form>
+
+<script>
+const INS_API = '<?= APP_URL ?>/api/insumos.php';
+const CSRF = '<?= csrfToken() ?>';
+let insPend = '';
+
+function recBuscar(q){
+  q = (q||'').trim();
+  const drop = document.getElementById('rec-drop');
+  if(!q){ drop.style.display='none'; return; }
+  fetch(INS_API + '?action=buscar&q=' + encodeURIComponent(q))
+    .then(r=>r.json()).then(d=>{
+      drop.innerHTML = '';
+      (d.items||[]).forEach(i => {
+        const o = document.createElement('div'); o.className = 'rec-opt';
+        const n = document.createElement('span'); n.textContent = i.nombre;
+        const u = document.createElement('span'); u.className = 'rec-u'; u.textContent = i.unidad;
+        o.appendChild(n); o.appendChild(u);
+        o.addEventListener('click', () => recAgregar(i.id, i.nombre, i.unidad, parseFloat(i.costo_unitario)||0));
+        drop.appendChild(o);
+      });
+      const exacto = (d.items||[]).some(i => i.nombre.toLowerCase() === q.toLowerCase());
+      if(!exacto){
+        const c = document.createElement('div'); c.className = 'rec-opt rec-create';
+        c.textContent = '+ Crear «' + q + '»';
+        c.addEventListener('click', () => insAbrir(q));
+        drop.appendChild(c);
+      }
+      drop.style.display = 'block';
+    });
+}
+
+function recAgregar(id, nombre, unidad, costo){
+  costo = parseFloat(costo)||0;
+  if (document.querySelector('input[name="insumo_id[]"][value="'+id+'"]')) {
+    document.getElementById('rec-drop').style.display='none'; document.getElementById('rec-add').value=''; return;
+  }
+  const row = document.createElement('div'); row.className='rec-row';
+  row.innerHTML = '<span class="rec-nm">'+nombre+'</span>'+
+    '<input type="hidden" name="insumo_id[]" value="'+id+'" data-costo="'+costo+'">'+
+    '<input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="1" oninput="recalc()">'+
+    '<span class="rec-u">'+unidad+'</span>'+
+    '<button type="button" class="rec-del" onclick="this.closest(\'.rec-row\').remove();recalc()">✕</button>';
+  document.getElementById('rec-rows').appendChild(row);
+  document.getElementById('rec-add').value='';
+  document.getElementById('rec-drop').style.display='none';
+  recalc();
+}
+
+function insAbrir(nome){
+  insPend = nome;
+  document.getElementById('ins-name').textContent = nome;
+  document.getElementById('rec-drop').style.display='none';
+  document.getElementById('ins-ov').style.display='flex';
+}
+function insCerrar(){ document.getElementById('ins-ov').style.display='none'; }
+function insCrear(){
+  const body = new URLSearchParams({action:'crear', nombre:insPend, unidad:document.getElementById('ins-unidad').value, tipo:'ingrediente', costo_unitario:document.getElementById('ins-costo').value||'0'});
+  fetch(INS_API, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token':CSRF}, body})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ recAgregar(d.insumo.id, d.insumo.nombre, d.insumo.unidad, parseFloat(d.insumo.costo_unitario)||0); document.getElementById('ins-costo').value=''; insCerrar(); }
+      else { alert(d.error||'No se pudo crear'); }
+    });
+}
+
+function recalc(){
+  let total = 0;
+  document.querySelectorAll('#rec-rows .rec-row').forEach(function(row){
+    const hid = row.querySelector('input[name="insumo_id[]"]');
+    const q = parseFloat(row.querySelector('.rec-q').value) || 0;
+    const costo = hid ? parseFloat(hid.dataset.costo)||0 : 0;
+    total += costo * q;
+  });
+  const rend = parseFloat(document.getElementById('sr-rend').value) || 0;
+  document.getElementById('costoTotal').textContent = 'S/ ' + total.toFixed(2);
+  document.getElementById('costoUM').textContent = 'S/ ' + (rend > 0 ? (total/rend) : 0).toFixed(2);
+}
+
+document.addEventListener('click', e=>{ if(!e.target.closest('.add-wrap')){ const d=document.getElementById('rec-drop'); if(d) d.style.display='none'; } });
+recalc();
+</script>
+
+<div id="ins-ov" style="display:none;position:fixed;inset:0;background:rgba(15,15,20,.5);z-index:50;align-items:center;justify-content:center;padding:18px">
+  <div style="width:340px;max-width:100%;background:#fff;border-radius:14px;overflow:hidden">
+    <div style="background:#fafafb;padding:13px 16px;border-bottom:1px solid var(--border,#eee);font-weight:800">Crear insumo: «<span id="ins-name"></span>»</div>
+    <div style="padding:16px">
+      <div class="form-group"><label>Unidad</label>
+        <select id="ins-unidad"><option value="unidad">unidad</option><option value="g">gramos (g)</option><option value="ml">ml</option><option value="kg">kg</option><option value="l">l</option><option value="lonja">lonja</option><option value="porcion">porción</option></select></div>
+      <div class="form-group"><label>Costo por unidad (opcional)</label><input id="ins-costo" inputmode="decimal" placeholder="0.00"></div>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 16px 16px">
+      <button type="button" class="btn btn-ghost" style="flex:1" onclick="insCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" style="flex:1" onclick="insCrear()">Crear y agregar</button>
+    </div>
+  </div>
+</div>
+
+<?php include __DIR__ . '/../layout-bottom.php'; ?>
