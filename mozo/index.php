@@ -287,6 +287,16 @@ function sonidoOn(){ return localStorage.getItem('mozo_sonido') !== '0'; }
 function pintarSndTgl(){ var b=$('snd-tgl'); if(b) b.textContent = sonidoOn() ? 'Son. on' : 'Son. off'; }
 function toggleSonido(){ localStorage.setItem('mozo_sonido', sonidoOn() ? '0' : '1'); pintarSndTgl(); if(sonidoOn()) ding(); }
 var _ac=null;
+// Desbloquear el AudioContext con el PRIMER gesto (en móvil un contexto creado fuera de
+// un gesto queda 'suspended' y resume() no lo activa → el ding del poll no sonaría).
+function unlockAudio(){
+  try{
+    _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==='suspended') _ac.resume();
+    if(_ac.state==='running'){ ['touchend','click','pointerdown'].forEach(function(ev){ document.removeEventListener(ev, unlockAudio); }); }
+  }catch(e){}
+}
+['touchend','click','pointerdown'].forEach(function(ev){ document.addEventListener(ev, unlockAudio); });
 function ding(){
   if(!sonidoOn()) return;
   try{
