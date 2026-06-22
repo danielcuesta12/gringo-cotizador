@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/inventario.php';
 header('Content-Type: application/json; charset=utf-8');
 
 requireLogin();
@@ -63,6 +64,28 @@ if ($action === 'receta_mod_save') {
         Database::insert("INSERT INTO receta_modificadores (modificador_id,insumo_id,cantidad) VALUES (?,?,?)", [$mid, $iid, $c]);
     }
     echo json_encode(['ok'=>true]);
+    exit;
+}
+
+if ($action === 'componentes_buscar') {
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q === '') { echo json_encode(['ok'=>true,'items'=>[]]); exit; }
+    $items = [];
+    foreach (Database::fetchAll(
+        "SELECT id, nombre, unidad, costo_unitario FROM insumos WHERE activo=1 AND nombre LIKE ? ORDER BY nombre LIMIT 12",
+        ['%' . $q . '%']
+    ) as $i) {
+        $items[] = ['tipo'=>'insumo','id'=>(int)$i['id'],'nombre'=>$i['nombre'],'unidad'=>$i['unidad'],'costo'=>(float)$i['costo_unitario']];
+    }
+    if (subrecetasListo()) {
+        foreach (Database::fetchAll(
+            "SELECT id, nombre, unidad FROM subrecetas WHERE activo=1 AND nombre LIKE ? ORDER BY nombre LIMIT 12",
+            ['%' . $q . '%']
+        ) as $s) {
+            $items[] = ['tipo'=>'subreceta','id'=>(int)$s['id'],'nombre'=>$s['nombre'],'unidad'=>$s['unidad'],'costo'=>subrecetaCostoUM((int)$s['id'])];
+        }
+    }
+    echo json_encode(['ok'=>true, 'items'=>$items]);
     exit;
 }
 
