@@ -616,6 +616,7 @@ function addBorr(){ var s=st.prodSel; var mods=[]; Object.keys(s.sel).forEach(fu
   var nota=($('prod-nota')||{}).value||'';
   pushBorr(s.p, s.qty, mods, nota);
   closeModal('m-prod');
+  if($('v-cat').classList.contains('on')) drawCat(); // refrescar el badge del producto en el catálogo
 }
 function borrTotal(){ return st.borrador.reduce(function(s,it){ var m=it.modificadores.reduce(function(a,x){return a+x.precio;},0); return s+(it.precio+m)*it.qty; },0); }
 function updBorr(){ var n=st.borrador.length;
