@@ -277,6 +277,13 @@ try {
         </a>
         <?php endif; ?>
 
+        <?php if (can('inv_stock')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/produccion.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-produccion'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6l4 2M6 8l-3 4v8a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8l-3-4"/></svg></span> Producción
+        </a>
+        <?php endif; ?>
+
         <?php if (can('inv_recetas')): ?>
         <a href="<?php echo APP_URL; ?>/admin/inventory/recetas.php"
            class="nav-link <?php echo ($activePage??'')==='inv-recetas'?'active':''; ?>">
