@@ -14,12 +14,15 @@ if ($ready) {
     $pid = $ubiPrincipal['id'] ?? 0;
     $prods = Database::fetchAll(
         "SELECT p.id, p.name,
-                (SELECT COUNT(*) FROM recetas r WHERE r.product_id = p.id) AS n_insumos,
-                (SELECT COALESCE(SUM(r.cantidad*i.costo_unitario),0) FROM recetas r JOIN insumos i ON i.id=r.insumo_id WHERE r.product_id=p.id) AS costo,
                 (SELECT lp.price FROM location_products lp WHERE lp.product_id=p.id AND lp.location_id=? LIMIT 1) AS precio
          FROM products p WHERE p.active=1 ORDER BY p.name",
         [$pid]
     );
+    foreach ($prods as &$pr) {
+        $pr['n_insumos'] = count(recetaComponentes((int)$pr['id']));
+        $pr['costo']     = recetaCosto((int)$pr['id']);
+    }
+    unset($pr);
 }
 
 $pageTitle  = 'Recetas y costos';

@@ -20,7 +20,7 @@ if ($ready) {
     $insumos = Database::fetchAll(
         "SELECT i.*,
                 (SELECT COALESCE(SUM(s.stock),0) FROM insumo_stock s WHERE s.insumo_id = i.id) AS stock_total,
-                (SELECT COUNT(*) FROM recetas r WHERE r.insumo_id = i.id) AS n_recetas
+                (SELECT COUNT(*) FROM receta_componentes rc WHERE rc.tipo='insumo' AND rc.ref_id = i.id) AS n_recetas
          FROM insumos i ORDER BY i.activo DESC, i.nombre"
     );
 }
