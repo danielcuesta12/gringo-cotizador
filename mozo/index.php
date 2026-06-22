@@ -99,6 +99,11 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 .cobro-config .desc-tipo button.on{background:var(--ng);color:var(--am);border-color:var(--ng)}
 .cobro-config .desc-tipo button:active{transform:scale(.97)}
 .parte{border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+#cobro-modo{display:grid;grid-template-columns:1fr 1fr;gap:7px;overflow:visible}
+#cobro-modo button{flex:none;width:100%;white-space:normal;min-height:var(--tap)}
+.cobro-desc-link{display:block;width:100%;background:none;border:1px dashed var(--line);color:var(--muted);border-radius:10px;min-height:42px;font-size:13px;font-weight:800;cursor:pointer;margin:11px 0 2px}
+.cobro-desc-link.has{border-style:solid;border-color:var(--am);color:var(--ng);background:color-mix(in srgb,var(--am) 16%,transparent)}
+.cobro-desc-link:active{filter:brightness(.95)}
 .parte-head{background:var(--panel);padding:10px 14px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;display:flex;justify-content:space-between;align-items:center}
 .parte-body{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
 .pago-row{display:flex;gap:7px;align-items:center}
@@ -258,6 +263,8 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
         <button type="button" data-modo="items" onclick="setModo('items')">Por ítems</button>
         <button type="button" data-modo="montos" onclick="setModo('montos')">Montos libres</button>
       </div>
+      <!-- Descuento (poco usual → detrás de un botón/modal) -->
+      <button type="button" class="cobro-desc-link" id="cobro-desc-link" onclick="openDescModal()">Agregar descuento</button>
       <!-- Config por modo -->
       <div class="cobro-config" id="cobro-config"></div>
       <!-- Partes -->
@@ -277,6 +284,20 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
     <div style="font-size:12px;color:#888;margin-bottom:12px">Hay varias cajas abiertas. Elige la que corresponde.</div>
     <div id="m-turno-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
     <button class="btn" style="background:#eee;color:#555" onclick="closeModal('m-turno')">Cancelar</button>
+  </div>
+</div>
+
+<!-- DESCUENTO -->
+<div class="modal" id="m-desc" aria-hidden="true">
+  <div class="sheet" style="padding:18px" role="dialog" aria-modal="true">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:15px;font-weight:900">Descuento</b><button type="button" style="background:none;border:none;font-size:20px;color:var(--muted);min-width:40px;min-height:40px" onclick="closeModal('m-desc')">✕</button></div>
+    <div class="desc-tipo" style="display:flex;gap:7px;margin-bottom:10px">
+      <button type="button" id="dz-pct" style="flex:1;min-height:var(--tap);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;font-size:14px;font-weight:800" onclick="dzTipo('porcentaje')">%</button>
+      <button type="button" id="dz-sol" style="flex:1;min-height:var(--tap);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;font-size:14px;font-weight:800" onclick="dzTipo('monto')">S/</button>
+    </div>
+    <input type="number" inputmode="decimal" min="0" id="dz-val" placeholder="0" style="width:100%;min-height:var(--tap);padding:0 14px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;font-weight:800;text-align:right;background:var(--surface)">
+    <button class="btn dark" style="margin-top:14px" onclick="aplicarDescuento()">Aplicar descuento</button>
+    <button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="quitarDescuento()">Quitar</button>
   </div>
 </div>
 
@@ -711,17 +732,29 @@ function openCobro() {
 
 function pintarResumen() {
   var c = st.cuenta;
-  var falta = c.falta != null ? c.falta : c.monto_cobrar;
-  var html = '<div class="cr-head"><span class="cr-label">Por cobrar</span><span class="cr-hero">S/ ' + Number(falta).toFixed(2) + '</span></div>';
-  var sub = '<span>Total <b>S/ ' + Number(c.monto_cobrar).toFixed(2) + '</b></span>';
-  if (c.pagado > 0) sub += '<span>Pagado <b>S/ ' + Number(c.pagado).toFixed(2) + '</b></span>';
-  html += '<div class="cr-sub">' + sub + '</div>';
+  var desc = (cobro.modo !== 'items' && c.pagado <= 0) ? calcDescMonto() : 0;
+  var html = '<div class="cr-head"><span class="cr-label">Por cobrar</span><span class="cr-hero">S/ ' + faltaActual().toFixed(2) + '</span></div>';
+  var sub = [];
+  if (desc > 0) sub.push('<span>Total <b>S/ ' + Number(c.monto_cobrar).toFixed(2) + '</b></span>');
+  if (desc > 0) sub.push('<span>Descuento <b>−S/ ' + desc.toFixed(2) + '</b></span>');
+  if (c.pagado > 0) sub.push('<span>Pagado <b>S/ ' + Number(c.pagado).toFixed(2) + '</b></span>');
+  html += sub.length ? '<div class="cr-sub">' + sub.join('') + '</div>' : '';
   $('cobro-resumen').innerHTML = html;
 }
 
+// El monto a cobrar YA incluye el descuento (cuando aplica): así partes y cuadre se ajustan solos.
 function faltaActual() {
   var c = st.cuenta;
-  return c.falta != null ? Number(c.falta) : Number(c.monto_cobrar);
+  var f = c.falta != null ? Number(c.falta) : Number(c.monto_cobrar);
+  var d = (cobro.modo !== 'items' && c.pagado <= 0) ? calcDescMonto() : 0;
+  return Math.round(Math.max(0, f - d) * 100) / 100;
+}
+function pintarDescLink() {
+  var b = $('cobro-desc-link'); if (!b) return;
+  if (cobro.modo === 'items') { b.style.display = 'none'; return; }
+  b.style.display = 'block';
+  if (cobro.descTipo) { var d = calcDescMonto(); b.textContent = 'Descuento −S/ ' + d.toFixed(2) + ' · editar'; b.classList.add('has'); }
+  else { b.textContent = 'Agregar descuento'; b.classList.remove('has'); }
 }
 
 function setModo(modo) {
@@ -731,34 +764,33 @@ function setModo(modo) {
   var falta = faltaActual();
 
   if (modo === 'todo') {
-    cfg.innerHTML = renderDescuento();
-    bindDescuento();
+    cfg.innerHTML = '';
     cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
     partes.innerHTML = renderPartes();
     bindPartes();
   } else if (modo === 'iguales') {
-    cfg.innerHTML = '<div class="cobro-config">' + renderDescuento() + '<label style="margin-top:10px">Número de partes iguales</label>' +
+    cfg.innerHTML = '<label>Número de partes iguales</label>' +
       '<div style="display:flex;align-items:center;gap:14px;margin-top:4px">' +
       '<button class="qbtn" type="button" onclick="cambiarNIguales(-1)">−</button>' +
       '<b id="ig-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nIguales + '</b>' +
-      '<button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div></div>';
-    bindDescuento();
+      '<button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div>';
     buildPartesIguales();
     partes.innerHTML = renderPartes();
     bindPartes();
   } else if (modo === 'items') {
-    cfg.innerHTML = ''; // sin descuento en modo ítems
+    cfg.innerHTML = '';
     buildPartesItems(1);
     partes.innerHTML = renderPartes() + renderItemsGrid();
     bindPartes(); bindItemsGrid();
   } else if (modo === 'montos') {
-    cfg.innerHTML = '<div class="cobro-config">' + renderDescuento() + '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span>' +
-      '<button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div></div>';
-    bindDescuento();
+    cfg.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span>' +
+      '<button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div>';
     cobro.partes = [{ monto: falta, pagos: [{ metodo: cobro.metodos[0] ? cobro.metodos[0].nombre : 'Efectivo', monto: falta }], comp: null }];
     partes.innerHTML = renderPartes();
     bindPartes();
   }
+  pintarResumen();
+  pintarDescLink();
   actualizarSaldo();
 }
 
@@ -798,9 +830,11 @@ function renderPartes() {
   if (!cobro.partes.length) return '';
   return cobro.partes.map(function(pt, pi) {
     var html = '<div class="parte" data-pi="' + pi + '">';
-    html += '<div class="parte-head"><span>Parte ' + (pi + 1) + (cobro.partes.length > 1 ? ' · S/ ' + Number(pt.monto).toFixed(2) : '') + '</span>';
-    if (cobro.modo === 'montos' && cobro.partes.length > 1) html += '<button type="button" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:800;cursor:pointer" onclick="eliminarParte(' + pi + ')">Quitar</button>';
-    html += '</div>';
+    if (cobro.partes.length > 1) {
+      html += '<div class="parte-head"><span>Parte ' + (pi + 1) + ' · S/ ' + Number(pt.monto).toFixed(2) + '</span>';
+      if (cobro.modo === 'montos') html += '<button type="button" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:800;cursor:pointer" onclick="eliminarParte(' + pi + ')">Quitar</button>';
+      html += '</div>';
+    }
     html += '<div class="parte-body">';
     // Monto editable en modo montos
     if (cobro.modo === 'montos') {
@@ -911,31 +945,32 @@ function recalcItemsPartes() {
   actualizarSaldo();
 }
 
-// ---- Descuento ----
-function renderDescuento() {
-  return '<div style="margin-top:4px"><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Descuento (opcional)</div>' +
-    '<div class="desc-row"><div class="desc-tipo">' +
-    '<button type="button" data-dt="porcentaje" class="' + (cobro.descTipo === 'porcentaje' ? 'on' : '') + '" onclick="setDescTipo(\'porcentaje\')">%</button>' +
-    '<button type="button" data-dt="monto" class="' + (cobro.descTipo === 'monto' ? 'on' : '') + '" onclick="setDescTipo(\'monto\')">S/</button>' +
-    '<button type="button" data-dt="" class="' + (!cobro.descTipo ? 'on' : '') + '" onclick="setDescTipo(\'\')">Sin desc.</button>' +
-    '</div>' +
-    '<input type="number" inputmode="decimal" min="0" id="inp-desc" placeholder="0" value="' + (cobro.descTipo ? cobro.descValor : '') + '" ' + (cobro.descTipo ? '' : 'disabled') + ' style="width:80px;flex:none;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-weight:800;text-align:right;background:var(--surface)">' +
-    '</div></div>';
+// ---- Descuento (modal) ----
+var _dzTipo = 'porcentaje';
+function dzTipo(t) {
+  _dzTipo = t;
+  [['dz-pct', 'porcentaje'], ['dz-sol', 'monto']].forEach(function(x) {
+    var b = $(x[0]); if (!b) return; var on = (t === x[1]);
+    b.style.background = on ? 'var(--ng)' : 'var(--surface)';
+    b.style.color = on ? 'var(--am)' : 'var(--ink)';
+    b.style.borderColor = on ? 'var(--ng)' : 'var(--line)';
+  });
 }
-
-function setDescTipo(dt) {
-  cobro.descTipo = dt || null; cobro.descValor = 0;
-  // Re-render solo el bloque de config (preserva modo)
-  $('cobro-config').innerHTML = cobro.modo === 'iguales'
-    ? renderDescuento() + '<label style="margin-top:10px">Número de partes iguales</label>' +
-      '<div style="display:flex;align-items:center;gap:14px;margin-top:4px"><button class="qbtn" type="button" onclick="cambiarNIguales(-1)">−</button><b id="ig-n" style="font-size:22px;min-width:26px;text-align:center">' + cobro.nIguales + '</b><button class="qbtn" type="button" onclick="cambiarNIguales(1)">+</button></div>'
-    : renderDescuento() + (cobro.modo === 'montos' ? '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:800;color:var(--muted)">Partes</span><button type="button" class="btn-addpago" style="width:auto;padding:6px 14px" onclick="addParteMontos()">+ Parte</button></div>' : '');
-  bindDescuento();
+function openDescModal() {
+  dzTipo(cobro.descTipo || 'porcentaje');
+  var v = $('dz-val'); if (v) v.value = cobro.descTipo ? cobro.descValor : '';
+  openModal('m-desc');
 }
-
-function bindDescuento() {
-  var inp = $('inp-desc'); if (!inp) return;
-  inp.oninput = function() { cobro.descValor = parseFloat(this.value) || 0; actualizarSaldo(); };
+function aplicarDescuento() {
+  cobro.descTipo = _dzTipo;
+  cobro.descValor = parseFloat(($('dz-val') || {}).value) || 0;
+  closeModal('m-desc');
+  setModo(cobro.modo); // reconstruye partes/cuadre/resumen con el nuevo monto a cobrar
+}
+function quitarDescuento() {
+  cobro.descTipo = null; cobro.descValor = 0;
+  closeModal('m-desc');
+  setModo(cobro.modo);
 }
 
 // ---- Bind de partes ----
@@ -1049,8 +1084,7 @@ function actualizarSaldo() {
     cobro.partes.forEach(function(pt) { objetivo += pt.monto || 0; });
     objetivo = Math.round(objetivo * 100) / 100;
   } else {
-    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
-    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+    objetivo = faltaActual();
   }
   var saldoEl = $('cobro-saldo');
   var diff = Math.round((sumPagos - objetivo) * 100) / 100;
@@ -1120,8 +1154,7 @@ function confirmarCobro(turnoId) {
     if (sumPagos > Math.round((faltaActual() + 0.02) * 100) / 100) { toast('Los pagos exceden el saldo pendiente'); return; }
   } else {
     var faltaBase = faltaActual();
-    var desc = (st.cuenta.pagado <= 0) ? calcDescMonto() : 0;
-    objetivo = Math.round((faltaBase - desc) * 100) / 100;
+    objetivo = faltaActual();
   }
 
   if (Math.abs(sumPagos - objetivo) > 0.02) { toast('Los pagos no cuadran con el total a cobrar'); return; }
