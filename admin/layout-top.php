@@ -249,7 +249,7 @@ try {
     <?php endif; ?>
 
     <?php /* ===== 5. Inventario ===== */ ?>
-    <?php if (can('inv_insumos') || can('inv_stock') || can('inv_recetas') || can('inv_movimientos') || can('inv_compras') || can('inv_evento')): ?>
+    <?php if (can('inv_insumos') || can('inv_stock') || can('inv_recetas') || can('inv_movimientos') || can('inv_compras') || can('inv_evento') || can('inv_costeo')): ?>
     <div class="sb-group" data-sb-group="inventario">
       <button type="button" class="nav-section-label sb-header" aria-expanded="true">
         <span class="sb-dot"></span>Inventario<span class="sb-chevron">&#9662;</span>
@@ -295,6 +295,13 @@ try {
         <a href="<?php echo APP_URL; ?>/admin/inventory/subrecetas.php"
            class="nav-link <?php echo ($activePage??'')==='inv-subrecetas'?'active':''; ?>">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M5 11v11M11 2v20M15 2c-1.5 0-3 1.5-3 4s1.5 4 3 4v12"/></svg></span> Subrecetas
+        </a>
+        <?php endif; ?>
+
+        <?php if (can('inv_costeo')): ?>
+        <a href="<?php echo APP_URL; ?>/admin/inventory/costeo.php"
+           class="nav-link <?php echo ($activePage??'')==='inv-costeo'?'active':''; ?>">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg></span> Costeo
         </a>
         <?php endif; ?>
 

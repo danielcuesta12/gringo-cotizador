@@ -40,6 +40,7 @@ function permissionCatalog(): array {
             'inv_movimientos' => 'Movimientos',
             'inv_compras'     => 'Compras',
             'inv_evento'      => 'Salida a evento',
+            'inv_costeo'      => 'Costeo',
         ],
         'Marketing' => [
             'cartas_pdf' => 'Generador de cartas',
@@ -61,7 +62,7 @@ function permissionTemplates(): array {
         'cajero'     => ['pos_terminal', 'pos_caja'],
         'cocina'     => ['kds'],
         'ventas'     => ['dashboard', 'quotes', 'events', 'calendar', 'clients', 'requests', 'reservas'],
-        'inventario' => ['inv_insumos', 'inv_stock', 'inv_recetas', 'inv_movimientos', 'inv_compras', 'inv_evento'],
+        'inventario' => ['inv_insumos', 'inv_stock', 'inv_recetas', 'inv_movimientos', 'inv_compras', 'inv_evento', 'inv_costeo'],
         // 'admin' (acceso total) se maneja con role='admin', no con esta lista
     ];
 }
@@ -116,6 +117,7 @@ function permissionPaths(): array {
         'inv_movimientos' => '/admin/inventory/movimientos.php',
         'inv_compras'     => '/admin/inventory/compras.php',
         'inv_evento'      => '/admin/inventory/salida_evento.php',
+        'inv_costeo'      => '/admin/inventory/costeo.php',
         'cartas_pdf' => '/admin/cartas/index.php',
         'qr'         => '/admin/qr.php',
         'landing'    => '/admin/landing/index.php',
