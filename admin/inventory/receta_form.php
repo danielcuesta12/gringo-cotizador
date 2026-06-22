@@ -83,13 +83,19 @@ function nf($n) { return rtrim(rtrim(number_format((float)$n, 3, '.', ''), '0'),
 $pageTitle  = 'Receta · ' . $prod['name'];
 $activePage = 'inv-recetas';
 $extraHead  = '<style>
-.rec-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
-.rec-nm{flex:1;font-weight:700;color:var(--black,#1E1E1E)}
+.rec-head,.rec-row{display:grid;grid-template-columns:1fr 92px 82px 82px 26px;gap:10px;align-items:center}
+.rec-head{margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:700}
+.rec-row{margin-bottom:8px}
+.rh-r{text-align:right}
+.rec-nm{font-weight:700;color:var(--black,#1E1E1E);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-um{color:var(--text-muted);font-weight:600;font-size:13px}
 .rec-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:5px;background:#FFEFBC;color:#1E1E1E}
 .rec-tag.sub{background:var(--pink,#FFBBC8)}
-.rec-row .rec-q{width:110px}
-.rec-row .rec-u{width:46px;font-size:12px;color:var(--text-muted)}
-.rec-row .rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:6px;flex-shrink:0;font-size:16px}
+.rec-q{width:100%;text-align:right}
+.rec-u{font-size:12px;color:var(--text-muted)}
+.rec-precio{text-align:right;color:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums}
+.rec-costo{text-align:right;font-weight:700;color:var(--black,#1E1E1E);font-variant-numeric:tabular-nums}
+.rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:4px;font-size:16px;justify-self:end}
 .rec-opt{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .rec-opt:hover{background:#fffbe9}
 .rec-create{color:#1f9d55;font-weight:800;border-top:1px dashed #eee}
@@ -114,15 +120,18 @@ include __DIR__ . '/../layout-top.php';
   <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
     <div style="display:flex;flex-direction:column;gap:20px">
       <div class="card"><div class="card-header"><span class="card-title">Componentes</span></div><div class="card-body">
+        <div class="rec-head">
+          <span>Ingrediente</span><span class="rh-r">Cantidad</span><span class="rh-r">Precio</span><span class="rh-r">Costo</span><span></span>
+        </div>
         <div id="rec-rows">
-          <?php foreach ($comps as $c): ?>
+          <?php foreach ($comps as $c): $um = $c['tipo']==='subreceta' ? 'prep' : $c['unidad']; ?>
           <div class="rec-row">
-            <span class="rec-tag <?= $c['tipo']==='subreceta'?'sub':'' ?>"><?= $c['tipo']==='subreceta'?'Sub':'Insumo' ?></span>
-            <span class="rec-nm"><?= clean($c['nombre']) ?></span>
+            <span class="rec-nm"><?= clean($c['nombre']) ?> <span class="rec-um">(<?= clean($um) ?>)</span></span>
             <input type="hidden" name="comp_tipo[]" value="<?= $c['tipo'] ?>">
             <input type="hidden" name="comp_ref[]" value="<?= (int)$c['ref'] ?>" data-costo="<?= (float)$c['costo'] ?>">
             <input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="<?= nf($c['cantidad']) ?>" oninput="recalc()">
-            <span class="rec-u"><?= clean($c['unidad']) ?></span>
+            <span class="rec-precio">S/ <?= number_format((float)$c['costo'], 2) ?></span>
+            <span class="rec-costo">S/ 0.00</span>
             <button type="button" class="rec-del no-print" onclick="this.closest('.rec-row').remove();recalc()">&#x2715;</button>
           </div>
           <?php endforeach; ?>
@@ -174,7 +183,7 @@ include __DIR__ . '/../layout-top.php';
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <input type="text" inputmode="decimal" id="fc-obj" value="35" oninput="recalc()" style="width:70px">
             <span style="color:var(--text-muted)">% &#x2192;</span>
-            <strong id="fc-sugerido" style="color:var(--c-brand,#FFDF00);-webkit-text-stroke:.3px #1E1E1E">S/ 0.00</strong>
+            <strong id="fc-sugerido" style="background:var(--c-brand,#FFDF00);color:#1E1E1E;font-weight:800;padding:2px 9px;border-radius:7px">S/ 0.00</strong>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Precio sugerido para ese food cost (informativo, no se guarda)</div>
         </div>
@@ -230,15 +239,14 @@ function recAgregar(tipo, id, nombre, unidad, costo){
     if (t && r && t.value === tipo && String(r.value) === String(id)) dup = true;
   });
   if (dup) { document.getElementById('rec-drop').style.display='none'; document.getElementById('rec-add').value=''; return; }
-  const tag = tipo==='subreceta' ? 'Sub' : 'Insumo';
-  const cls = tipo==='subreceta' ? 'rec-tag sub' : 'rec-tag';
+  const um = tipo==='subreceta' ? 'prep' : (unidad||'');
   const row = document.createElement('div'); row.className='rec-row';
-  row.innerHTML = '<span class="'+cls+'">'+tag+'</span>'+
-    '<span class="rec-nm">'+nombre+'</span>'+
+  row.innerHTML = '<span class="rec-nm">'+nombre+' <span class="rec-um">('+um+')</span></span>'+
     '<input type="hidden" name="comp_tipo[]" value="'+tipo+'">'+
     '<input type="hidden" name="comp_ref[]" value="'+id+'" data-costo="'+costo+'">'+
     '<input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="1" oninput="recalc()">'+
-    '<span class="rec-u">'+unidad+'</span>'+
+    '<span class="rec-precio">S/ '+costo.toFixed(2)+'</span>'+
+    '<span class="rec-costo">S/ 0.00</span>'+
     '<button type="button" class="rec-del no-print" onclick="this.closest(\'.rec-row\').remove();recalc()">&#x2715;</button>';
   document.getElementById('rec-rows').appendChild(row);
   document.getElementById('rec-add').value='';
@@ -268,7 +276,9 @@ function recalc(){
     const hid = row.querySelector('input[name="comp_ref[]"]');
     const q = parseFloat(row.querySelector('.rec-q').value) || 0;
     const costo = hid ? parseFloat(hid.dataset.costo)||0 : 0;
-    total += costo * q;
+    const rc = costo * q;
+    total += rc;
+    const cc = row.querySelector('.rec-costo'); if (cc) cc.textContent = 'S/ ' + rc.toFixed(2);
   });
   const porc = Math.max(1, parseInt(document.getElementById('fc-porc').value) || 1);
   const costoPorc = total / porc;

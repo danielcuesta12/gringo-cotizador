@@ -45,11 +45,17 @@ function nf($n) { return rtrim(rtrim(number_format((float)$n, 3, '.', ''), '0'),
 $pageTitle  = $id ? 'Subreceta · ' . $sub['nombre'] : 'Nueva subreceta';
 $activePage = 'inv-subrecetas';
 $extraHead  = '<style>
-.rec-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
-.rec-nm{flex:1;font-weight:700;color:var(--black,#1E1E1E)}
-.rec-row .rec-q{width:120px}
-.rec-row .rec-u{width:48px;font-size:12px;color:var(--text-muted)}
-.rec-row .rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:6px;flex-shrink:0;font-size:16px}
+.rec-head,.rec-row{display:grid;grid-template-columns:1fr 92px 82px 82px 26px;gap:10px;align-items:center}
+.rec-head{margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:700}
+.rec-row{margin-bottom:8px}
+.rh-r{text-align:right}
+.rec-nm{font-weight:700;color:var(--black,#1E1E1E);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-um{color:var(--text-muted);font-weight:600;font-size:13px}
+.rec-q{width:100%;text-align:right}
+.rec-u{font-size:12px;color:var(--text-muted)}
+.rec-precio{text-align:right;color:var(--text-muted);font-size:13px;font-variant-numeric:tabular-nums}
+.rec-costo{text-align:right;font-weight:700;color:var(--black,#1E1E1E);font-variant-numeric:tabular-nums}
+.rec-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:4px;font-size:16px;justify-self:end}
 .rec-opt{padding:10px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .rec-opt:hover{background:#fffbe9}
 .rec-create{color:#1f9d55;font-weight:800;border-top:1px dashed #eee}
@@ -84,13 +90,17 @@ include __DIR__ . '/../layout-top.php';
       </div>
 
       <label style="font-size:13px;font-weight:700;color:var(--text-muted)">Insumos de la preparación</label>
-      <div id="rec-rows" style="margin-top:8px">
+      <div class="rec-head" style="margin-top:8px">
+        <span>Insumo</span><span class="rh-r">Cantidad</span><span class="rh-r">Precio</span><span class="rh-r">Costo</span><span></span>
+      </div>
+      <div id="rec-rows">
         <?php foreach ($items as $r): ?>
         <div class="rec-row">
-          <span class="rec-nm"><?= clean($r['nombre']) ?></span>
+          <span class="rec-nm"><?= clean($r['nombre']) ?> <span class="rec-um">(<?= clean($r['unidad']) ?>)</span></span>
           <input type="hidden" name="insumo_id[]" value="<?= (int)$r['insumo_id'] ?>" data-costo="<?= (float)$r['costo_unitario'] ?>">
           <input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="<?= nf($r['cantidad']) ?>" oninput="recalc()">
-          <span class="rec-u"><?= clean($r['unidad']) ?></span>
+          <span class="rec-precio">S/ <?= number_format((float)$r['costo_unitario'], 2) ?></span>
+          <span class="rec-costo">S/ 0.00</span>
           <button type="button" class="rec-del" onclick="this.closest('.rec-row').remove();recalc()">✕</button>
         </div>
         <?php endforeach; ?>
@@ -114,7 +124,7 @@ include __DIR__ . '/../layout-top.php';
         <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Costo total</div>
         <div id="costoTotal" style="font-size:26px;font-weight:800;margin-top:4px">S/ 0.00</div>
         <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:12px">Costo por unidad</div>
-        <div id="costoUM" style="font-size:26px;font-weight:800;color:var(--c-brand,#FFDF00);-webkit-text-stroke:.3px #1E1E1E;margin-top:4px">S/ 0.00</div>
+        <div id="costoUM" style="font-size:26px;font-weight:800;color:var(--black,#1E1E1E);margin-top:4px">S/ 0.00</div>
       </div></div>
     </div>
   </div>
@@ -157,10 +167,11 @@ function recAgregar(id, nombre, unidad, costo){
     document.getElementById('rec-drop').style.display='none'; document.getElementById('rec-add').value=''; return;
   }
   const row = document.createElement('div'); row.className='rec-row';
-  row.innerHTML = '<span class="rec-nm">'+nombre+'</span>'+
+  row.innerHTML = '<span class="rec-nm">'+nombre+' <span class="rec-um">('+(unidad||'')+')</span></span>'+
     '<input type="hidden" name="insumo_id[]" value="'+id+'" data-costo="'+costo+'">'+
     '<input type="text" inputmode="decimal" name="cantidad[]" class="rec-q" value="1" oninput="recalc()">'+
-    '<span class="rec-u">'+unidad+'</span>'+
+    '<span class="rec-precio">S/ '+costo.toFixed(2)+'</span>'+
+    '<span class="rec-costo">S/ 0.00</span>'+
     '<button type="button" class="rec-del" onclick="this.closest(\'.rec-row\').remove();recalc()">✕</button>';
   document.getElementById('rec-rows').appendChild(row);
   document.getElementById('rec-add').value='';
@@ -190,7 +201,9 @@ function recalc(){
     const hid = row.querySelector('input[name="insumo_id[]"]');
     const q = parseFloat(row.querySelector('.rec-q').value) || 0;
     const costo = hid ? parseFloat(hid.dataset.costo)||0 : 0;
-    total += costo * q;
+    const rc = costo * q;
+    total += rc;
+    const cc = row.querySelector('.rec-costo'); if (cc) cc.textContent = 'S/ ' + rc.toFixed(2);
   });
   const rend = parseFloat(document.getElementById('sr-rend').value) || 0;
   document.getElementById('costoTotal').textContent = 'S/ ' + total.toFixed(2);
