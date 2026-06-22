@@ -133,7 +133,7 @@ input[type=text],input[type=tel],input[type=email],input[type=number]{font-famil
 .pill.st-cancelado{background:#fbe7e7;color:#b91c1c}
 input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)}
 .anul{text-decoration:line-through;color:var(--faint)}
-.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:80;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.toast{position:fixed;left:50%;top:max(66px,calc(env(safe-area-inset-top) + 58px));transform:translateX(-50%);max-width:calc(100% - 24px);text-align:center;background:var(--ng);color:#fff;padding:11px 17px;border-radius:12px;font-weight:700;font-size:13px;z-index:90;display:none;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 .snd-tgl{border:none;color:#fff;border-radius:10px;min-height:40px;padding:0 13px;font-weight:800;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s var(--ease)}
 .snd-tgl::before{content:"";width:9px;height:9px;border-radius:50%;background:#fff;flex:none}
 .snd-tgl.on{background:var(--ok)}
@@ -297,6 +297,8 @@ function unlockAudio(){
   try{
     _ac = _ac || new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==='suspended') _ac.resume();
+    // iOS: reproducir un buffer silencioso DENTRO del gesto desbloquea de verdad el audio.
+    var b=_ac.createBuffer(1,1,22050), s=_ac.createBufferSource(); s.buffer=b; s.connect(_ac.destination); s.start(0);
     if(_ac.state==='running'){ ['touchend','click','pointerdown'].forEach(function(ev){ document.removeEventListener(ev, unlockAudio); }); }
   }catch(e){}
 }
