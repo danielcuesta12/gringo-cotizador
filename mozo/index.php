@@ -430,12 +430,12 @@ function openMesaInfo(mesaId){
     var grupo = (c.mesas && c.mesas.length) ? c.mesas.map(function(m){return esc(m.numero);}).join(' + ') : esc(c.mesa_numero||'');
     var sinPagos = !(c.pagado > 0);
     var nSec = (c.mesas||[]).filter(function(m){return !m.principal;}).length;
-    var acciones =
-      '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>'+
-      '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>';
+    var acciones = '<button class="btn" onclick="verCuentaDesdeInfo()">Ver / agregar</button>';
     if (sinPagos) acciones += '<button class="btn" style="margin-top:8px" onclick="openJuntar()">Juntar mesa</button>';
     if (sinPagos && nSec > 0) acciones += '<button class="btn" style="margin-top:8px" onclick="openSeparar()">Separar mesa</button>';
     acciones += '<button class="btn" style="margin-top:8px" onclick="openMover()">Mover a mesa libre</button>';
+    // Cobrar siempre como última acción (justo arriba de Cerrar), posición fija.
+    acciones += '<button class="btn dark" style="margin-top:8px" onclick="verCuentaDesdeInfo(); setTimeout(function(){ document.getElementById(\'btn-cobrar\').click(); }, 600)">Cobrar</button>';
     acciones += '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-mesa\')">Cerrar</button>';
     $('m-mesa-in').innerHTML=
       '<div style="padding:15px 16px 4px;display:flex;justify-content:space-between;align-items:flex-start">'+
