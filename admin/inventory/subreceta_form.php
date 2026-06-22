@@ -16,11 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = clean($_POST['nombre'] ?? '');
     $unidad = clean($_POST['unidad'] ?? 'unidad') ?: 'unidad';
     $rend   = max(0.001, cleanFloat($_POST['rendimiento'] ?? 1));
+    $llevaStock = (subrecetaStockListo() && !empty($_POST['lleva_stock'])) ? 1 : 0;
     if ($nombre === '') { flashMessage('error', 'Falta el nombre.'); redirect('/admin/inventory/subreceta_form.php' . ($id ? '?id='.$id : '')); }
     if ($id) {
-        Database::execute("UPDATE subrecetas SET nombre=?, unidad=?, rendimiento=? WHERE id=?", [$nombre, $unidad, $rend, $id]);
+        if (subrecetaStockListo()) {
+            Database::execute("UPDATE subrecetas SET nombre=?, unidad=?, rendimiento=?, lleva_stock=? WHERE id=?", [$nombre, $unidad, $rend, $llevaStock, $id]);
+        } else {
+            Database::execute("UPDATE subrecetas SET nombre=?, unidad=?, rendimiento=? WHERE id=?", [$nombre, $unidad, $rend, $id]);
+        }
     } else {
-        $id = Database::insert("INSERT INTO subrecetas (nombre,unidad,rendimiento,activo) VALUES (?,?,?,1)", [$nombre, $unidad, $rend]);
+        if (subrecetaStockListo()) {
+            $id = Database::insert("INSERT INTO subrecetas (nombre,unidad,rendimiento,lleva_stock,activo) VALUES (?,?,?,?,1)", [$nombre, $unidad, $rend, $llevaStock]);
+        } else {
+            $id = Database::insert("INSERT INTO subrecetas (nombre,unidad,rendimiento,activo) VALUES (?,?,?,1)", [$nombre, $unidad, $rend]);
+        }
     }
     $ins = $_POST['insumo_id'] ?? [];
     $cant = $_POST['cantidad'] ?? [];
@@ -88,6 +97,13 @@ include __DIR__ . '/../layout-top.php';
             <?php endforeach; ?>
           </select></div>
       </div>
+
+      <?php if (subrecetaStockListo()): ?>
+      <label style="display:flex;align-items:center;gap:9px;margin:4px 0 16px;cursor:pointer;font-size:14px">
+        <input type="checkbox" name="lleva_stock" value="1" <?= ($id && !empty($sub['lleva_stock'])) ? 'checked' : '' ?> style="width:18px;height:18px">
+        <span><strong>Se produce y lleva stock.</strong> Se prepara por lote (consume insumos) y se descuenta de su propio stock al vender. Si lo dejás apagado, la subreceta explota a insumos como hasta ahora.</span>
+      </label>
+      <?php endif; ?>
 
       <label style="font-size:13px;font-weight:700;color:var(--text-muted)">Insumos de la preparación</label>
       <div class="rec-head" style="margin-top:8px">
