@@ -2148,6 +2148,7 @@ function showModalCobro(metodo) {
     + '</div>'
     + '<input type="text" id="cl-nombre" placeholder="Nombre / Razón social">'
     + '<input type="email" id="cl-email" placeholder="Correo (opcional — recibe el comprobante)" inputmode="email" autocomplete="email">'
+    + '<div id="cl-hint" style="font-size:11px;color:var(--text-muted,#888);margin-top:4px"></div>'
     + '</div>'
     + '</div>'
     // Efectivo fields (conditionally shown)
@@ -2179,6 +2180,15 @@ function showModalCobro(metodo) {
           clTipo.value = 'ruc';
         } else if (clTipo) {
           clTipo.value = 'dni';
+        }
+        var clDocEl = document.getElementById('cl-doc');
+        var hintEl = document.getElementById('cl-hint');
+        if (comprobanteTipo === 'factura') {
+          if (clDocEl) clDocEl.placeholder = 'RUC (11 dígitos)';
+          if (hintEl) hintEl.textContent = 'Factura: RUC de 11 dígitos obligatorio.';
+        } else {
+          if (clDocEl) clDocEl.placeholder = 'DNI (opcional · vacío = boleta simple)';
+          if (hintEl) hintEl.textContent = 'Dejá el documento vacío para boleta simple (sin DNI).';
         }
       } else {
         clienteDiv.style.display = 'none';
@@ -2527,6 +2537,7 @@ function showComprobanteModal(p) {
     + '</div>'
     + '<input type="text" id="cl-nombre" placeholder="Nombre / Razón social" value="' + esc(nom) + '">'
     + '<input type="email" id="cl-email" placeholder="Correo (opcional)" inputmode="email" value="' + esc(email) + '">'
+    + '<div id="cl-hint" style="font-size:11px;color:var(--text-muted,#888);margin-top:4px"></div>'
     + '</div></div>'
     + '<div class="modal-row">'
     + '<button class="btn-modal-cancel" id="comp-cancel">Cancelar</button>'
@@ -2542,6 +2553,15 @@ function showComprobanteModal(p) {
     if (t === 'boleta' || t === 'factura') {
       cd.style.display = 'block';
       document.getElementById('cl-tipo').value = (t === 'factura') ? 'ruc' : 'dni';
+      var clDocEl = document.getElementById('cl-doc');
+      var hintEl = document.getElementById('cl-hint');
+      if (t === 'factura') {
+        if (clDocEl) clDocEl.placeholder = 'RUC (11 dígitos)';
+        if (hintEl) hintEl.textContent = 'Factura: RUC de 11 dígitos obligatorio.';
+      } else {
+        if (clDocEl) clDocEl.placeholder = 'DNI (opcional · vacío = boleta simple)';
+        if (hintEl) hintEl.textContent = 'Dejá el documento vacío para boleta simple (sin DNI).';
+      }
     } else { cd.style.display = 'none'; }
   }
   modal.querySelectorAll('.comp-tab').forEach(function(tab){ tab.addEventListener('click', function(){ selTab(this.dataset.tipo); }); });
