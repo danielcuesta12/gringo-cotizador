@@ -161,6 +161,17 @@ input:focus{outline:none;border-color:var(--am)!important;box-shadow:var(--ring)
   .sheet,.modal,.btn,.qbtn,.plus,.chip,.row,.opt,.top button,.pindots span{transition:none}
   .sheet{transform:none}
 }
+/* ── Refinamientos (impeccable + ui-ux-pro-max) ── */
+/* Confirmación de toque en los controles más usados. */
+.qbtn:active,.plus:active,.qstep button:active,.chip:active,.btn:active{transform:scale(.95);transition:transform .06s}
+/* Foco visible accesible (teclado / lectores). */
+:where(button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--am);outline-offset:2px}
+/* Área de toque del "anular" (acción destructiva), sin alterar el alto de línea. */
+.anul-x{display:inline-block;padding:4px 9px;margin:-4px -3px;color:var(--danger);text-decoration:none;font-weight:700}
+@media (prefers-reduced-motion: reduce){
+  .qbtn,.plus,.qstep button,.chip,.btn{transition:none}
+  .qbtn:active,.plus:active,.qstep button:active,.chip:active,.btn:active{transform:none}
+}
 </style>
 <?= brandHead() ?>
 </head>
@@ -546,13 +557,15 @@ function renderCuenta(){
       var unit=(it.precio||0)+((it.modificadores||[]).reduce(function(s,m){return s+(m.precio||0);},0));
       var r=document.createElement('div'); r.className='row';
       r.innerHTML='<div class="'+(anul?'anul':'')+'">'+it.qty+'× '+esc(it.nombre)+(mods?'<br><small style="color:#999">'+esc(mods)+'</small>':'')+(it.nota?'<br><small style="color:#c98a00">Nota: '+esc(it.nota)+'</small>':'')+'</div>'+
-        '<div style="text-align:right"><b class="'+(anul?'anul':'')+'">S/ '+(unit*it.qty).toFixed(0)+'</b>'+(anul?'':(co.estado==='pendiente'||co.estado==='en_preparacion'?'<br><span style="color:#dc2626;font-size:11px;font-weight:700">anular</span>':''))+'</div>';
+        '<div style="text-align:right"><b class="'+(anul?'anul':'')+'">S/ '+(unit*it.qty).toFixed(0)+'</b>'+(anul?'':(co.estado==='pendiente'||co.estado==='en_preparacion'?'<br><span class="anul-x" style="font-size:11px">anular</span>':''))+'</div>';
       if(!anul && (co.estado==='pendiente'||co.estado==='en_preparacion')){ r.querySelector('span').onclick=function(){ openAnular(co.pedido_id, idx, it.qty+'× '+it.nombre); }; }
       b.appendChild(r);
     });
   });
 }
 function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+// Vibración corta de confirmación (PWA; no-op si el dispositivo no la soporta).
+function haptic(ms){ try{ navigator.vibrate && navigator.vibrate(ms||10); }catch(e){} }
 function estadoMeta(e){
   switch(e){
     case 'en_preparacion': return {cls:'st-prep', lbl:'En preparación'};
@@ -581,7 +594,13 @@ function drawCat(){
   var list=$('cat-list'); list.innerHTML='';
   var prods = q ? st.catProd.filter(function(p){ return norm(p.nombre).indexOf(q)>=0; })
                 : st.catProd.filter(function(p){ return p.categoria===st.catCat; });
-  if(!prods.length){ list.innerHTML='<p style="padding:24px;text-align:center;color:#999">Sin resultados</p>'; return; }
+  if(!prods.length){
+    var raw=((($('cat-search')||{}).value)||'').trim();
+    list.innerHTML = q
+      ? '<div style="padding:30px 24px;text-align:center;color:var(--muted)">Nada coincide con «'+esc(raw)+'».<br><small style="color:var(--faint)">Revisa la ortografía o borra la búsqueda.</small></div>'
+      : '<div style="padding:30px 24px;text-align:center;color:var(--muted)">Esta categoría aún no tiene productos.<br><small style="color:var(--faint)">Elige otra categoría arriba.</small></div>';
+    return;
+  }
   prods.forEach(function(p){
     var mods=p.grupos&&p.grupos.length;
     var n = mods ? borrTotalQty(p.id) : (function(){ var e=borrNoModEntry(p.id); return e?e.qty:0; })();
@@ -605,8 +624,8 @@ function drawCat(){
 function findProd(pid){ for(var i=0;i<st.catProd.length;i++){ if(+st.catProd[i].id===+pid) return st.catProd[i]; } return null; }
 function borrNoModEntry(pid){ for(var i=0;i<st.borrador.length;i++){ var b=st.borrador[i]; if(+b.product_id===+pid && (!b.modificadores||!b.modificadores.length) && !b.nota) return b; } return null; }
 function borrTotalQty(pid){ var n=0; st.borrador.forEach(function(b){ if(+b.product_id===+pid) n+=(b.qty||0); }); return n; }
-function qaInc(pid){ var e=borrNoModEntry(pid); if(e){ e.qty++; } else { var p=findProd(pid); if(!p)return; st.borrador.push({product_id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),qty:1,modificadores:[],nota:''}); } updBorr(); drawCat(); }
-function qaDec(pid){ var e=borrNoModEntry(pid); if(!e)return; e.qty--; if(e.qty<=0){ var i=st.borrador.indexOf(e); if(i>=0) st.borrador.splice(i,1); } updBorr(); drawCat(); }
+function qaInc(pid){ var e=borrNoModEntry(pid); if(e){ e.qty++; } else { var p=findProd(pid); if(!p)return; st.borrador.push({product_id:p.id,nombre:p.nombre,precio:parseFloat(p.precio),qty:1,modificadores:[],nota:''}); } haptic(); updBorr(); drawCat(); }
+function qaDec(pid){ var e=borrNoModEntry(pid); if(!e)return; e.qty--; if(e.qty<=0){ var i=st.borrador.indexOf(e); if(i>=0) st.borrador.splice(i,1); } haptic(); updBorr(); drawCat(); }
 function openProd(p){ st.prodSel={p:p, qty:1, sel:{}, nota:''}; renderProd(); openModal('m-prod'); }
 function renderProd(){
   var s=st.prodSel, p=s.p;
@@ -636,6 +655,7 @@ function pushBorr(p, qty, mods, nota){ st.borrador.push({product_id:p.id, nombre
 function addBorr(){ var s=st.prodSel; var mods=[]; Object.keys(s.sel).forEach(function(g){ Object.keys(s.sel[g]).forEach(function(o){ mods.push({nombre:s.sel[g][o].nombre, precio:s.sel[g][o].precio}); }); });
   var nota=($('prod-nota')||{}).value||'';
   pushBorr(s.p, s.qty, mods, nota);
+  haptic();
   closeModal('m-prod');
   if($('v-cat').classList.contains('on')) drawCat(); // refrescar el badge del producto en el catálogo
 }
@@ -668,7 +688,7 @@ function openBorrador(){
     '<div style="max-height:50dvh;overflow:auto">'+rows+'</div>'+
     '<div style="padding:12px 16px;border-top:1px solid #eee">'+
       '<div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-bottom:10px"><span>Total</span><span>S/ '+borrTotal().toFixed(0)+'</span></div>'+
-      '<button class="btn dark" onclick="enviarComanda()">Enviar a cocina</button>'+
+      '<button class="btn dark" id="btn-enviar" onclick="enviarComanda()">Enviar a cocina</button>'+
       '<button class="btn" style="background:#eee;color:#555;margin-top:8px" onclick="closeModal(\'m-borr\')">Seguir agregando</button>'+
     '</div>';
   openModal('m-borr');
@@ -676,7 +696,23 @@ function openBorrador(){
 function quitarBorr(i){ st.borrador.splice(i,1); updBorr(); if(st.borrador.length) openBorrador(); else closeModal('m-borr'); }
 function borrQty(i,d){ var it=st.borrador[i]; if(!it)return; if(d<0 && it.qty<=1){ quitarBorr(i); return; } it.qty=Math.max(1,(it.qty||1)+d); updBorr(); openBorrador(); }
 function borrNota(i,v){ if(st.borrador[i]) st.borrador[i].nota=v; }
-function enviarComanda(){ if(!st.borrador.length)return; geo().then(function(){ postRetry('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){ if(!d.ok){toast(d.error||'No se pudo');return;} st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id); }, function(){ toast('Sin señal · toca Enviar para reintentar'); }); }); }
+var _sending=false;
+function enviarComanda(){
+  if(!st.borrador.length) return;
+  if(_sending) return;            // evita doble envío (doble toque = comanda duplicada)
+  _sending=true;
+  var btn=document.getElementById('btn-enviar');
+  if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  function restore(){ _sending=false; if(btn){ btn.disabled=false; btn.textContent='Enviar a cocina'; } }
+  geo().then(function(){
+    postRetry('enviar_comanda', withGeo({cuenta_id:st.cuenta.id, items:JSON.stringify(st.borrador)})).then(function(d){
+      if(!d.ok){ toast(d.error||'No se pudo'); restore(); return; }
+      haptic(20);
+      st.borrador=[]; closeModal('m-borr'); toast('Enviado a cocina · Ronda '+d.ronda); loadCuenta(st.cuenta.id);
+      restore();
+    }, function(){ toast('Sin señal · toca Enviar para reintentar'); restore(); });
+  });
+}
 
 function goPlano(){ showView('v-plano'); refreshEstados(); }
 
