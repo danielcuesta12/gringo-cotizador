@@ -24,6 +24,13 @@ $tcRgb     = sscanf($textColor, "#%02x%02x%02x");
 $mutedRgba = $tcRgb ? sprintf('rgba(%d,%d,%d,.55)', $tcRgb[0], $tcRgb[1], $tcRgb[2]) : 'rgba(255,255,255,.55)';
 
 $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'=>'rgba(37,211,102,.15)'];
+
+// Open Graph / compartir: es una link-in-bio que se pega en Instagram/WhatsApp.
+$siteName = getSetting('company_name', '') ?: 'El Gringo Burger Joint';
+$siteUrl  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'elgringo.pe');
+$ogImage  = $bgUrl ?: $logoUrl;
+if ($ogImage && $ogImage[0] === '/') $ogImage = $siteUrl . $ogImage;  // a absoluta si fuese relativa
+$ogDesc   = $tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,7 +39,24 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?= brandPrimaryHex('#FCDA13') ?>">
 <link rel="icon" type="image/png" href="<?= appIcon('/img/favicon.png') ?>">
-<title>El Gringo Burger Joint</title>
+<title><?= clean($siteName) ?></title>
+<meta name="description" content="<?= clean($ogDesc) ?>">
+<?php /* Previsualización al compartir el link (Instagram/WhatsApp/etc.) */ ?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="<?= clean($siteName) ?>">
+<meta property="og:title" content="<?= clean($siteName) ?>">
+<meta property="og:description" content="<?= clean($ogDesc) ?>">
+<meta property="og:url" content="<?= clean($siteUrl) ?>">
+<?php if ($ogImage): ?><meta property="og:image" content="<?= clean($ogImage) ?>"><?php endif; ?>
+<meta name="twitter:card" content="<?= $bgUrl ? 'summary_large_image' : 'summary' ?>">
+<meta name="twitter:title" content="<?= clean($siteName) ?>">
+<meta name="twitter:description" content="<?= clean($ogDesc) ?>">
+<?php if ($ogImage): ?><meta name="twitter:image" content="<?= clean($ogImage) ?>"><?php endif; ?>
+<?php /* "Añadir a inicio" (iOS) con ícono y nombre propios */ ?>
+<link rel="apple-touch-icon" href="<?= clean($logoUrl ?: appIcon('/img/favicon.png')) ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="<?= clean($siteName) ?>">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{ --bg:<?= htmlspecialchars($bgColor) ?>; --card:<?= htmlspecialchars($cardColor) ?>; --line:rgba(0,0,0,.14); --brand:#FCDA13; --brand-dark:#e6c400; --pink:#FAB8C0; --green:#25D366; --ink:#1a1a1a; --txt:<?= htmlspecialchars($textColor) ?>; --muted:<?= $mutedRgba ?>; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -43,10 +67,12 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
   @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
   .tagline{font-size:13.5px;color:var(--muted);text-align:center;letter-spacing:.3px;margin-bottom:26px}
   .links{width:100%;display:flex;flex-direction:column;gap:12px}
-  .lnk{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;text-decoration:none;color:var(--txt);transition:transform .12s ease,border-color .2s,background .2s}
-  .lnk:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.18)}
-  .lnk:active{transform:translateY(0) scale(.99)}
-  .lnk-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(255,255,255,.07);color:var(--brand)}
+  .lnk{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;text-decoration:none;color:var(--txt);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .12s ease,border-color .2s,background .2s,box-shadow .2s}
+  /* Hover/borde atados a la marca → legibles en tema claro y oscuro (no blanco fijo). */
+  .lnk:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--brand) 50%,transparent);box-shadow:0 6px 16px rgba(0,0,0,.12)}
+  .lnk:active{transform:translateY(0) scale(.985);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  /* Chip del ícono: tinte de marca (antes blanco .07, invisible en tema claro). */
+  .lnk-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
   .lnk-ico svg{width:21px;height:21px}
   .lnk-tx{flex:1;min-width:0;display:flex;flex-direction:column}
   .lnk-title{display:block;font-size:15px;font-weight:700;line-height:1.2}
@@ -71,11 +97,13 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 </style>
 <?php if ($bgUrl): ?>
 <style>
-  body{
-    background:#181613 url('<?= htmlspecialchars($bgUrl) ?>') center/cover no-repeat fixed;
-    position:relative;
-  }
+  /* Foto de fondo como capas position:fixed (rinde mejor que background-attachment:fixed en iOS). */
+  body{background:#181613;position:relative}
   body::before{
+    content:'';position:fixed;inset:0;z-index:0;
+    background:url('<?= htmlspecialchars($bgUrl) ?>') center/cover no-repeat;
+  }
+  body::after{
     content:'';position:fixed;inset:0;z-index:0;
     background:linear-gradient(180deg, rgba(0,0,0,<?= round($ov*0.18,3) ?>) 0%, rgba(0,0,0,<?= round($ov*0.45,3) ?>) 55%, rgba(0,0,0,<?= round($ov,3) ?>) 100%);
   }
@@ -160,7 +188,12 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
     try {
       var d = frame.contentWindow.document;
       var h = Math.max(d.body ? d.body.scrollHeight : 0, d.documentElement.scrollHeight);
-      if (h > 0) frame.style.height = h + 'px';
+      if (h > 0){
+        frame.style.height = h + 'px';
+        // Ajusta el panel a la altura real del formulario (sin número mágico → nunca recorta).
+        var panel = frame.closest('.quote-panel');
+        if (panel && panel.classList.contains('open')) panel.style.maxHeight = (h + 24) + 'px';
+      }
     } catch(e){}
   }
   function toggleQuote(btn){
@@ -178,6 +211,8 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
       else fitFrame(frame);
       panel._poll = setInterval(function(){ fitFrame(frame); }, 250);  // reajusta al cambiar de paso (mismo dominio = medición directa)
       setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'start'}); }, 90);
+    } else if (!open){
+      panel.style.maxHeight = '';  // colapsa (vuelve al max-height:0 del CSS)
     }
   }
 </script>
