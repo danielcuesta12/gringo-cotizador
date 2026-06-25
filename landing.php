@@ -28,7 +28,11 @@ $iconBg = ['delivery'=>'rgba(0,0,0,.12)','whatsapp'=>'rgba(37,211,102,.15)','wa'
 // Open Graph / compartir: es una link-in-bio que se pega en Instagram/WhatsApp.
 $siteName = getSetting('company_name', '') ?: 'El Gringo Burger Joint';
 $siteUrl  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'elgringo.pe');
-$ogImage  = $bgUrl ?: $logoUrl;
+// Prioridad: imagen elegida para compartir → foto de portada → logo.
+$shareRel = getSetting('landing_share_image', '');
+$shareUrl = $shareRel ? UPLOAD_URL . $shareRel : '';
+$ogImage  = $shareUrl ?: ($bgUrl ?: $logoUrl);
+$ogLarge  = (bool)($shareUrl ?: $bgUrl);  // tarjeta grande solo si hay imagen apaisada elegida
 if ($ogImage && $ogImage[0] === '/') $ogImage = $siteUrl . $ogImage;  // a absoluta si fuese relativa
 $ogDesc   = $tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.';
 ?>
@@ -48,7 +52,7 @@ $ogDesc   = $tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.
 <meta property="og:description" content="<?= clean($ogDesc) ?>">
 <meta property="og:url" content="<?= clean($siteUrl) ?>">
 <?php if ($ogImage): ?><meta property="og:image" content="<?= clean($ogImage) ?>"><?php endif; ?>
-<meta name="twitter:card" content="<?= $bgUrl ? 'summary_large_image' : 'summary' ?>">
+<meta name="twitter:card" content="<?= $ogLarge ? 'summary_large_image' : 'summary' ?>">
 <meta name="twitter:title" content="<?= clean($siteName) ?>">
 <meta name="twitter:description" content="<?= clean($ogDesc) ?>">
 <?php if ($ogImage): ?><meta name="twitter:image" content="<?= clean($ogImage) ?>"><?php endif; ?>

@@ -50,11 +50,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
         if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
         setSetting('landing_bg_image', '');
     }
+
+    // Imagen para compartir (Open Graph): la que se ve al pegar el link en WhatsApp/IG.
+    if (!empty($_FILES['landing_share']['name'])) {
+        $uploaded = uploadImage($_FILES['landing_share'], 'landing');
+        if ($uploaded) {
+            $old = getSetting('landing_share_image');
+            if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+            setSetting('landing_share_image', $uploaded);
+        } else {
+            flashMessage('error', 'Error al subir la imagen para compartir. Usa JPG, PNG o WebP (máx. 2MB).');
+        }
+    }
+    if (isset($_POST['remove_share'])) {
+        $old = getSetting('landing_share_image');
+        if ($old && file_exists(UPLOAD_PATH . $old)) @unlink(UPLOAD_PATH . $old);
+        setSetting('landing_share_image', '');
+    }
     redirect('/admin/landing/index.php');
 }
 
 $bgRel         = getSetting('landing_bg_image', '');
 $bgUrl         = $bgRel ? UPLOAD_URL . $bgRel : '';
+$shareRel      = getSetting('landing_share_image', '');
+$shareUrl      = $shareRel ? UPLOAD_URL . $shareRel : '';
 $cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
 $bgOverlay     = (int) getSetting('landing_bg_overlay', '28');
 $bgColor       = getSetting('landing_bg_color',   '#FCDA13');
@@ -108,6 +127,23 @@ include __DIR__ . '/../layout-top.php';
             <?php if ($bgUrl): ?>
               <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-top:10px;cursor:pointer">
                 <input type="checkbox" name="remove_bg" value="1"> Quitar foto actual
+              </label>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <label class="form-label">Imagen para compartir</label>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <?php if ($shareUrl): ?>
+            <img src="<?= htmlspecialchars($shareUrl) ?>" alt="Imagen para compartir" style="width:140px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;flex-shrink:0">
+          <?php endif; ?>
+          <div style="flex:1;min-width:0">
+            <input type="file" name="landing_share" accept="image/jpeg,image/png,image/webp" class="form-input">
+            <p style="font-size:12px;color:var(--text-muted);margin-top:6px">La que se ve al compartir el link en WhatsApp/Instagram. Recomendado HORIZONTAL 1200×630. Vacía = usa la foto de fondo y, si no hay, el logo (en chico).</p>
+            <?php if ($shareUrl): ?>
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-top:10px;cursor:pointer">
+                <input type="checkbox" name="remove_share" value="1"> Quitar imagen actual
               </label>
             <?php endif; ?>
           </div>
