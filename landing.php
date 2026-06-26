@@ -34,7 +34,9 @@ $shareUrl = $shareRel ? UPLOAD_URL . $shareRel : '';
 $ogImage  = $shareUrl ?: ($bgUrl ?: $logoUrl);
 $ogLarge  = (bool)($shareUrl ?: $bgUrl);  // tarjeta grande solo si hay imagen apaisada elegida
 if ($ogImage && $ogImage[0] === '/') $ogImage = $siteUrl . $ogImage;  // a absoluta si fuese relativa
-$ogDesc   = $tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.';
+// Título y descripción de la previsualización (configurables; con fallback).
+$ogTitle  = getSetting('landing_share_title', '') ?: $siteName;
+$ogDesc   = getSetting('landing_share_desc', '') ?: ($tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -48,12 +50,12 @@ $ogDesc   = $tagline ?: 'Mira nuestra carta, reserva tu mesa y cotiza tu evento.
 <?php /* Previsualización al compartir el link (Instagram/WhatsApp/etc.) */ ?>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="<?= clean($siteName) ?>">
-<meta property="og:title" content="<?= clean($siteName) ?>">
+<meta property="og:title" content="<?= clean($ogTitle) ?>">
 <meta property="og:description" content="<?= clean($ogDesc) ?>">
 <meta property="og:url" content="<?= clean($siteUrl) ?>">
 <?php if ($ogImage): ?><meta property="og:image" content="<?= clean($ogImage) ?>"><?php endif; ?>
 <meta name="twitter:card" content="<?= $ogLarge ? 'summary_large_image' : 'summary' ?>">
-<meta name="twitter:title" content="<?= clean($siteName) ?>">
+<meta name="twitter:title" content="<?= clean($ogTitle) ?>">
 <meta name="twitter:description" content="<?= clean($ogDesc) ?>">
 <?php if ($ogImage): ?><meta name="twitter:image" content="<?= clean($ogImage) ?>"><?php endif; ?>
 <?php /* "Añadir a inicio" (iOS) con ícono y nombre propios */ ?>

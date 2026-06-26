@@ -31,6 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_appearance'])) {
     setSetting('landing_text_color',   $hex($_POST['text_color']   ?? '', '#FFFFFF'));
     setSetting('landing_footer_color', $hex($_POST['footer_color'] ?? '', '#666666'));
 
+    // Vista previa al compartir (Open Graph): título y descripción.
+    setSetting('landing_share_title', clean($_POST['share_title'] ?? ''));
+    setSetting('landing_share_desc',  clean($_POST['share_desc'] ?? ''));
+
     if (!empty($_FILES['landing_bg']['name'])) {
         $uploaded = uploadImage($_FILES['landing_bg'], 'landing');
         if ($uploaded) {
@@ -74,6 +78,8 @@ $bgRel         = getSetting('landing_bg_image', '');
 $bgUrl         = $bgRel ? UPLOAD_URL . $bgRel : '';
 $shareRel      = getSetting('landing_share_image', '');
 $shareUrl      = $shareRel ? UPLOAD_URL . $shareRel : '';
+$shareTitle    = getSetting('landing_share_title', '');
+$shareDesc     = getSetting('landing_share_desc', '');
 $cardsTranspar = getSetting('landing_cards_transparent', '0') === '1';
 $bgOverlay     = (int) getSetting('landing_bg_overlay', '28');
 $bgColor       = getSetting('landing_bg_color',   '#FCDA13');
@@ -133,7 +139,10 @@ include __DIR__ . '/../layout-top.php';
         </div>
       </div>
       <div style="flex:1;min-width:260px">
-        <label class="form-label">Imagen para compartir</label>
+        <label class="form-label">Cómo se ve al compartir el link</label>
+        <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px">Título, descripción e imagen que aparecen al pegar tu link en WhatsApp/Instagram.</p>
+        <input type="text" name="share_title" maxlength="80" value="<?= htmlspecialchars($shareTitle) ?>" placeholder="Título (vacío = nombre del local)" class="form-input" style="margin-bottom:8px">
+        <input type="text" name="share_desc" maxlength="200" value="<?= htmlspecialchars($shareDesc) ?>" placeholder="Descripción (vacío = lema)" class="form-input" style="margin-bottom:12px">
         <div style="display:flex;gap:14px;align-items:flex-start">
           <?php if ($shareUrl): ?>
             <img src="<?= htmlspecialchars($shareUrl) ?>" alt="Imagen para compartir" style="width:140px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;flex-shrink:0">
